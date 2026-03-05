@@ -16,6 +16,9 @@
   "description": "",
   "dependencies": {
     "@clack/prompts": "^1.1.0",
-    "figlet": "^1.10.0"
+    "@google/genai": "^1.44.0",
+    "archy": "^1.0.0",
+    "figlet": "^1.10.0",
+    "ollama": "^0.6.3"
   }
 }
