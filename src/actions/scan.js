@@ -3,36 +3,42 @@ import fs from "fs";
 import path from "path";
 import archy from "archy";
 import { getConfig } from "../utils/config.js";
+import { wait } from "../utils/helpers.js";
+import { ARCHONE_DIR_PATH } from "../constants.js";
 
 export default async () => {
   const target = process.argv.slice(4)[0] || process.cwd();
   const spinner = clack.spinner();
 
-  const scan = scanDirectory(process.cwd());
+  spinner.start("Scanning project...");
+  await wait(1000);
+  spinner.stop("Scan complete!");
 
+  const scanResult = scanDirectory(target);
   clack.note(
     target +
       "\n\n" +
-      archy(scan.structure) +
+      archy(scanResult.structure) +
       "\n\n" +
-      scan.state.fileCount +
+      scanResult.state.fileCount +
       " files and " +
-      scan.state.folderCount +
+      scanResult.state.folderCount +
       " folders found." +
-      "\n\nScanning up to " +
-      scan.state.level +
+      "\nScanning up to " +
+      scanResult.state.level +
       " levels deep.",
+    "Scan Results:",
   );
 
-  spinner.start("Analyzing project with AI...");
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-  spinner.stop("Analysis complete!");
+  saveScanResults(scanResult);
 };
 
-function scanDirectory(
+/// helpers
+
+const scanDirectory = (
   dir,
   state = { fileCount: 0, folderCount: 0, level: 1 },
-) {
+) => {
   const structure = {
     label: path.basename(dir),
     nodes: [],
@@ -49,10 +55,17 @@ function scanDirectory(
 
   const files = fs.readdirSync(dir, { withFileTypes: true });
 
+  // TODO fix the file count bug
+
   for (const file of files) {
-    if (ignored.includes(file.name) || file.name.startsWith(".")) continue;
+    if (
+      ignored.includes(file.name) ||
+      (file.isDirectory() && file.name.startsWith("."))
+    )
+      continue;
 
     if (file.isDirectory()) {
+      state.folderCount += 1;
       const result = scanDirectory(file.parentPath + "/" + file.name, {
         ...state,
         level: state.level + 1,
@@ -62,10 +75,9 @@ function scanDirectory(
       newState = result.state;
 
       structure.nodes.push(subStructure);
-      state.folderCount += 1;
     } else {
-      structure.nodes.push(file.name);
       state.fileCount += 1;
+      structure.nodes.push(file.name);
     }
   }
 
@@ -77,4 +89,15 @@ function scanDirectory(
     structure,
     state: newState,
   };
-}
+};
+
+const saveScanResults = (results) => {
+  if (!fs.existsSync(".archone")) {
+    fs.mkdirSync(".archone");
+  }
+
+  fs.writeFileSync(
+    ".archone/scan-result.json",
+    JSON.stringify(results, null, 2),
+  );
+};

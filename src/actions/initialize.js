@@ -126,6 +126,14 @@ export default async () => {
     saveToEnv("AI_API_KEY", config.aiApiKey);
   }
 
+  fs.mkdirSync(".archone");
+
+  if (fs.existsSync(".gitignore")) {
+    fs.appendFileSync(".gitignore", "\n.archone\narchone.*", (err) => {
+      console.log(err);
+    });
+  }
+
   fs.writeFileSync(
     "archone.config.json",
     JSON.stringify(configToSave, null, 2),

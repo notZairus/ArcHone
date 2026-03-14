@@ -1,4 +1,7 @@
 node_modules
 .env
 dist
+.archone
+archone.*
+.archone
 archone.*
