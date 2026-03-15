@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { mainBanner } from "./ui/banner.js";
 import boxen from "boxen";
 
 //ACTIONS
 import initialize from "./actions/initialize.js";
-import scan from "./actions/scan.js";
+import login from "./actions/login.js";
+import about from "./actions/about.js";
 import analyze from "./actions/analyze.js";
 
 const commands = [
@@ -13,6 +13,23 @@ const commands = [
     triggers: ["init"],
     description: "Initialize the project.",
     function: initialize,
+  },
+  {
+    triggers: ["login"],
+    description: "Log in to your Archone account.",
+    function: login,
+  },
+  {
+    triggers: ["register"],
+    description: "Register for an Archone account.",
+    function: () => {
+      console.log("Registering...");
+    },
+  },
+  {
+    triggers: ["about"],
+    description: "About Archone.",
+    function: about,
   },
   {
     triggers: ["analyze"],

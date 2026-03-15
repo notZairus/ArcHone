@@ -1,23 +1,57 @@
+const POSSIBLE_ISSUES = [
+  {
+    title: "High Complexity",
+    penalty: 2.0,
+  },
+  {
+    title: "Deep Nesting",
+    penalty: 1.5,
+  },
+  {
+    title: "Function Too Long",
+    penalty: 1.25,
+  },
+  {
+    title: "Too Many Parameters",
+    penalty: 1.0,
+  },
+  {
+    title: "Name Reuse",
+    penalty: 0.75,
+  },
+  {
+    title: "Poor Variable Naming",
+    penalty: 0.75,
+  },
+  {
+    title: "Commented-out Code",
+    penalty: 0.5,
+  },
+  {
+    title: "TODO Comment",
+    penalty: 0.2,
+  },
+  {
+    title: "Use of var",
+    penalty: 0.25,
+  },
+];
+
 export default (fileName, result) => {
   const focusedIssues = result.issues.filter((issue) =>
-    [
-      "Deep Nesting",
-      "Function Too Long",
-      "Poor Variable Naming",
-      "TODO Comment",
-    ].includes(issue.title),
+    POSSIBLE_ISSUES.map((issue) => issue.title).includes(issue.title),
   );
 
   const prioritizedIssues = prioritizeIssues(focusedIssues);
-  const displayedIssues = prioritizedIssues.slice(0, 3);
-  const score = calculateOverallScore(focusedIssues);
+
+  const score = calculateOverallScore(prioritizedIssues);
 
   const lines = [
-    `File: ${fileName}`,
+    `Analysis of the file ${fileName}`,
     "",
-    `Issues Found: ${displayedIssues.length}`,
+    `Issues Found: ${prioritizedIssues.length}`,
     "",
-    ...formatIssuesForBeginners(displayedIssues),
+    ...formatIssuesForBeginners(prioritizedIssues),
     "",
     `Overall Score: ${score}/10`,
   ];
@@ -47,7 +81,7 @@ const formatIssuesForBeginners = (issues) => {
     return ["No major issues found. Nice work."];
   }
 
-  const maxItems = 3;
+  const maxItems = issues.length;
   const output = issues.slice(0, maxItems).map((issue, index) => {
     const block = [`${index + 1}. ${issue.title || "Issue"}`];
 
@@ -85,12 +119,11 @@ const calculateOverallScore = (issues) => {
   }
 
   // Weighted penalties by issue type with diminishing returns per category.
-  const basePenaltyByTitle = {
-    "Deep Nesting": 1.5,
-    "Function Too Long": 1.0,
-    "Poor Variable Naming": 0.75,
-    "TODO Comment": 0.5,
-  };
+  const basePenaltyByTitle = {};
+
+  POSSIBLE_ISSUES.forEach((issue) => {
+    basePenaltyByTitle[issue.title] = issue.penalty;
+  });
 
   const countsByTitle = new Map();
   for (const issue of issues) {

@@ -1,4 +1,6 @@
 import figlet from "figlet";
+import chalk from "chalk";
+import boxen from "boxen";
 
 export const mainBanner = () => {
   console.log(

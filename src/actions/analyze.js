@@ -1,8 +1,6 @@
 import fs from "fs";
 import { boxError, boxSuccess } from "../ui/box.js";
-import jsParser from "../parser/js-parser.js";
-import analyzeJavaScriptTree from "../analyzer/js-analyzer.js";
-import formatAnalysisReport from "../formatter/js-formatter.js";
+import analyzeJavaScript from "../analyzer/javascript.js";
 import { VALID_FILE_EXTENSIONS } from "../constants.js";
 
 export default () => {
@@ -49,9 +47,7 @@ export default () => {
 
   switch (fileExtension) {
     case "js":
-      const tree = jsParser(sourceCode);
-      const result = analyzeJavaScriptTree(tree, sourceCode);
-      output = formatAnalysisReport(fileToAnalyze, result);
+      output = analyzeJavaScript(sourceCode, fileToAnalyze);
       break;
     default:
       boxError(
