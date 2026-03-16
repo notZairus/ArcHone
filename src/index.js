@@ -4,6 +4,7 @@ import boxen from "boxen";
 
 //ACTIONS
 import initialize from "./actions/initialize.js";
+import register from "./actions/register.js";
 import login from "./actions/login.js";
 import about from "./actions/about.js";
 import analyze from "./actions/analyze.js";
@@ -22,9 +23,7 @@ const commands = [
   {
     triggers: ["register"],
     description: "Register for an Archone account.",
-    function: () => {
-      console.log("Registering...");
-    },
+    function: register,
   },
   {
     triggers: ["about"],

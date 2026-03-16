@@ -4,7 +4,7 @@ import formatAnalysisReport from "../formatter/js-formatter.js";
 export default function analyzeJavaScript(sourceCode, fileToAnalyze) {
   const tree = jsParser(sourceCode);
   const result = analyzeTree(tree, sourceCode);
-  // console.log(result.issues);
+  console.log(result);
   return formatAnalysisReport(fileToAnalyze, result);
 }
 
@@ -59,7 +59,9 @@ const analyzeTree = (tree, sourceCode) => {
 
     if (node.type === "variable_declarator") {
       const nameField = node.childForFieldName("name");
+      const valueField = node.childForFieldName("value");
       const kind = inferVariableKind(parent);
+      const dataType = inferVariableDataType(valueField, sourceCode);
 
       for (const idNode of extractIdentifiersFromPattern(nameField)) {
         const variableName = getNodeText(idNode, sourceCode);
@@ -68,6 +70,7 @@ const analyzeTree = (tree, sourceCode) => {
         variables.push({
           name: variableName,
           kind,
+          dataType,
           line: getLine(idNode),
         });
 
@@ -80,7 +83,10 @@ const analyzeTree = (tree, sourceCode) => {
       return;
     }
 
-    if (node.type === "identifier") {
+    if (
+      node.type === "identifier" ||
+      node.type === "shorthand_property_identifier"
+    ) {
       const key = getNodeKey(node);
       if (declarationNodeKeys.has(key)) {
         return;
@@ -131,10 +137,23 @@ const analyzeTree = (tree, sourceCode) => {
         why: "Clear names help new contributors understand code faster.",
       });
     }
+
+    if (!isCamelCaseName(variable.name)) {
+      issues.push({
+        title: "Naming Convention",
+        type: "improvement",
+        line: variable.line,
+        message: `Variable name \`${variable.name}\` should use camelCase.`,
+        suggestion:
+          "Rename it to camelCase (for example, `totalScore`, `isValidUser`).",
+        why: "Consistent camelCase naming improves readability in JavaScript codebases.",
+      });
+    }
   }
 
   for (const fn of functionDeclarationNames) {
     const usageCount = identifierUsageCount.get(fn.name) || 0;
+
     if (usageCount === 0) {
       issues.push({
         title: "Unused Function",
@@ -143,6 +162,18 @@ const analyzeTree = (tree, sourceCode) => {
         message: `Function \`${fn.name}\` might be declared but never used.`,
         suggestion: "Remove it, export it, or invoke it where required.",
         why: "Dead code increases maintenance cost.",
+      });
+    }
+
+    if (!isCamelCaseName(fn.name)) {
+      issues.push({
+        title: "Naming Convention",
+        type: "improvement",
+        line: fn.line,
+        message: `Function name \`${fn.name}\` should use camelCase.`,
+        suggestion:
+          "Rename it to camelCase (for example, `parseScores`, `analyzeResults`).",
+        why: "Consistent camelCase naming makes JavaScript APIs easier to scan and use.",
       });
     }
   }
@@ -186,7 +217,7 @@ const analyzeTree = (tree, sourceCode) => {
       });
     }
 
-    if (fn.complexity > 10) {
+    if (fn.complexity > 8) {
       issues.push({
         title: "High Complexity",
         type: "warning",
@@ -303,6 +334,71 @@ const inferVariableKind = (parent) => {
   return "unknown";
 };
 
+const inferVariableDataType = (valueNode, sourceCode) => {
+  if (!valueNode) {
+    return "unknown";
+  }
+
+  if (valueNode.type === "parenthesized_expression") {
+    const expressionNode = valueNode.childForFieldName("expression");
+    return inferVariableDataType(expressionNode, sourceCode);
+  }
+
+  if (valueNode.type === "string" || valueNode.type === "template_string") {
+    return "string";
+  }
+
+  if (valueNode.type === "number") {
+    return "number";
+  }
+
+  if (valueNode.type === "true" || valueNode.type === "false") {
+    return "boolean";
+  }
+
+  if (valueNode.type === "null") {
+    return "null";
+  }
+
+  if (valueNode.type === "array") {
+    return "array";
+  }
+
+  if (valueNode.type === "object") {
+    return "object";
+  }
+
+  if (
+    valueNode.type === "function" ||
+    valueNode.type === "function_expression" ||
+    valueNode.type === "arrow_function"
+  ) {
+    return "function";
+  }
+
+  if (valueNode.type === "new_expression") {
+    return "instance";
+  }
+
+  if (valueNode.type === "regex") {
+    return "regexp";
+  }
+
+  if (valueNode.type === "identifier") {
+    const text = getNodeText(valueNode, sourceCode);
+
+    if (text === "undefined") {
+      return "undefined";
+    }
+
+    if (text === "NaN" || text === "Infinity") {
+      return "number";
+    }
+  }
+
+  return "unknown";
+};
+
 const countParameterIdentifiers = (parametersNode) => {
   if (!parametersNode) {
     return 0;
@@ -328,13 +424,6 @@ const estimateCyclomaticComplexity = (functionNode) => {
   traverseTree(functionNode, (node) => {
     if (complexityNodes.has(node.type)) {
       complexity += 1;
-    }
-
-    if (node.type === "binary_expression") {
-      const operatorNode = node.childForFieldName("operator");
-      if (operatorNode && ["&&", "||", "??"].includes(operatorNode.type)) {
-        complexity += 1;
-      }
     }
   });
 
@@ -406,6 +495,10 @@ const isPoorVariableName = (name) => {
   }
 
   return /^(tmp|temp|data|value|item|obj|arr)[0-9]+$/i.test(name);
+};
+
+const isCamelCaseName = (name) => {
+  return /^[a-z][A-Za-z0-9]*$/.test(name);
 };
 
 const looksLikeCommentedCode = (commentText) => {

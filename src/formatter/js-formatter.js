@@ -24,6 +24,10 @@ const POSSIBLE_ISSUES = [
     penalty: 0.75,
   },
   {
+    title: "Naming Convention",
+    penalty: 0.75,
+  },
+  {
     title: "Commented-out Code",
     penalty: 0.5,
   },
@@ -38,11 +42,7 @@ const POSSIBLE_ISSUES = [
 ];
 
 export default (fileName, result) => {
-  const focusedIssues = result.issues.filter((issue) =>
-    POSSIBLE_ISSUES.map((issue) => issue.title).includes(issue.title),
-  );
-
-  const prioritizedIssues = prioritizeIssues(focusedIssues);
+  const prioritizedIssues = prioritizeIssues(result.issues || []);
 
   const score = calculateOverallScore(prioritizedIssues);
 

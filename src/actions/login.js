@@ -1,9 +1,9 @@
-// TODO: login action
-
 import boxen from "boxen";
-import clack from "../lib/clack.js";
 import chalk from "chalk";
+
+import { account } from "../lib/appwrite.js";
 import { mainBanner } from "../ui/banner.js";
+import clack from "../lib/clack.js";
 
 export default async function login() {
   console.clear();
@@ -17,19 +17,31 @@ export default async function login() {
     }),
   );
 
-  const username = await clack.text({
-    message: "Enter your username:",
-    placeholder: "Username",
-  });
+  const { email, password } = await clack.group(
+    {
+      email: () =>
+        clack.text({
+          message: "Enter your email:",
+          placeholder: "Email",
+        }),
+      password: () =>
+        clack.password({
+          message: "Enter your password:",
+          placeholder: "Password",
+        }),
+    },
+    {
+      onCancel: () => {
+        clack.outro("Login cancelled.");
+        process.exit(0);
+      },
+    },
+  );
 
-  const password = await clack.password({
-    message: "Enter your password:",
-    placeholder: "Password",
-  });
-
-  if (username === "admin" && password === "password") {
+  try {
+    await account.createEmailPasswordSession(email, password);
     clack.outro(chalk.green("Login successful!"));
-  } else {
-    clack.outro(chalk.red("Invalid Credentials."));
+  } catch (error) {
+    clack.outro(chalk.red(`Login failed: ${error.message}`));
   }
 }
