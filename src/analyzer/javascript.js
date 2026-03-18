@@ -1,11 +1,9 @@
 import jsParser from "../parser/js-parser.js";
-import formatAnalysisReport from "../formatter/js-formatter.js";
 
-export default function analyzeJavaScript(sourceCode, fileToAnalyze) {
+export default function analyzeJavaScript(sourceCode) {
   const tree = jsParser(sourceCode);
   const result = analyzeTree(tree, sourceCode);
-  console.log(result);
-  return formatAnalysisReport(fileToAnalyze, result);
+  return result;
 }
 
 // --- helpers --- //

@@ -76,7 +76,7 @@ const commands = [
   },
 ];
 
-const main = async () => {
+async function main() {
   const action = process.argv[2];
 
   for (const command of commands) {
@@ -84,7 +84,7 @@ const main = async () => {
       await command.function();
     }
   }
-};
+}
 
 main().catch((err) => {
   console.error("An error occurred:", err);

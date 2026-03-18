@@ -1,9 +1,12 @@
 import fs from "fs";
+
 import { boxError, boxSuccess } from "../ui/box.js";
 import analyzeJavaScript from "../analyzer/javascript.js";
 import { VALID_FILE_EXTENSIONS } from "../constants.js";
+import formatAnalysisResult from "../formatter/js-formatter.js";
+import Database from "../lib/db.js";
 
-export default () => {
+export default async () => {
   const fileToAnalyze = process.argv[3] || null;
   const completeFilePath = process.cwd() + "/" + fileToAnalyze;
 
@@ -43,11 +46,10 @@ export default () => {
 
   const sourceCode = fs.readFileSync(completeFilePath, "utf-8") || "";
 
-  let output = null;
-
+  let result = null;
   switch (fileExtension) {
     case "js":
-      output = analyzeJavaScript(sourceCode, fileToAnalyze);
+      result = analyzeJavaScript(sourceCode);
       break;
     default:
       boxError(
@@ -56,5 +58,7 @@ export default () => {
       break;
   }
 
-  boxSuccess(output);
+  await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
+
+  boxSuccess(formatAnalysisResult(fileToAnalyze, result));
 };

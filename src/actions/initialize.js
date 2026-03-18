@@ -4,8 +4,6 @@ import path from "path";
 import os from "os";
 import chalk from "chalk";
 import boxen from "boxen";
-import Database from "better-sqlite3";
-
 import { mainBanner } from "../ui/banner.js";
 
 export default async () => {
@@ -38,8 +36,7 @@ export default async () => {
     return;
   }
 
-  const homeDir = os.homedir();
-  const archoneDir = path.join(homeDir, ".archone");
+  const archoneDir = path.join(os.homedir(), ".archone");
 
   if (fs.existsSync(archoneDir)) {
     clack.outro(
@@ -52,10 +49,7 @@ export default async () => {
 
   try {
     fs.mkdirSync(archoneDir);
-    fs.writeFileSync(path.join(archoneDir, ".env"), ""); // Create empty .env
-    fs.writeFileSync(path.join(archoneDir, "archone.db"), ""); // Create empty archone.db
-
-    await initializeDatabase();
+    fs.writeFileSync(path.join(archoneDir, "session.json"), "");
 
     clack.outro(
       chalk.green(
@@ -67,9 +61,3 @@ export default async () => {
   }
 };
 
-async function initializeDatabase() {
-  const dbPath = path.join(os.homedir(), ".archone", "archone.db");
-  const db = new Database(dbPath);
-
-  // TODO: Implement database initialization logic here (e.g., create tables, set up schema, etc.)
-}

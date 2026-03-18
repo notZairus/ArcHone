@@ -1,4 +1,5 @@
 import path from "path";
+import os from "os";
 
 export const ignoreDirs = {
   javascript: ["node_modules", "dist", "build", "coverage", ".archone"],
@@ -22,3 +23,10 @@ export const ignoreDirs = {
 export const ARCHONE_DIR_PATH = path.join(process.cwd(), "archone");
 
 export const VALID_FILE_EXTENSIONS = ["js", "cpp", "cs", "vb", "py"];
+
+
+
+export const APPWRITE_DATABASE_ID = "69b86a1600132cab3e71";
+
+
+export const ARCHONE_DIR = path.join(os.homedir(), ".archone");
