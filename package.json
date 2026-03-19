@@ -19,7 +19,6 @@
     "@google/genai": "^1.44.0",
     "appwrite": "^23.0.0",
     "archy": "^1.0.0",
-    "better-sqlite3": "^12.8.0",
     "boxen": "^8.0.1",
     "figlet": "^1.10.0",
     "ollama": "^0.6.3",

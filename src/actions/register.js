@@ -18,12 +18,17 @@ export default async function register() {
     }),
   );
 
-  const { email, password, confirmPassword } = await clack.group(
+  const { email, name, password, confirmPassword } = await clack.group(
     {
       email: () =>
         clack.text({
           message: "Enter your email:",
           placeholder: "Email",
+        }),
+      name: () =>
+        clack.text({
+          message: "Enter your name:",
+          placeholder: "Name",
         }),
       password: () =>
         clack.password({
@@ -50,7 +55,12 @@ export default async function register() {
   }
 
   try {
-    const user = await account.create(ID.unique(), email, password);
+    const user = await account.create({
+      userId: ID.unique(),
+      email,
+      name,
+      password,
+    });
     clack.outro(chalk.green("Registration successful! You can now log in."));
   } catch (error) {
     clack.outro(chalk.red(`Registration failed: ${error.message}`));

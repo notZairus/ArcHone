@@ -1,8 +1,11 @@
+import { Query } from "appwrite";
+
 import { tablesDB } from "./appwrite.js";
 import { APPWRITE_DATABASE_ID } from "../constants.js";
 import { getSession } from "../utils/session.js";
 
 export default class Database {
+  // saves analysis result on the db
   static async saveAnalysisResult(fileName, fileType, analysisResult) {
     const { userId } = await getSession();
     if (!userId) return;
@@ -12,88 +15,90 @@ export default class Database {
       tableId: "analyses",
       rowId: "unique()",
       data: {
-        user_id: userId,
-        file_name: fileName,
-        file_type: fileType,
+        userId: userId,
+        fileName: fileName,
+        fileType: fileType,
       },
     });
 
-    for (const func of analysisResult.functions) {
-      await saveFunction(func, analysisId);
+    const entries = Object.entries(analysisResult);
+
+    for (const [key, value] of entries) {
+      for (const item of value) {
+        await analysisPropertySaver(key, analysisId, item);
+      }
     }
 
-    for (const comment of analysisResult.comments) {
-      await saveComments(comment, analysisId);
-    }
+    return;
+  }
 
-    for (const variable of analysisResult.variables) {
-      await saveVariables(variable, analysisId);
-    }
+  // fetch all analyses of the user from the db
+  static async getUserAnalyses() {
+    const { userId } = await getSession();
+    if (!userId) return;
 
-    for (const issue of analysisResult.issues) {
-      await saveIssues(issue, analysisId);
-    }
+    const analyses = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "analyses",
+      queries: [Query.equal("userId", userId)],
+    });
+
+    const formattedAnalyses = analyses.rows.map((analysis) => ({
+      id: analysis.$id,
+      fileName: analysis.fileName,
+      fileType: analysis.fileType,
+      createdAt: analysis.$createdAt,
+      updatedAt: analysis.$updatedAt,
+    }));
+
+    const properties = ["comments", "issues", "functions", "variables"];
+
+    const formattedAnalysesWithProperties = await Promise.all(
+      formattedAnalyses.map(async (analysis) => {
+        const analysisId = analysis.id;
+        const propertiesData = {};
+
+        for (const property of properties) {
+          propertiesData[property] = await getAnalysisProperty(
+            property,
+            analysisId,
+          );
+        }
+
+        return {
+          ...analysis,
+          ...propertiesData,
+        };
+      }),
+    );
+
+    return formattedAnalysesWithProperties;
   }
 }
 
-async function saveFunction(func, analysisId) {
+// ========================== Helper functions ========================== //
+
+async function analysisPropertySaver(tableId, analysisId, data) {
   await tablesDB.createRow({
     databaseId: APPWRITE_DATABASE_ID,
-    tableId: "functions",
+    tableId,
     rowId: "unique()",
     data: {
-      analysis_id: analysisId,
-      name: func.name,
-      line: func.line,
-      lines: func.lines,
-      parameter_count: func.parameterCount,
-      complexity: func.complexity,
-      max_nesting: func.maxNesting,
+      analysisId: analysisId,
+      ...data,
     },
   });
 }
 
-async function saveComments(comment, analysisId) {
-  await tablesDB.createRow({
+async function getAnalysisProperty(tableId, analysisId) {
+  const properties = await tablesDB.listRows({
     databaseId: APPWRITE_DATABASE_ID,
-    tableId: "comments",
-    rowId: "unique()",
-    data: {
-      analysis_id: analysisId,
-      text: comment.text,
-      line: comment.line,
-    },
+    tableId,
+    queries: [Query.equal("analysisId", analysisId)],
   });
-}
 
-async function saveVariables(variable, analysisId) {
-  await tablesDB.createRow({
-    databaseId: APPWRITE_DATABASE_ID,
-    tableId: "variables",
-    rowId: "unique()",
-    data: {
-      analysis_id: analysisId,
-      name: variable.name,
-      line: variable.line,
-      kind: variable.kind,
-      data_type: variable.dataType,
-    },
-  });
-}
-
-async function saveIssues(issue, analysisId) {
-  await tablesDB.createRow({
-    databaseId: APPWRITE_DATABASE_ID,
-    tableId: "issues",
-    rowId: "unique()",
-    data: {
-      analysis_id: analysisId,
-      title: issue.title,
-      type: issue.type,
-      line: issue.line,
-      message: issue.message,
-      suggestion: issue.suggestion,
-      why: issue.why,
-    },
-  });
+  return properties.rows.map((property) => ({
+    id: property.$id,
+    ...property,
+  }));
 }

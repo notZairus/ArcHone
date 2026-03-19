@@ -12,14 +12,24 @@ export default async function login() {
   console.clear();
   mainBanner();
 
-  if (! fs.existsSync(ARCHONE_DIR) || !fs.existsSync(path.join(ARCHONE_DIR, "session.json"))) {
-    console.log(chalk.red(boxen("ArchOne is not initialized. Please run 'archone init' first to set up the project.", {
-      padding: 1,
-      borderStyle: "round",
-      title: "ArchOne Not Initialized",
-    })) + "\n");
+  if (
+    !fs.existsSync(ARCHONE_DIR) ||
+    !fs.existsSync(path.join(ARCHONE_DIR, "session.json"))
+  ) {
+    console.log(
+      chalk.red(
+        boxen(
+          "ArchOne is not initialized. Please run 'archone init' first to set up the project.",
+          {
+            padding: 1,
+            borderStyle: "round",
+            title: "ArchOne Not Initialized",
+          },
+        ),
+      ) + "\n",
+    );
     return;
-  } 
+  }
 
   console.log(
     boxen("Please enter your credentials to log in.", {

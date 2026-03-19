@@ -50,6 +50,7 @@ export default async () => {
   switch (fileExtension) {
     case "js":
       result = analyzeJavaScript(sourceCode);
+      console.log(result);
       break;
     default:
       boxError(

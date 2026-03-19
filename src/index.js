@@ -8,6 +8,7 @@ import register from "./actions/register.js";
 import login from "./actions/login.js";
 import about from "./actions/about.js";
 import analyze from "./actions/analyze.js";
+import stats from "./actions/stats.js";
 
 const commands = [
   {
@@ -36,11 +37,9 @@ const commands = [
     function: analyze,
   },
   {
-    triggers: ["analyze-folder"],
-    description: "Analyze a specific folder",
-    function: () => {
-      console.log("Analyzing folder...");
-    },
+    triggers: ["stats"],
+    description: "Display user analysis statistics.",
+    function: stats,
   },
   {
     triggers: ["help"],
@@ -53,15 +52,11 @@ const commands = [
       console.log("\n");
 
       console.log(
-        boxen(
-          `${commandString.join("\n")}\n\nArchie says: "Only use the available commands or I'll start debugging your dreams!"`,
-          {
-            padding: 1,
-            borderColor: "green",
-            borderStyle: "round",
-            title: "(^‿^): Archie here, ready to serve (and sass)!",
-          },
-        ),
+        boxen(`${commandString.join("\n")}`, {
+          padding: 1,
+          borderStyle: "round",
+          title: "ArcHone CLI - Available Commands",
+        }),
       );
 
       console.log("\n");
@@ -78,6 +73,13 @@ const commands = [
 
 async function main() {
   const action = process.argv[2];
+
+  if (!action) {
+    console.log(
+      "Please provide a command. Use 'help' to see the available commands.",
+    );
+    return;
+  }
 
   for (const command of commands) {
     if (command.triggers.includes(action)) {
