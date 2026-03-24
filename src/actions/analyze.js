@@ -2,6 +2,7 @@ import fs from "fs";
 
 import { boxError, boxSuccess } from "../ui/box.js";
 import analyzeJavaScript from "../analyzer/javascript.js";
+import analyzePython from "../analyzer/python.js";
 import { VALID_FILE_EXTENSIONS } from "../constants.js";
 import formatAnalysisResult from "../formatter/js-formatter.js";
 import Database from "../lib/db.js";
@@ -50,7 +51,9 @@ export default async () => {
   switch (fileExtension) {
     case "js":
       result = analyzeJavaScript(sourceCode);
-      console.log(result);
+      break;
+    case "py":
+      result = analyzePython(sourceCode);
       break;
     default:
       boxError(

@@ -1,4 +1,4 @@
-import jsParser from "../parser/js-parser.js";
+import jsParser from "../parser/javascript.js";
 
 export default function analyzeJavaScript(sourceCode) {
   const tree = jsParser(sourceCode);
@@ -106,7 +106,7 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Unused Variable",
         type: "warning",
         line: variable.line,
-        message: `\`${variable.name}\` might be declared but never used.`,
+        message: `\`${variable.name}\` might bewww declared but never used.`,
         suggestion: "Delete it if unnecessary, or use it where needed.",
         why: "Unused variables create noise and make code harder to read.",
       });
