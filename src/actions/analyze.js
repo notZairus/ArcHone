@@ -4,7 +4,7 @@ import { boxError, boxSuccess } from "../ui/box.js";
 import analyzeJavaScript from "../analyzer/javascript.js";
 import analyzePython from "../analyzer/python.js";
 import { VALID_FILE_EXTENSIONS } from "../constants.js";
-import formatAnalysisResult from "../formatter/js-formatter.js";
+import formatAnalysisResult from "../formatter/formatter.js";
 import Database from "../lib/db.js";
 
 export default async () => {
