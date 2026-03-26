@@ -16,7 +16,7 @@ const analyzeTree = (tree, sourceCode) => {
 
   const declarationNodeKeys = new Set();
   const identifierUsageCount = new Map();
-  const variableNameDeclarationCount = new Map();
+  const variableNameDeclarationByScope = new Map();
   const functionDeclarationNames = [];
 
   traverseTree(tree.rootNode, (node, parent) => {
@@ -63,6 +63,8 @@ const analyzeTree = (tree, sourceCode) => {
 
       for (const idNode of extractIdentifiersFromPattern(nameField)) {
         const variableName = getNodeText(idNode, sourceCode);
+        const scopeKey = getDeclarationScopeKey(node, kind);
+        const scopeNameKey = `${scopeKey}::${variableName}`;
 
         declarationNodeKeys.add(getNodeKey(idNode));
         variables.push({
@@ -70,12 +72,20 @@ const analyzeTree = (tree, sourceCode) => {
           kind,
           dataType,
           line: getLine(idNode),
+          scopeKey,
         });
 
-        variableNameDeclarationCount.set(
-          variableName,
-          (variableNameDeclarationCount.get(variableName) || 0) + 1,
-        );
+        const existing = variableNameDeclarationByScope.get(scopeNameKey);
+        if (!existing) {
+          variableNameDeclarationByScope.set(scopeNameKey, {
+            name: variableName,
+            scopeKey,
+            count: 1,
+            firstLine: getLine(idNode),
+          });
+        } else {
+          existing.count += 1;
+        }
       }
 
       return;
@@ -176,14 +186,13 @@ const analyzeTree = (tree, sourceCode) => {
     }
   }
 
-  for (const [name, count] of variableNameDeclarationCount.entries()) {
-    if (count > 1) {
-      const firstDecl = variables.find((v) => v.name === name);
+  for (const declaration of variableNameDeclarationByScope.values()) {
+    if (declaration.count > 1) {
       issues.push({
         title: "Name Reuse",
         type: "improvement",
-        line: firstDecl ? firstDecl.line : 1,
-        message: `Variable name \`${name}\` is reused ${count} times.`,
+        line: declaration.firstLine,
+        message: `Variable name \`${declaration.name}\` is reused ${declaration.count} times in the same scope.`,
         suggestion: "Use more specific names to avoid shadowing/confusion.",
         why: "Repeated names can hide bugs and make debugging harder.",
       });
@@ -397,6 +406,46 @@ const inferVariableDataType = (valueNode, sourceCode) => {
   return "unknown";
 };
 
+const getDeclarationScopeKey = (declaratorNode, variableKind) => {
+  const scopeNode = findDeclarationScopeNode(declaratorNode, variableKind);
+  return getNodeKey(scopeNode);
+};
+
+const findDeclarationScopeNode = (node, variableKind) => {
+  const varScopeTypes = new Set([
+    "program",
+    "function_declaration",
+    "function_expression",
+    "arrow_function",
+    "generator_function_declaration",
+    "generator_function",
+    "method_definition",
+  ]);
+
+  const lexicalScopeTypes = new Set([
+    "program",
+    "statement_block",
+    "for_statement",
+    "for_in_statement",
+    "for_of_statement",
+    "switch_statement",
+    "catch_clause",
+  ]);
+
+  const scopeTypes = variableKind === "var" ? varScopeTypes : lexicalScopeTypes;
+
+  let current = node;
+  while (current) {
+    if (scopeTypes.has(current.type)) {
+      return current;
+    }
+
+    current = current.parent;
+  }
+
+  return node;
+};
+
 const countParameterIdentifiers = (parametersNode) => {
   if (!parametersNode) {
     return 0;
@@ -496,6 +545,9 @@ const isPoorVariableName = (name) => {
 };
 
 const isCamelCaseName = (name) => {
+  if (/^[A-Z0-9_]+$/.test(name)) {
+    return true;
+  }
   return /^[a-z][A-Za-z0-9]*$/.test(name);
 };
 

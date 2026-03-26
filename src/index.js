@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import boxen from "boxen";
+import figlet from "figlet";
 
 //ACTIONS
 import initialize from "./actions/initialize.js";
@@ -13,61 +14,141 @@ import stats from "./actions/stats.js";
 const commands = [
   {
     triggers: ["init"],
-    description: "Initialize the project.",
+    description:
+      "Set up ArcHone in the current project by creating the required local configuration and startup files.",
     function: initialize,
   },
   {
     triggers: ["login"],
-    description: "Log in to your Archone account.",
+    description:
+      "Authenticate with your ArcHone account so this CLI can access your saved profile and cloud features.",
     function: login,
   },
   {
     triggers: ["register"],
-    description: "Register for an Archone account.",
+    description:
+      "Create a new ArcHone account and connect it to this CLI so you can start analyzing files right away.",
     function: register,
   },
   {
     triggers: ["about"],
-    description: "About Archone.",
+    description:
+      "Show an overview of ArcHone, including what the tool does and how it helps with code analysis.",
     function: about,
   },
   {
-    triggers: ["analyze"],
-    description: "Analyze the a single file.",
-    function: analyze,
-  },
-  {
     triggers: ["stats"],
-    description: "Display user analysis statistics.",
+    description:
+      "Display your personal analysis metrics, such as scan activity and usage patterns from previous runs.",
     function: stats,
   },
   {
     triggers: ["help"],
-    description: "Display the available commands.",
+    description:
+      "Open Archie assistant mode to see command explanations, practical hints, and quick-start guidance.",
     function: () => {
-      const commandString = commands.map((command) => {
-        return `- ${command.triggers.join(", ")}`;
+      const maxWidth = Math.min(process.stdout.columns || 100, 100);
+      const contentWidth = Math.max(56, maxWidth - 10);
+
+      const wrapText = (text, width) => {
+        const words = text.split(" ");
+        const lines = [];
+        let currentLine = "";
+
+        for (const word of words) {
+          const candidate = currentLine ? `${currentLine} ${word}` : word;
+          if (candidate.length <= width) {
+            currentLine = candidate;
+          } else {
+            if (currentLine) {
+              lines.push(currentLine);
+            }
+            currentLine = word;
+          }
+        }
+
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+
+        return lines;
+      };
+
+      const commandRows = commands
+        .filter((command) => !command.triggers.includes("help"))
+        .map((command) => {
+          const triggerLabel = `- ${command.triggers.join(", ")}`.padEnd(
+            14,
+            " ",
+          );
+          const wrappedDescription = wrapText(
+            command.description,
+            contentWidth - 14,
+          );
+
+          return wrappedDescription
+            .map((line, index) => {
+              return `${index === 0 ? triggerLabel : " ".repeat(14)}${line}`;
+            })
+            .join("\n");
+        });
+
+      const archieHeader = figlet.textSync("Archone", {
+        font: "Small Slant",
+        horizontalLayout: "default",
+        verticalLayout: "default",
       });
 
-      console.log("\n");
+      const archieIntro = [
+        "(^_^): Hi, I am Archie, your ArcHone assistant.",
+        "Here is a quick guide to everything you can run:",
+      ].join("\n");
 
+      const usageHints = [
+        "Try: try running the 'archone analyze' command to get started with your first analysis.",
+        "Need this panel again? Run: archone help",
+      ]
+        .flatMap((hint) => wrapText(hint, contentWidth))
+        .join("\n");
+
+      const helpPanel = [
+        archieIntro,
+        "",
+        "Commands",
+        commandRows.join("\n"),
+        "",
+        "Quick Hints",
+        usageHints,
+      ].join("\n");
+
+      console.log("\n");
+      console.log(archieHeader);
       console.log(
-        boxen(`${commandString.join("\n")}`, {
-          padding: 1,
-          borderStyle: "round",
-          title: "ArcHone CLI - Available Commands",
+        boxen(helpPanel, {
+          width: maxWidth,
+          padding: { top: 1, right: 2, bottom: 1, left: 2 },
+          margin: { top: 0, right: 0, bottom: 0, left: 0 },
+          borderStyle: "double",
+          title: "ArcHone CLI Guide",
+          titleAlignment: "center",
         }),
       );
-
       console.log("\n");
     },
   },
   {
     triggers: ["version"],
-    description: "Display the current version of the tool.",
+    description:
+      "Show the currently installed ArcHone CLI version so you can confirm updates and compatibility.",
     function: async () => {
       console.log("Checking version...");
     },
+  },
+  {
+    triggers: ["analyze"],
+    description:
+      "Run ArcHone analysis on a specific source file and return insights about code quality, structure, and issues.",
+    function: analyze,
   },
 ];
 

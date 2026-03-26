@@ -14,9 +14,11 @@ const analyzeTree = (tree, sourceCode) => {
 
   const declarationNodeKeys = new Set();
   const identifierUsageCount = new Map();
+  const identifierUsageCountByName = new Map();
   const variableNameDeclarationCount = new Map();
+  const variableNameDeclarationMeta = new Map();
   const functionDeclarationNames = [];
-  const seenVariableNames = new Set();
+  const seenVariableNamesByScope = new Map();
 
   traverseTree(tree.rootNode, (node, parent) => {
     if (node.type === "comment") {
@@ -54,25 +56,44 @@ const analyzeTree = (tree, sourceCode) => {
 
       for (const idNode of extractIdentifiersFromPattern(leftNode)) {
         const variableName = getNodeText(idNode, sourceCode);
+        const scopeKey = getDeclarationScopeKey(idNode);
+        const declarationKey = `${scopeKey}::${variableName}`;
         declarationNodeKeys.add(getNodeKey(idNode));
 
-        if (seenVariableNames.has(variableName)) {
+        if (
+          hasSeenVariableInScope(
+            seenVariableNamesByScope,
+            scopeKey,
+            variableName,
+          )
+        ) {
           continue;
         }
 
-        seenVariableNames.add(variableName);
+        markVariableSeenInScope(
+          seenVariableNamesByScope,
+          scopeKey,
+          variableName,
+        );
 
         variables.push({
           name: variableName,
           kind,
           dataType,
           line: getLine(idNode),
+          scopeKey,
         });
 
         variableNameDeclarationCount.set(
-          variableName,
-          (variableNameDeclarationCount.get(variableName) || 0) + 1,
+          declarationKey,
+          (variableNameDeclarationCount.get(declarationKey) || 0) + 1,
         );
+        if (!variableNameDeclarationMeta.has(declarationKey)) {
+          variableNameDeclarationMeta.set(declarationKey, {
+            name: variableName,
+            line: getLine(idNode),
+          });
+        }
       }
 
       return;
@@ -83,25 +104,44 @@ const analyzeTree = (tree, sourceCode) => {
 
       for (const idNode of extractIdentifiersFromPattern(leftNode)) {
         const variableName = getNodeText(idNode, sourceCode);
+        const scopeKey = getDeclarationScopeKey(idNode);
+        const declarationKey = `${scopeKey}::${variableName}`;
         declarationNodeKeys.add(getNodeKey(idNode));
 
-        if (seenVariableNames.has(variableName)) {
+        if (
+          hasSeenVariableInScope(
+            seenVariableNamesByScope,
+            scopeKey,
+            variableName,
+          )
+        ) {
           continue;
         }
 
-        seenVariableNames.add(variableName);
+        markVariableSeenInScope(
+          seenVariableNamesByScope,
+          scopeKey,
+          variableName,
+        );
 
         variables.push({
           name: variableName,
           kind: "loop",
           dataType: "unknown",
           line: getLine(idNode),
+          scopeKey,
         });
 
         variableNameDeclarationCount.set(
-          variableName,
-          (variableNameDeclarationCount.get(variableName) || 0) + 1,
+          declarationKey,
+          (variableNameDeclarationCount.get(declarationKey) || 0) + 1,
         );
+        if (!variableNameDeclarationMeta.has(declarationKey)) {
+          variableNameDeclarationMeta.set(declarationKey, {
+            name: variableName,
+            line: getLine(idNode),
+          });
+        }
       }
 
       return;
@@ -114,15 +154,22 @@ const analyzeTree = (tree, sourceCode) => {
       }
 
       const identifierName = getNodeText(node, sourceCode);
+      const scopeKey = getDeclarationScopeKey(node);
+      const usageKey = `${scopeKey}::${identifierName}`;
       identifierUsageCount.set(
+        usageKey,
+        (identifierUsageCount.get(usageKey) || 0) + 1,
+      );
+      identifierUsageCountByName.set(
         identifierName,
-        (identifierUsageCount.get(identifierName) || 0) + 1,
+        (identifierUsageCountByName.get(identifierName) || 0) + 1,
       );
     }
   });
 
   for (const variable of variables) {
-    const usageCount = identifierUsageCount.get(variable.name) || 0;
+    const usageKey = `${variable.scopeKey}::${variable.name}`;
+    const usageCount = identifierUsageCount.get(usageKey) || 0;
 
     if (usageCount === 0) {
       issues.push({
@@ -161,7 +208,7 @@ const analyzeTree = (tree, sourceCode) => {
   }
 
   for (const fn of functionDeclarationNames) {
-    const usageCount = identifierUsageCount.get(fn.name) || 0;
+    const usageCount = identifierUsageCountByName.get(fn.name) || 0;
 
     if (usageCount === 0) {
       issues.push({
@@ -187,14 +234,17 @@ const analyzeTree = (tree, sourceCode) => {
     }
   }
 
-  for (const [name, count] of variableNameDeclarationCount.entries()) {
+  for (const [
+    declarationKey,
+    count,
+  ] of variableNameDeclarationCount.entries()) {
     if (count > 1) {
-      const firstDecl = variables.find((v) => v.name === name);
+      const declarationMeta = variableNameDeclarationMeta.get(declarationKey);
       issues.push({
         title: "Name Reuse",
         type: "improvement",
-        line: firstDecl ? firstDecl.line : 1,
-        message: `Variable name \`${name}\` is reused ${count} times.`,
+        line: declarationMeta ? declarationMeta.line : 1,
+        message: `Variable name \`${declarationMeta ? declarationMeta.name : "value"}\` is reused ${count} times in the same scope.`,
         suggestion: "Use more specific names to avoid confusion.",
         why: "Repeated names can hide bugs and make debugging harder.",
       });
@@ -390,6 +440,41 @@ const inferVariableDataType = (valueNode, sourceCode) => {
   }
 
   return "unknown";
+};
+
+const getDeclarationScopeKey = (node) => {
+  let current = node;
+
+  while (current) {
+    if (
+      current.type === "function_definition" ||
+      current.type === "lambda" ||
+      current.type === "module"
+    ) {
+      return `${current.type}:${current.startIndex}:${current.endIndex}`;
+    }
+
+    current = current.parent;
+  }
+
+  return "global";
+};
+
+const hasSeenVariableInScope = (seenMap, scopeKey, variableName) => {
+  const scopedNames = seenMap.get(scopeKey);
+  if (!scopedNames) {
+    return false;
+  }
+
+  return scopedNames.has(variableName);
+};
+
+const markVariableSeenInScope = (seenMap, scopeKey, variableName) => {
+  if (!seenMap.has(scopeKey)) {
+    seenMap.set(scopeKey, new Set());
+  }
+
+  seenMap.get(scopeKey).add(variableName);
 };
 
 const isPoorVariableName = (name) => {

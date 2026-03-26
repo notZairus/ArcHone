@@ -7,19 +7,33 @@ export default async function about() {
   mainBanner();
 
   const aboutText = [
-    "What is Archone?",
+    `${chalk.cyan("Archie:")} Welcome to ArcHone.`,
     "",
-    "Archone is a CLI code analyzer developed to help beginner developers write cleaner and more readable code.",
-    "It also introduces them to industry coding standards by explaining issues in plain language and suggesting practical improvements.",
+    `${chalk.bold("What ArcHone does")}`,
+    "ArcHone analyzes your source files and explains bad coding practices in plain language.",
+    "",
+    `${chalk.bold("Bad practices ArcHone detects")}`,
+    "- Unused variables, imports, and dead code",
+    "- Weak naming and unclear function intent",
+    "- Overly complex or deeply nested logic",
+    "- Risky patterns that hurt readability or maintainability",
+    "",
+    `${chalk.bold("Why it helps")}`,
+    "- Guides user toward cleaner and more readable code",
+    "- Encourages practical industry coding standards",
+    "- Turns analysis results into actionable next steps",
+    "",
+    `${chalk.bold("Best way to start")}`,
+    `Run ${chalk.cyan("archone init")}, then ${chalk.cyan("archone login")}, and finally ${chalk.cyan("archone analyze <file>")}.`,
   ].join("\n");
 
   console.log(
     boxen(aboutText, {
-      title: "About Archone",
-      titleAlignment: "left",
-      borderStyle: "round",
-      padding: 1,
-      margin: 1,
+      title: "About ArcHone",
+      titleAlignment: "center",
+      borderStyle: "double",
+      padding: { top: 1, right: 2, bottom: 1, left: 2 },
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
     }),
   );
   console.log("\n");

@@ -20,13 +20,54 @@ export const ignoreDirs = {
   cpp: ["build", "bin", "obj", "vendor", ".archone"],
 };
 
+export const IGNORED_FILE_NAMES = [
+  "node_modules",
+  ".vscode",
+  ".git",
+  ".gitignore",
+  ".env",
+  "package-lock.json",
+  "yarn.lock",
+  "pnpm-lock.yaml",
+  "Cargo.lock",
+  "Gemfile.lock",
+  "composer.lock",
+  "requirements.txt",
+  "Pipfile.lock",
+  "go.mod",
+  "go.sum",
+  "vendor",
+  "package.json",
+  "composer.json",
+  "Pipfile",
+  "go.mod",
+  "go.sum",
+  "dist",
+  "build",
+  "coverage",
+  ".archone",
+  "__pycache__",
+  "venv",
+  "env",
+  ".pytest_cache",
+  "target",
+  "bin",
+  "out",
+  ".gradle",
+  "vendor",
+  "pkg",
+  "log",
+  "tmp",
+  "cache",
+  "obj",
+  ".vs",
+  "packages",
+];
+
 export const ARCHONE_DIR_PATH = path.join(process.cwd(), "archone");
 
-export const VALID_FILE_EXTENSIONS = ["js", "cpp", "cs", "vb", "py"];
-
-
+export const VALID_FILE_EXTENSIONS = ["js", "cs", "py"];
 
 export const APPWRITE_DATABASE_ID = "69b86a1600132cab3e71";
-
 
 export const ARCHONE_DIR = path.join(os.homedir(), ".archone");

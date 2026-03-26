@@ -12,30 +12,38 @@ export default async function login() {
   console.clear();
   mainBanner();
 
-  if (
-    !fs.existsSync(ARCHONE_DIR) ||
-    !fs.existsSync(path.join(ARCHONE_DIR, "session.json"))
-  ) {
+  const sessionPath = path.join(ARCHONE_DIR, "session.json");
+
+  if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(sessionPath)) {
     console.log(
-      chalk.red(
-        boxen(
-          "ArchOne is not initialized. Please run 'archone init' first to set up the project.",
-          {
-            padding: 1,
-            borderStyle: "round",
-            title: "ArchOne Not Initialized",
-          },
-        ),
-      ) + "\n",
+      boxen(
+        `${chalk.red("Archie:")} I cannot log you in yet because ArcHone is not initialized.\n\nRun ${chalk.cyan("archone init")} first, then come back and run ${chalk.cyan("archone login")}.`,
+        {
+          padding: 1,
+          borderStyle: "round",
+          title: "Initialization Required",
+        },
+      ),
     );
+    clack.outro(chalk.yellow("Login skipped until setup is complete."));
     return;
   }
 
+  const loginGuide = [
+    `${chalk.cyan("Archie:")} Let us get you signed in.`,
+    "",
+    `${chalk.bold("What happens next")}`,
+    "- Enter your ArcHone account email and password",
+    "- ArcHone securely verifies your account",
+    "- Your local session is saved automatically",
+  ].join("\n");
+
   console.log(
-    boxen("Please enter your credentials to log in.", {
-      padding: 1,
-      borderStyle: "round",
-      title: "Archone Login",
+    boxen(loginGuide, {
+      padding: { top: 1, right: 2, bottom: 1, left: 2 },
+      borderStyle: "double",
+      title: "ArcHone Login",
+      titleAlignment: "center",
     }),
   );
 
@@ -54,7 +62,7 @@ export default async function login() {
     },
     {
       onCancel: () => {
-        clack.outro("Login cancelled.");
+        clack.outro(chalk.yellow("Login cancelled."));
         process.exit(0);
       },
     },
@@ -65,13 +73,29 @@ export default async function login() {
     const { userId, expire } = session;
 
     // Save session data to .archone/session.json
-    fs.writeFileSync(
-      path.join(ARCHONE_DIR, "session.json"),
-      JSON.stringify({ userId, expire }, null, 2),
-    );
+    fs.writeFileSync(sessionPath, JSON.stringify({ userId, expire }, null, 2));
 
-    clack.outro(chalk.green("Login successful!"));
+    clack.outro(
+      "\n" +
+        boxen(
+          `${chalk.green("Login successful.")}\n\nYou are now connected and ArcHone can access your account data on this machine.`,
+          {
+            padding: 1,
+            borderStyle: "round",
+            title: "Welcome Back",
+          },
+        ),
+    );
   } catch (error) {
-    clack.outro(chalk.red(`Login failed: ${error.message}`));
+    console.log(
+      boxen(chalk.red(`Login failed: ${error.message}`), {
+        padding: 1,
+        borderStyle: "round",
+        title: "Authentication Error",
+      }),
+    );
+    clack.outro(
+      chalk.red("Archie: Please check your credentials and try again."),
+    );
   }
 }

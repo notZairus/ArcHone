@@ -1,20 +1,28 @@
 import fs from "fs";
+import path from "path";
 
-import { boxError, boxSuccess } from "../ui/box.js";
+import { boxError } from "../ui/box.js";
 import analyzeJavaScript from "../analyzer/javascript.js";
 import analyzePython from "../analyzer/python.js";
+import analyzeCSharp from "../analyzer/csharp.js";
 import { VALID_FILE_EXTENSIONS } from "../constants.js";
 import formatAnalysisResult from "../formatter/formatter.js";
-import Database from "../lib/db.js";
+import boxen from "boxen";
+import clack from "../lib/clack.js";
+import { selectFileFromDirectory } from "../utils/helpers.js";
 
 export default async () => {
-  const fileToAnalyze = process.argv[3] || null;
-  const completeFilePath = process.cwd() + "/" + fileToAnalyze;
+  const providedInputPath = process.argv[3] || null;
+  let completeFilePath = providedInputPath
+    ? path.join(process.cwd(), providedInputPath)
+    : null;
 
-  if (!fileToAnalyze) {
-    boxError(
-      "Please provide a file to analyze using the command: archone analyze <file-path>",
-    );
+  if (!providedInputPath) {
+    completeFilePath = await selectFileFromDirectory(process.cwd());
+  }
+
+  if (!completeFilePath) {
+    clack.outro("Analysis canceled.");
     return;
   }
 
@@ -25,16 +33,26 @@ export default async () => {
     return;
   }
 
-  const stat = fs.statSync(completeFilePath, { withFileType: true });
+  const stat = fs.lstatSync(completeFilePath);
 
-  if (stat.isDirectory() || stat.isSymbolicLink()) {
+  if (stat.isSymbolicLink()) {
     boxError(
-      "Oops! The path you provided is a directory. Please provide a valid file path to analyze.",
+      "Oops! The path you provided is a symbolic link. Please provide a valid file path to analyze.",
     );
     return;
   }
 
-  const fileExtension = fileToAnalyze.split(".").pop();
+  if (stat.isDirectory()) {
+    completeFilePath = await selectFileFromDirectory(completeFilePath);
+
+    if (!completeFilePath) {
+      clack.cancel("Analysis canceled.");
+      return;
+    }
+  }
+
+  const fileToAnalyze = path.relative(process.cwd(), completeFilePath);
+  const fileExtension = path.extname(completeFilePath).slice(1).toLowerCase();
 
   if (!VALID_FILE_EXTENSIONS.includes(fileExtension)) {
     boxError(
@@ -55,14 +73,23 @@ export default async () => {
     case "py":
       result = analyzePython(sourceCode);
       break;
-    default:
-      boxError(
-        `Parsing for .${fileExtension} is not implemented yet. Use a JavaScript file for now.`,
-      );
+    case "cs":
+      result = analyzeCSharp(sourceCode);
       break;
+    default:
+      boxError(`Parsing for .${fileExtension} is not implemented yet.`);
+      return;
   }
 
-  await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
+  // await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
 
-  boxSuccess(formatAnalysisResult(fileToAnalyze, result));
+  console.log(
+    "\n" +
+      boxen(formatAnalysisResult(fileToAnalyze, result), {
+        padding: 1,
+        borderStyle: "double",
+        title: "ArcHone Report",
+        titleAlignment: "center",
+      }),
+  );
 };
