@@ -87,15 +87,13 @@ export default async function login() {
         ),
     );
   } catch (error) {
-    console.log(
-      boxen(chalk.red(`Login failed: ${error.message}`), {
-        padding: 1,
-        borderStyle: "round",
-        title: "Authentication Error",
-      }),
-    );
     clack.outro(
-      chalk.red("Archie: Please check your credentials and try again."),
+      "\n" +
+        boxen(chalk.red(`Login failed: ${error.message}`), {
+          padding: 1,
+          borderStyle: "round",
+          title: "Authentication Error",
+        }),
     );
   }
 }

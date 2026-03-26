@@ -25,6 +25,7 @@ const analyzeTree = (tree, sourceCode) => {
       comments.push({
         line: getLine(node),
         text: getNodeText(node, sourceCode).trim(),
+        code: getNodeText(node, sourceCode),
       });
       return;
     }
@@ -35,7 +36,11 @@ const analyzeTree = (tree, sourceCode) => {
 
       if (nameNode) {
         declarationNodeKeys.add(getNodeKey(nameNode));
-        functionDeclarationNames.push({ name, line: getLine(nameNode) });
+        functionDeclarationNames.push({
+          name,
+          line: getLine(nameNode),
+          code: getNodeText(node, sourceCode),
+        });
       }
 
       const parametersNode = node.childForFieldName("parameters");
@@ -43,7 +48,7 @@ const analyzeTree = (tree, sourceCode) => {
         declarationNodeKeys.add(getNodeKey(idNode));
       }
 
-      functions.push(buildFunctionData(node, name));
+      functions.push(buildFunctionData(node, name, sourceCode));
       return;
     }
 
@@ -82,6 +87,7 @@ const analyzeTree = (tree, sourceCode) => {
           dataType,
           line: getLine(idNode),
           scopeKey,
+          code: getNodeText(node, sourceCode),
         });
 
         variableNameDeclarationCount.set(
@@ -92,6 +98,7 @@ const analyzeTree = (tree, sourceCode) => {
           variableNameDeclarationMeta.set(declarationKey, {
             name: variableName,
             line: getLine(idNode),
+            code: getNodeText(node, sourceCode),
           });
         }
       }
@@ -130,6 +137,7 @@ const analyzeTree = (tree, sourceCode) => {
           dataType: "unknown",
           line: getLine(idNode),
           scopeKey,
+          code: getNodeText(node, sourceCode),
         });
 
         variableNameDeclarationCount.set(
@@ -140,6 +148,7 @@ const analyzeTree = (tree, sourceCode) => {
           variableNameDeclarationMeta.set(declarationKey, {
             name: variableName,
             line: getLine(idNode),
+            code: getNodeText(node, sourceCode),
           });
         }
       }
@@ -179,6 +188,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: `\`${variable.name}\` might be declared but never used.`,
         suggestion: "Delete it if unnecessary, or use it where needed.",
         why: "Unused variables create noise and make code harder to read.",
+        code: variable.code,
       });
     }
 
@@ -191,6 +201,7 @@ const analyzeTree = (tree, sourceCode) => {
         suggestion:
           "Use a descriptive name like `user_count`, `is_valid`, or `total_price`.",
         why: "Clear names help new contributors understand code faster.",
+        code: variable.code,
       });
     }
 
@@ -203,6 +214,7 @@ const analyzeTree = (tree, sourceCode) => {
         suggestion:
           "Rename it to snake_case (for example, `total_score`, `is_valid_user`).",
         why: "Consistent snake_case naming improves readability in Python codebases.",
+        code: variable.code,
       });
     }
   }
@@ -218,6 +230,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: `Function \`${fn.name}\` might be declared but never used.`,
         suggestion: "Remove it or invoke it where required.",
         why: "Dead code increases maintenance cost.",
+        code: fn.code,
       });
     }
 
@@ -230,6 +243,7 @@ const analyzeTree = (tree, sourceCode) => {
         suggestion:
           "Rename it to snake_case (for example, `parse_scores`, `analyze_results`).",
         why: "Consistent snake_case naming makes Python APIs easier to scan and use.",
+        code: fn.code,
       });
     }
   }
@@ -247,6 +261,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: `Variable name \`${declarationMeta ? declarationMeta.name : "value"}\` is reused ${count} times in the same scope.`,
         suggestion: "Use more specific names to avoid confusion.",
         why: "Repeated names can hide bugs and make debugging harder.",
+        code: declarationMeta ? declarationMeta.code : "",
       });
     }
   }
@@ -262,6 +277,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: `Function \`${fn.name}\` is long (${fn.lines} lines).`,
         suggestion: "Split it into smaller functions.",
         why: "Shorter functions are easier to test, debug, and reuse.",
+        code: fn.code,
       });
     }
 
@@ -273,6 +289,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: `Function \`${fn.name}\` has many parameters (${fn.parameterCount}).`,
         suggestion: "Consider grouping parameters into a single config object.",
         why: "Too many parameters increase the chance of passing wrong values.",
+        code: fn.code,
       });
     }
 
@@ -284,6 +301,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: `Function \`${fn.name}\` has high branching complexity (${fn.complexity}).`,
         suggestion: "Reduce branching and extract condition blocks.",
         why: "Complex branches are harder for beginners to understand and validate.",
+        code: fn.code,
       });
     }
 
@@ -295,6 +313,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: `Function \`${fn.name}\` has deep nesting (level ${fn.maxNesting}).`,
         suggestion: "Use guard clauses or early returns to simplify logic.",
         why: "Deep nesting makes control flow difficult to follow.",
+        code: fn.code,
       });
     }
   }
@@ -308,6 +327,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: "Found TODO/FIXME/HACK comment.",
         suggestion: "Resolve unfinished tasks.",
         why: "Pending TODOs can become hidden bugs when ignored.",
+        code: comment.code,
       });
     }
 
@@ -320,6 +340,7 @@ const analyzeTree = (tree, sourceCode) => {
         suggestion:
           "Prefer deleting dead code and using git history for recovery.",
         why: "Commented-out code adds clutter and is often outdated.",
+        code: comment.code,
       });
     }
   }
@@ -332,7 +353,7 @@ const analyzeTree = (tree, sourceCode) => {
   };
 };
 
-const buildFunctionData = (node, name) => {
+const buildFunctionData = (node, name, sourceCode) => {
   const parametersNode = node.childForFieldName("parameters");
 
   return {
@@ -342,6 +363,7 @@ const buildFunctionData = (node, name) => {
     parameterCount: countParameterIdentifiers(parametersNode),
     complexity: estimateCyclomaticComplexity(node),
     maxNesting: estimateMaxNesting(node),
+    code: getNodeText(node, sourceCode),
   };
 };
 
