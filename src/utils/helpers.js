@@ -149,3 +149,22 @@ export const selectFileFromDirectory = async (
     return selectedPath;
   }
 };
+
+export function sortIssuesBySeverity(issues) {
+  const severityRank = {
+    warning: 3,
+    improvement: 2,
+    info: 1,
+  };
+
+  return issues.sort((issueA, issueB) => {
+    const rankA = severityRank[issueA.type] || 0;
+    const rankB = severityRank[issueB.type] || 0;
+
+    if (rankA !== rankB) {
+      return rankB - rankA;
+    }
+
+    return (issueA.line || 0) - (issueB.line || 0);
+  });
+}

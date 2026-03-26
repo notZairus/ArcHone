@@ -10,8 +10,8 @@ export default async () => {
   console.clear();
   mainBanner();
 
-  const archoneDir = ARCHONE_DIR;
-  const sessionPath = path.join(archoneDir, "session.json");
+  const sessionPath = path.join(ARCHONE_DIR, "session.json");
+  const lastAnalysisPath = path.join(ARCHONE_DIR, "last_analysis.json");
 
   const setupGuide = [
     `${chalk.cyan("Archie:")} I will set up ArcHone on this machine.`,
@@ -19,9 +19,10 @@ export default async () => {
     `${chalk.bold("What this setup does")}`,
     "- Creates ~/.archone in your home directory",
     "- Creates session.json for login session data",
+    "- Creates a last_analysis.json file to store your most recent analysis results",
     "",
     `${chalk.bold("Install Location")}`,
-    chalk.yellow(archoneDir),
+    chalk.yellow(ARCHONE_DIR),
   ].join("\n");
 
   console.log(
@@ -44,36 +45,37 @@ export default async () => {
     return;
   }
 
-  if (fs.existsSync(archoneDir)) {
-    console.log(
-      boxen(
-        `${chalk.yellow("ArcHone is already initialized.")}\n\nYou can continue using the CLI normally.\nIf you want a clean reset, remove ~/.archone and run 'archone init' again.`,
-        {
-          padding: 1,
-          borderStyle: "round",
-          title: "No Action Needed",
-        },
-      ),
+  if (fs.existsSync(ARCHONE_DIR)) {
+    clack.outro(
+      "\n" +
+        boxen(
+          `${chalk.yellow("ArcHone is already initialized.")}\n\nYou can continue using the CLI normally.\nIf you want a clean reset, remove ~/.archone and run 'archone init' again.`,
+          {
+            padding: 1,
+            borderStyle: "round",
+            title: "No Action Needed",
+          },
+        ),
     );
-    clack.outro(chalk.yellow("Initialization skipped."));
     return;
   }
 
   try {
-    fs.mkdirSync(archoneDir, { recursive: true });
+    fs.mkdirSync(ARCHONE_DIR, { recursive: true });
     fs.writeFileSync(sessionPath, JSON.stringify({}, null, 2));
+    fs.writeFileSync(lastAnalysisPath, JSON.stringify({}, null, 2));
 
-    console.log(
-      boxen(
-        `${chalk.green("Initialization complete.")}\n\nArcHone is ready on this machine.\nNext step: run ${chalk.cyan("archone login")} to connect your account.`,
-        {
-          padding: 1,
-          borderStyle: "round",
-          title: "Setup Successful",
-        },
-      ),
+    clack.outro(
+      "\n" +
+        boxen(
+          `${chalk.green("Initialization complete.")}\n\nArcHone is ready on this machine.\nNext step: run ${chalk.cyan("archone login")} to connect your account.`,
+          {
+            padding: 1,
+            borderStyle: "round",
+            title: "Setup Successful",
+          },
+        ),
     );
-    clack.outro(chalk.green("Archie: You're all set."));
   } catch (error) {
     clack.outro(chalk.red(`Error initializing project: ${error.message}`));
   }

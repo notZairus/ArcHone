@@ -1,7 +1,7 @@
-import csParser from "../parser/csharp.js";
+import analysisParser from "../parser/analysis-parser.js";
 
-export default function analyzeCSharp(sourceCode) {
-  const tree = csParser(sourceCode);
+export default function analyzeCSharp(sourceCode, fileExtension) {
+  const tree = analysisParser(sourceCode, fileExtension);
   const result = analyzeTree(tree, sourceCode);
   return result;
 }

@@ -5,11 +5,14 @@ import { boxError } from "../ui/box.js";
 import analyzeJavaScript from "../analyzer/javascript.js";
 import analyzePython from "../analyzer/python.js";
 import analyzeCSharp from "../analyzer/csharp.js";
-import { VALID_FILE_EXTENSIONS } from "../constants.js";
-import formatAnalysisResult from "../formatter/formatter.js";
+import { VALID_FILE_EXTENSIONS, ARCHONE_DIR } from "../constants.js";
+import formatAnalysisResult from "../formatter/analysisFormatter.js";
 import boxen from "boxen";
 import clack from "../lib/clack.js";
-import { selectFileFromDirectory } from "../utils/helpers.js";
+import {
+  selectFileFromDirectory,
+  sortIssuesBySeverity,
+} from "../utils/helpers.js";
 
 export default async () => {
   const providedInputPath = process.argv[3] || null;
@@ -68,27 +71,42 @@ export default async () => {
   let result = null;
   switch (fileExtension) {
     case "js":
-      result = analyzeJavaScript(sourceCode);
+      result = analyzeJavaScript(sourceCode, fileExtension);
       break;
     case "py":
-      result = analyzePython(sourceCode);
+      result = analyzePython(sourceCode, fileExtension);
       break;
     case "cs":
-      result = analyzeCSharp(sourceCode);
+      result = analyzeCSharp(sourceCode, fileExtension);
       break;
     default:
       boxError(`Parsing for .${fileExtension} is not implemented yet.`);
       return;
   }
 
+  const sortedIssues = sortIssuesBySeverity(result.issues || []);
+  result.issues = sortedIssues;
+
   // await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
+
+  // save the latest analysis result to a JSON file for future reference
+  const analysisResultPath = path.join(ARCHONE_DIR, "latest_analysis.json");
+
+  fs.writeFileSync(
+    analysisResultPath,
+    JSON.stringify(
+      { file: path.join(process.cwd(), fileToAnalyze), result },
+      null,
+      2,
+    ),
+  );
 
   console.log(
     "\n" +
       boxen(formatAnalysisResult(fileToAnalyze, result), {
         padding: 1,
         borderStyle: "double",
-        title: "ArcHone Report",
+        title: "ArcHone Analysis Result",
         titleAlignment: "center",
       }),
   );

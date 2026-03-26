@@ -1,7 +1,7 @@
-import pyParser from "../parser/python.js";
+import analysisParser from "../parser/analysis-parser.js";
 
-export default function analyzePython(sourceCode) {
-  const tree = pyParser(sourceCode);
+export default function analyzePython(sourceCode, fileExtension) {
+  const tree = analysisParser(sourceCode, fileExtension);
   const result = analyzeTree(tree, sourceCode);
   return result;
 }

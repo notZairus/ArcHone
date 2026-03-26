@@ -1,7 +1,7 @@
-import jsParser from "../parser/javascript.js";
+import analysisParser from "../parser/analysis-parser.js";
 
-export default function analyzeJavaScript(sourceCode) {
-  const tree = jsParser(sourceCode);
+export default function analyzeJavaScript(sourceCode, fileExtenstion) {
+  const tree = analysisParser(sourceCode, fileExtenstion);
   const result = analyzeTree(tree, sourceCode);
   return result;
 }

@@ -9,6 +9,7 @@ import register from "./actions/register.js";
 import login from "./actions/login.js";
 import about from "./actions/about.js";
 import analyze from "./actions/analyze.js";
+import explain from "./actions/explain.js";
 import stats from "./actions/stats.js";
 
 const commands = [
@@ -105,7 +106,7 @@ const commands = [
       ].join("\n");
 
       const usageHints = [
-        "Try: try running the 'archone analyze' command to get started with your first analysis.",
+        "Try running the 'archone analyze' command to get started with your first analysis.",
         "Need this panel again? Run: archone help",
       ]
         .flatMap((hint) => wrapText(hint, contentWidth))
@@ -149,6 +150,12 @@ const commands = [
     description:
       "Run ArcHone analysis on a specific source file and return insights about code quality, structure, and issues.",
     function: analyze,
+  },
+  {
+    triggers: ["explain"],
+    description:
+      "Get a detailed explanation of a specific good practices issue of the latest analysis, including why it matters and how to fix it.",
+    function: explain,
   },
 ];
 

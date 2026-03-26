@@ -1,93 +1,14 @@
 import chalk from "chalk";
-
-const BASE_ISSUE_PENALTIES = [
-  {
-    title: "High Complexity",
-    penalty: 2.0,
-  },
-  {
-    title: "Deep Nesting",
-    penalty: 1.5,
-  },
-  {
-    title: "Function Too Long",
-    penalty: 1.25,
-  },
-  {
-    title: "Too Many Parameters",
-    penalty: 1.0,
-  },
-  {
-    title: "Name Reuse",
-    penalty: 0.75,
-  },
-  {
-    title: "Poor Variable Naming",
-    penalty: 0.75,
-  },
-  {
-    title: "Naming Convention",
-    penalty: 0.75,
-  },
-  {
-    title: "Commented-out Code",
-    penalty: 0.5,
-  },
-  {
-    title: "TODO Comment",
-    penalty: 0.2,
-  },
-];
-
-const LANGUAGE_ISSUE_PENALTIES = {
-  javascript: [
-    {
-      title: "Use of var",
-      penalty: 0.25,
-    },
-  ],
-};
-
-const DEFAULT_PENALTY_BY_TYPE = {
-  critical: 2.5,
-  error: 2.0,
-  warning: 1.0,
-  improvement: 0.75,
-  info: 0.25,
-};
-
-const DEFAULT_FALLBACK_PENALTY = 0.75;
-
-const SEVERITY_RANK = {
-  critical: 0,
-  error: 1,
-  warning: 2,
-  improvement: 3,
-  info: 4,
-  hint: 5,
-  style: 6,
-};
-
-const UNKNOWN_SEVERITY_RANK = 50;
-
-const TYPE_DISPLAY_ORDER = [
-  "critical",
-  "error",
-  "warning",
-  "improvement",
-  "info",
-  "hint",
-  "style",
-  "unknown",
-];
-
-const LANGUAGE_BY_EXTENSION = {
-  js: "javascript",
-  mjs: "javascript",
-  cjs: "javascript",
-  py: "python",
-  cs: "csharp",
-};
+import {
+  BASE_ISSUE_PENALTIES,
+  LANGUAGE_ISSUE_PENALTIES,
+  DEFAULT_PENALTY_BY_TYPE,
+  DEFAULT_FALLBACK_PENALTY,
+  SEVERITY_RANK,
+  UNKNOWN_SEVERITY_RANK,
+  TYPE_DISPLAY_ORDER,
+  LANGUAGE_BY_EXTENSION,
+} from "../constants.js";
 
 const getLanguageFromFileName = (fileName) => {
   if (!fileName || typeof fileName !== "string") {
@@ -126,22 +47,6 @@ const getIssuePenalty = (issue, basePenaltyByTitle) => {
   }
 
   return DEFAULT_FALLBACK_PENALTY;
-};
-
-const safeLine = (value) => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  return Number.MAX_SAFE_INTEGER;
-};
-
-const safeSeverityRank = (type) => {
-  if (!type) {
-    return UNKNOWN_SEVERITY_RANK;
-  }
-
-  return SEVERITY_RANK[type] ?? UNKNOWN_SEVERITY_RANK;
 };
 
 const formatLocation = (issue) => {
@@ -214,7 +119,7 @@ const calculateScoreFromIssues = (issues, basePenaltyByTitle) => {
 };
 
 export default (fileName, result) => {
-  const prioritizedIssues = prioritizeIssues(result.issues || []);
+  const prioritizedIssues = result.issues || [];
   const language = getLanguageFromFileName(fileName);
   const penaltyByTitle = getPenaltyByTitle(language);
 
@@ -294,18 +199,6 @@ const formatTypeTag = (type) => {
 
   const colorize = colorByType[normalizedType] || chalk.white.bold;
   return colorize(label);
-};
-
-const prioritizeIssues = (issues) => {
-  return [...issues].sort((a, b) => {
-    const bySeverity =
-      safeSeverityRank(getIssueType(a)) - safeSeverityRank(getIssueType(b));
-    if (bySeverity !== 0) {
-      return bySeverity;
-    }
-
-    return safeLine(a.line) - safeLine(b.line);
-  });
 };
 
 const formatIssuesForBeginners = (issues) => {
