@@ -2,6 +2,8 @@
 
 import boxen from "boxen";
 import figlet from "figlet";
+import chalk from "chalk";
+import { CONSOLE_MAX_WIDTH } from "./constants.js";
 
 //ACTIONS
 import initialize from "./actions/initialize.js";
@@ -48,8 +50,7 @@ const commands = [
     description:
       "Open Archie assistant mode to see command explanations, practical hints, and quick-start guidance.",
     function: () => {
-      const maxWidth = Math.min(process.stdout.columns || 100, 100);
-      const contentWidth = Math.max(56, maxWidth - 10);
+      const contentWidth = Math.max(56, CONSOLE_MAX_WIDTH - 10);
 
       const wrapText = (text, width) => {
         const words = text.split(" ");
@@ -115,10 +116,10 @@ const commands = [
       const helpPanel = [
         archieIntro,
         "",
-        "Commands",
+        chalk.bold("Commands"),
         commandRows.join("\n"),
         "",
-        "Quick Hints",
+        chalk.bold("Quick Hints"),
         usageHints,
       ].join("\n");
 
@@ -126,7 +127,7 @@ const commands = [
       console.log(archieHeader);
       console.log(
         boxen(helpPanel, {
-          width: maxWidth,
+          width: CONSOLE_MAX_WIDTH,
           padding: { top: 1, right: 2, bottom: 1, left: 2 },
           margin: { top: 0, right: 0, bottom: 0, left: 0 },
           borderStyle: "double",

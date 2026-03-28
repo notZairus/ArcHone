@@ -1,6 +1,7 @@
 import { mainBanner } from "../ui/banner.js";
 import boxen from "boxen";
 import chalk from "chalk";
+import { CONSOLE_MAX_WIDTH } from "../constants.js";
 
 export default async function about() {
   console.clear();
@@ -34,6 +35,7 @@ export default async function about() {
       borderStyle: "double",
       padding: { top: 1, right: 2, bottom: 1, left: 2 },
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      width: CONSOLE_MAX_WIDTH,
     }),
   );
   console.log("\n");

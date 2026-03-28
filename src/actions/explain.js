@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
 
-import { ARCHONE_DIR } from "../constants.js";
+import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
 import { explainIssue } from "../lib/ai.js";
 import parseExplanation from "../parser/explanation-parser.js";
 import formatExplanation from "../formatter/explanationFormatter.js";
 import boxen from "boxen";
+import clack from "../lib/clack.js";
 
 export default async () => {
   const latestAnalysisPath = path.join(ARCHONE_DIR, "latest_analysis.json");
@@ -53,7 +54,13 @@ export default async () => {
     return;
   }
 
-  const parsed = parseExplanation(response);
+  let parsed;
+
+  try {
+    parsed = parseExplanation(response);
+  } catch (error) {
+    console.error("Failed to parse the AI response. Error:", error);
+  }
 
   if (!parsed) {
     console.error("Failed to parse the AI response.");
@@ -64,7 +71,13 @@ export default async () => {
 
   const formattedExplanation = formatExplanation(parsed);
 
+  console.clear();
+
   console.log(
-    boxen(formattedExplanation, { padding: 1, borderStyle: "double" }),
+    boxen(formattedExplanation, {
+      padding: 1,
+      borderStyle: "double",
+      width: CONSOLE_MAX_WIDTH,
+    }),
   );
 };

@@ -7,7 +7,7 @@ const openai = new OpenAI({
 });
 
 export async function explainIssue(issue) {
-  const completion = await openai.chat.completions.create({
+  const stream = await openai.chat.completions.stream({
     model: "arcee-ai/trinity-mini:free",
     messages: [
       {
@@ -25,24 +25,10 @@ export async function explainIssue(issue) {
         schema: {
           type: "object",
           properties: {
-            why: {
-              type: "string",
-              description: "Explanation of why the issue matters",
-            },
-            current_code: {
-              type: "string",
-              description:
-                "The original problematic code. Each line of code should start with this symbol '|'",
-            },
-            fixed_code: {
-              type: "string",
-              description:
-                "The improved version of the code. Each line of code should start with this symbol '|'",
-            },
-            changes: {
-              type: "string",
-              description: "Summary of what was changed",
-            },
+            why: { type: "string" },
+            current_code: { type: "string" },
+            fixed_code: { type: "string" },
+            changes: { type: "string" },
           },
           required: ["why", "current_code", "fixed_code", "changes"],
           additionalProperties: false,
@@ -51,5 +37,16 @@ export async function explainIssue(issue) {
     },
   });
 
-  return completion.choices?.[0]?.message?.content || "";
+  let fullText = "";
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices?.[0]?.delta?.content;
+
+    if (delta) {
+      console.log(delta);
+      fullText += delta;
+    }
+  }
+
+  return fullText;
 }

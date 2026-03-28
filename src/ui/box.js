@@ -1,7 +1,7 @@
 import boxen from "boxen";
 import chalk from "chalk";
 
-export const boxSuccess = (text = "Text Placeholder") => {
+export function boxSuccess(text = "Text Placeholder") {
   console.log("\n");
 
   console.log(
@@ -13,9 +13,9 @@ export const boxSuccess = (text = "Text Placeholder") => {
   );
 
   console.log("\n");
-};
+}
 
-export const boxError = (text = "Text Placeholder") => {
+export function boxError(text = "Text Placeholder") {
   console.log("\n");
 
   console.log(
@@ -27,4 +27,4 @@ export const boxError = (text = "Text Placeholder") => {
   );
 
   console.log("\n");
-};
+}

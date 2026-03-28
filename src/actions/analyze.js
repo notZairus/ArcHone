@@ -5,7 +5,11 @@ import { boxError } from "../ui/box.js";
 import analyzeJavaScript from "../analyzer/javascript.js";
 import analyzePython from "../analyzer/python.js";
 import analyzeCSharp from "../analyzer/csharp.js";
-import { VALID_FILE_EXTENSIONS, ARCHONE_DIR } from "../constants.js";
+import {
+  VALID_FILE_EXTENSIONS,
+  ARCHONE_DIR,
+  CONSOLE_MAX_WIDTH,
+} from "../constants.js";
 import formatAnalysisResult from "../formatter/analysisFormatter.js";
 import boxen from "boxen";
 import clack from "../lib/clack.js";
@@ -101,13 +105,29 @@ export default async () => {
     ),
   );
 
+  console.log("\n");
   console.log(
-    "\n" +
-      boxen(formatAnalysisResult(fileToAnalyze, result), {
-        padding: 1,
-        borderStyle: "double",
-        title: "ArcHone Analysis Result",
-        titleAlignment: "center",
-      }),
+    boxen(formatAnalysisResult(fileToAnalyze, result), {
+      padding: 1,
+      width: CONSOLE_MAX_WIDTH,
+      borderStyle: "double",
+      title: "ArcHone Analysis Result",
+      titleAlignment: "center",
+    }),
   );
+
+  console.log(
+    boxen(
+      "Use archone explain <issue_id> to get a detailed explanation of a specific issue.",
+      {
+        padding: 1,
+        width: CONSOLE_MAX_WIDTH,
+        textAlignment: "center",
+        borderStyle: "double",
+        title: "Tips",
+        titleAlignment: "center",
+      },
+    ),
+  );
+  console.log("\n");
 };

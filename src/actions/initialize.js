@@ -4,7 +4,7 @@ import path from "path";
 import chalk from "chalk";
 import boxen from "boxen";
 import { mainBanner } from "../ui/banner.js";
-import { ARCHONE_DIR } from "../constants.js";
+import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
 
 export default async () => {
   console.clear();
@@ -31,6 +31,7 @@ export default async () => {
       borderStyle: "double",
       title: "ArcHone Initialization",
       titleAlignment: "center",
+      width: CONSOLE_MAX_WIDTH,
     }),
   );
 

@@ -32,12 +32,14 @@ const analyzeTree = (tree, sourceCode) => {
     if (node.type === "function_declaration") {
       const nameNode = node.childForFieldName("name");
       const name = nameNode ? getNodeText(nameNode, sourceCode) : "(anonymous)";
+      const isExported = isExportedDeclaration(node);
 
       if (nameNode) {
         declarationNodeKeys.add(getNodeKey(nameNode));
         functionDeclarationNames.push({
           name,
           line: getLine(nameNode),
+          isExported,
           code: getNodeText(node, sourceCode),
         });
       }
@@ -65,6 +67,7 @@ const analyzeTree = (tree, sourceCode) => {
       const valueField = node.childForFieldName("value");
       const kind = inferVariableKind(parent);
       const dataType = inferVariableDataType(valueField, sourceCode);
+      const isExported = isExportedDeclaration(node);
 
       for (const idNode of extractIdentifiersFromPattern(nameField)) {
         const variableName = getNodeText(idNode, sourceCode);
@@ -78,6 +81,7 @@ const analyzeTree = (tree, sourceCode) => {
           dataType,
           line: getLine(idNode),
           scopeKey,
+          isExported,
           code: getVariableDeclarationCode(node, sourceCode),
         });
 
@@ -118,7 +122,7 @@ const analyzeTree = (tree, sourceCode) => {
   for (const variable of variables) {
     const usageCount = identifierUsageCount.get(variable.name) || 0;
 
-    if (usageCount === 0) {
+    if (usageCount === 0 && !variable.isExported) {
       issues.push({
         title: "Unused Variable",
         type: "warning",
@@ -173,7 +177,7 @@ const analyzeTree = (tree, sourceCode) => {
   for (const fn of functionDeclarationNames) {
     const usageCount = identifierUsageCount.get(fn.name) || 0;
 
-    if (usageCount === 0) {
+    if (usageCount === 0 && !fn.isExported) {
       issues.push({
         title: "Unused Function",
         type: "warning",
@@ -352,6 +356,24 @@ const inferFunctionNameNode = (node, parent) => {
   }
 
   return node.childForFieldName("name");
+};
+
+const isExportedDeclaration = (node) => {
+  let current = node;
+
+  while (current) {
+    if (
+      current.type === "export_statement" ||
+      current.type === "export_clause" ||
+      current.type === "export_specifier"
+    ) {
+      return true;
+    }
+
+    current = current.parent;
+  }
+
+  return false;
 };
 
 const inferVariableKind = (parent) => {
