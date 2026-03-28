@@ -1,18 +1,26 @@
-import Parser from "tree-sitter";
-import CSharp from "tree-sitter-c-sharp";
-import Javascript from "tree-sitter-javascript";
-import Python from "tree-sitter-python";
+import {Parser, Language} from "web-tree-sitter";
 
-export default (sourceCode, language) => {
-  const parser = new Parser();
-  if (language === "js") {
-    parser.setLanguage(Javascript);
-    return parser.parse(sourceCode);
-  } else if (language === "cs") {
-    parser.setLanguage(CSharp);
-    return parser.parse(sourceCode);
-  } else if (language === "py") {
-    parser.setLanguage(Python);
-    return parser.parse(sourceCode);
+const getWasmPath = (language) => {
+  const wasmPaths = {
+    js: "src/wasm/tree-sitter-javascript.wasm",
+    py: "src/wasm/tree-sitter-python.wasm",
+    cs: "src/wasm/tree-sitter-c_sharp.wasm",
+  };
+  return wasmPaths[language]; 
+};
+
+let parsers = {};
+
+export default async (sourceCode, language) => {
+  await Parser.init();
+
+  if (!parsers[language]) {
+    const wasmPath = getWasmPath(language);
+    const languageModule = await Language.load(wasmPath); 
+    const parser = new Parser();
+    parser.setLanguage(languageModule);
+    parsers[language] = parser;
   }
+
+  return parsers[language].parse(sourceCode);
 };
