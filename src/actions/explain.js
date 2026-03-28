@@ -49,6 +49,8 @@ export default async () => {
 
   const response = await explainIssue(selectedIssue);
 
+  console.clear();
+
   if (!response) {
     console.error("Failed to get a valid explanation from the AI.");
     return;

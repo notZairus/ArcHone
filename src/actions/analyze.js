@@ -17,6 +17,7 @@ import {
   selectFileFromDirectory,
   sortIssuesBySeverity,
 } from "../utils/helpers.js";
+import Database from "../lib/db.js";
 
 export default async () => {
   const providedInputPath = process.argv[3] || null;
@@ -75,13 +76,13 @@ export default async () => {
   let result = null;
   switch (fileExtension) {
     case "js":
-      result = analyzeJavaScript(sourceCode, fileExtension);
+      result = await analyzeJavaScript(sourceCode, fileExtension);
       break;
     case "py":
-      result = analyzePython(sourceCode, fileExtension);
+      result = await analyzePython(sourceCode, fileExtension);
       break;
     case "cs":
-      result = analyzeCSharp(sourceCode, fileExtension);
+      result = await analyzeCSharp(sourceCode, fileExtension);
       break;
     default:
       boxError(`Parsing for .${fileExtension} is not implemented yet.`);
@@ -91,7 +92,7 @@ export default async () => {
   const sortedIssues = sortIssuesBySeverity(result.issues || []);
   result.issues = sortedIssues;
 
-  // await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
+  await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
 
   // save the latest analysis result to a JSON file for future reference
   const analysisResultPath = path.join(ARCHONE_DIR, "latest_analysis.json");

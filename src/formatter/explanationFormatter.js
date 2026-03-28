@@ -1,26 +1,23 @@
-import marked from "../lib/marked.js";
-import boxen from "boxen";
+import chalk from "chalk";
 
 export default (parsed) => {
-  const markdownOutput = [
-    "## ArcHone AI Explanation",
+  const formatted = [
+    chalk.bold("ArcHone AI Explanation"),
     "",
-    "### Why This Matters",
+    chalk.bold("Why This Matters"),
     parsed.why,
     "",
-    "### Current Code",
+    chalk.bold("Current Code"),
     formatCodeBlock(parsed.current_code),
     "",
-    "### Suggested Fix",
+    chalk.bold("Suggested Fix"),
     formatCodeBlock(parsed.fixed_code),
     "",
-    "### What Changed",
+    chalk.bold("What Changed"),
     parsed.changes,
   ].join("\n");
 
-  const renderedOutput = marked.parse(markdownOutput);
-
-  return renderedOutput;
+  return formatted;
 };
 
 const formatCodeBlock = (code) => {
@@ -34,7 +31,7 @@ const formatCodeBlock = (code) => {
     .map((line) => `| ${line}`)
     .join("\n");
 
-  return ["```", pipedContent, "```"].join("\n");
+  return ["", pipedContent, ""].join("\n");
 };
 
 const stripSurroundingBlankLines = (text) => {
