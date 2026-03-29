@@ -25,6 +25,7 @@ export default class Database {
 
     for (const [key, value] of entries) {
       for (const item of value) {
+        console.log("Saving item:", key, item);
         await analysisPropertySaver(key, analysisId, item);
       }
     }
