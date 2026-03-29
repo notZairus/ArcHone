@@ -1,9 +1,16 @@
 import { Parser, Language } from "web-tree-sitter";
+import { fileURLToPath } from "url";
 
 const wasmPaths = {
-  js: "src/wasm/tree-sitter-javascript.wasm",
-  py: "src/wasm/tree-sitter-python.wasm",
-  cs: "src/wasm/tree-sitter-c_sharp.wasm",
+  js: fileURLToPath(
+    new URL("../wasm/tree-sitter-javascript.wasm", import.meta.url),
+  ),
+  py: fileURLToPath(
+    new URL("../wasm/tree-sitter-python.wasm", import.meta.url),
+  ),
+  cs: fileURLToPath(
+    new URL("../wasm/tree-sitter-c_sharp.wasm", import.meta.url),
+  ),
 };
 
 let parsers = {};
