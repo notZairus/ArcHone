@@ -13,6 +13,7 @@ import about from "./actions/about.js";
 import analyze from "./actions/analyze.js";
 import explain from "./actions/explain.js";
 import stats from "./actions/stats.js";
+import scan from "./actions/scan.js";
 
 const commands = [
   {
@@ -151,6 +152,12 @@ const commands = [
     description:
       "Run ArcHone analysis on a specific source file and return insights about code quality, structure, and issues.",
     function: analyze,
+  },
+  {
+    triggers: ["scan"],
+    description:
+      "Analyze all supported source files in a directory and show an aggregated issue summary.",
+    function: scan,
   },
   {
     triggers: ["explain"],

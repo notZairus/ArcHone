@@ -18,6 +18,7 @@
     "@clack/prompts": "^1.1.0",
     "appwrite": "^23.0.0",
     "archy": "^1.0.0",
+    "axios": "1.14.0",
     "boxen": "^8.0.1",
     "figlet": "^1.10.0",
     "openai": "^6.33.0",

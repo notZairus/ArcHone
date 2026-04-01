@@ -4,8 +4,6 @@ import {
   LANGUAGE_ISSUE_PENALTIES,
   DEFAULT_PENALTY_BY_TYPE,
   DEFAULT_FALLBACK_PENALTY,
-  SEVERITY_RANK,
-  UNKNOWN_SEVERITY_RANK,
   TYPE_DISPLAY_ORDER,
   LANGUAGE_BY_EXTENSION,
 } from "../constants.js";
@@ -122,24 +120,32 @@ export default (fileName, result) => {
   const prioritizedIssues = result.issues || [];
   const language = getLanguageFromFileName(fileName);
   const penaltyByTitle = getPenaltyByTitle(language);
+  const positiveHighlights = buildPositiveHighlights(
+    prioritizedIssues,
+    result,
+    language,
+  );
 
   const score = calculateOverallScore(prioritizedIssues, penaltyByTitle);
 
   const lines = [
-    "Archie: Here is your ArcHone analysis summary.",
+    chalk.bold("Archie: Here is your ArcHone analysis summary."),
     "",
-    "What ArcHone analyzed",
+    chalk.bold("What ArcHone analyzed"),
     `- File: ${fileName}`,
     `- Language: ${language}`,
     "",
-    "Bad practices ArcHone detected",
+    chalk.bold("What you did well"),
+    ...positiveHighlights,
+    "",
+    chalk.bold("Bad practices ArcHone detected"),
     `- Total findings: ${prioritizedIssues.length}`,
     `- Severity breakdown: ${formatSeverityBreakdown(prioritizedIssues)}`,
     "",
-    "Overall quality score",
+    chalk.bold("Overall quality score"),
     `- Score: ${score}/10 ${buildScoreBar(score)}`,
     "",
-    "Detailed findings",
+    chalk.bold("Detailed findings"),
     ...formatIssuesForBeginners(prioritizedIssues),
   ];
 
@@ -242,4 +248,88 @@ const calculateOverallScore = (issues, basePenaltyByTitle) => {
   }
 
   return calculateScoreFromIssues(issues, basePenaltyByTitle);
+};
+
+const buildPositiveHighlights = (issues, result, language) => {
+  if (!issues.length) {
+    return [
+      "- Great job: no bad practices detected in this file.",
+      "- Your current structure and style look consistent.",
+    ];
+  }
+
+  const highlights = [];
+  const issueTitles = new Set(issues.map((issue) => getIssueTitle(issue)));
+  const typeCounts = buildTypeCounts(issues);
+  const functionCount = Array.isArray(result.functions)
+    ? result.functions.length
+    : 0;
+  const variableCount = Array.isArray(result.variables)
+    ? result.variables.length
+    : 0;
+
+  if (
+    !typeCounts.get("critical") &&
+    !typeCounts.get("error") &&
+    !typeCounts.get("warning")
+  ) {
+    highlights.push("- No high-severity findings were detected.");
+  }
+
+  if (
+    !issueTitles.has("Function Too Long") &&
+    !issueTitles.has("Too Many Parameters") &&
+    !issueTitles.has("High Complexity") &&
+    !issueTitles.has("Deep Nesting") &&
+    functionCount > 0
+  ) {
+    highlights.push(
+      "- Your function structure is readable (size, parameters, and control flow are under control).",
+    );
+  }
+
+  if (
+    !issueTitles.has("Poor Variable Naming") &&
+    !issueTitles.has("Naming Convention") &&
+    variableCount > 0
+  ) {
+    highlights.push("- Naming looks clear and consistent.");
+  }
+
+  if (
+    !issueTitles.has("Unused Variable") &&
+    !issueTitles.has("Unused Function") &&
+    (functionCount > 0 || variableCount > 0)
+  ) {
+    highlights.push(
+      "- Good job avoiding dead code (unused functions/variables).",
+    );
+  }
+
+  if (
+    language === "javascript" &&
+    !issueTitles.has("Use of var") &&
+    variableCount > 0
+  ) {
+    highlights.push(
+      "- You are using modern JavaScript declaration style (no `var` found).",
+    );
+  }
+
+  if (
+    !issueTitles.has("TODO Comment") &&
+    !issueTitles.has("Commented-out Code")
+  ) {
+    highlights.push(
+      "- Comments are clean with no pending TODO/FIXME or commented-out code warnings.",
+    );
+  }
+
+  if (!highlights.length) {
+    highlights.push(
+      "- You already have a workable foundation here; fixing a few targeted findings will improve quality quickly.",
+    );
+  }
+
+  return highlights.slice(0, 3);
 };

@@ -127,9 +127,10 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Unused Variable",
         type: "warning",
         line: variable.line,
-        message: `\`${variable.name}\` might bewww declared but never used.`,
-        suggestion: "Delete it if unnecessary, or use it where needed.",
-        why: "Unused variables create noise and make code harder to read.",
+        message: `You created \`${variable.name}\`, but your code never uses it.`,
+        suggestion:
+          "Delete this variable if you do not need it, or use it in your code where it belongs.",
+        why: "Extra unused variables make code harder to read because people waste time trying to understand them.",
         code: variable.code,
       });
     }
@@ -139,10 +140,10 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Use of var",
         type: "improvement",
         line: variable.line,
-        message: `\`${variable.name}\` uses \`var\`, which can cause confusing scope behavior.`,
+        message: `\`${variable.name}\` uses \`var\`, which can be confusing in JavaScript.`,
         suggestion:
-          "Use `const` by default, and `let` when reassignment is needed.",
-        why: "Block-scoped variables (`let`/`const`) are safer in modern JavaScript.",
+          "Use `const` by default. Use `let` only when the value needs to change.",
+        why: "`let` and `const` are safer and easier for beginners to understand than `var`.",
         code: variable.code,
       });
     }
@@ -152,10 +153,10 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Poor Variable Naming",
         type: "improvement",
         line: variable.line,
-        message: `Variable name \`${variable.name}\` is unclear.`,
+        message: `The variable name \`${variable.name}\` is not clear.`,
         suggestion:
-          "Use a descriptive name like `userCount`, `isValid`, or `totalPrice`.",
-        why: "Clear names help new contributors understand code faster.",
+          "Rename it to something more descriptive, like `userCount`, `isValid`, or `totalPrice`.",
+        why: "Clear names help you and others understand the code faster.",
         code: variable.code,
       });
     }
@@ -165,10 +166,10 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Naming Convention",
         type: "improvement",
         line: variable.line,
-        message: `Variable name \`${variable.name}\` should use camelCase.`,
+        message: `Variable name \`${variable.name}\` is not written in camelCase.`,
         suggestion:
-          "Rename it to camelCase (for example, `totalScore`, `isValidUser`).",
-        why: "Consistent camelCase naming improves readability in JavaScript codebases.",
+          "Rename it to camelCase, for example `totalScore` or `isValidUser`.",
+        why: "Using one naming style keeps code neat and easier to scan.",
         code: variable.code,
       });
     }
@@ -182,9 +183,10 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Unused Function",
         type: "warning",
         line: fn.line,
-        message: `Function \`${fn.name}\` might be declared but never used.`,
-        suggestion: "Remove it, export it, or invoke it where required.",
-        why: "Dead code increases maintenance cost.",
+        message: `Function \`${fn.name}\` is never called in your code.`,
+        suggestion:
+          "Remove the function if you do not need it, or call it where it should be used.",
+        why: "Unused functions add clutter and can confuse readers about what really runs.",
         code: fn.code,
       });
     }
@@ -194,10 +196,10 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Naming Convention",
         type: "improvement",
         line: fn.line,
-        message: `Function name \`${fn.name}\` should use camelCase.`,
+        message: `Function name \`${fn.name}\` is not written in camelCase.`,
         suggestion:
-          "Rename it to camelCase (for example, `parseScores`, `analyzeResults`).",
-        why: "Consistent camelCase naming makes JavaScript APIs easier to scan and use.",
+          "Rename it to camelCase, for example `parseScores` or `analyzeResults`.",
+        why: "Consistent function names make your code easier to read.",
         code: fn.code,
       });
     }
@@ -209,9 +211,10 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Name Reuse",
         type: "improvement",
         line: declaration.firstLine,
-        message: `Variable name \`${declaration.name}\` is reused ${declaration.count} times in the same scope.`,
-        suggestion: "Use more specific names to avoid shadowing/confusion.",
-        why: "Repeated names can hide bugs and make debugging harder.",
+        message: `Variable name \`${declaration.name}\` appears ${declaration.count} times in the same scope.`,
+        suggestion:
+          "Use different names for different values so each one has a clear purpose.",
+        why: "Reusing names can cause mistakes and makes debugging harder.",
         code: declaration.code,
       });
     }
@@ -225,9 +228,10 @@ const analyzeTree = (tree, sourceCode) => {
         line: fn.line,
         functionName: fn.name,
         functionLines: fn.lines,
-        message: `Function \`${fn.name}\` is long (${fn.lines} lines).`,
-        suggestion: "Split into smaller functions.",
-        why: "Shorter functions are easier to test, debug, and reuse.",
+        message: `Function \`${fn.name}\` is very long (${fn.lines} lines).`,
+        suggestion:
+          "Split this function into smaller helper functions with clear names.",
+        why: "Shorter functions are easier to understand, test, and fix.",
         code: fn.code,
       });
     }
@@ -238,8 +242,9 @@ const analyzeTree = (tree, sourceCode) => {
         type: "improvement",
         line: fn.line,
         message: `Function \`${fn.name}\` has many parameters (${fn.parameterCount}).`,
-        suggestion: "Consider grouping parameters into an options object.",
-        why: "Too many parameters increase the chance of passing values in the wrong order.",
+        suggestion:
+          "Group related parameters into one object to make function calls simpler.",
+        why: "Too many parameters are easy to mix up and hard to remember.",
         code: fn.code,
       });
     }
@@ -249,9 +254,10 @@ const analyzeTree = (tree, sourceCode) => {
         title: "High Complexity",
         type: "warning",
         line: fn.line,
-        message: `Function \`${fn.name}\` has high branching complexity (${fn.complexity}).`,
-        suggestion: "Reduce branching and extract condition blocks.",
-        why: "Complex branches are harder for beginners to understand and validate.",
+        message: `Function \`${fn.name}\` has complex logic with many branches (${fn.complexity}).`,
+        suggestion:
+          "Simplify conditions and move parts of the logic into smaller helper functions.",
+        why: "Complex code is harder to test and easier to break by accident.",
         code: fn.code,
       });
     }
@@ -262,8 +268,9 @@ const analyzeTree = (tree, sourceCode) => {
         type: "warning",
         line: fn.line,
         message: `Function \`${fn.name}\` has deep nesting (level ${fn.maxNesting}).`,
-        suggestion: "Use early return to simplify logic.",
-        why: "Deep nesting makes control flow difficult to follow.",
+        suggestion:
+          "Use early returns and helper functions to flatten nested blocks.",
+        why: "Deep nesting is hard to read because you must track many levels at once.",
         code: fn.code,
       });
     }
@@ -275,9 +282,11 @@ const analyzeTree = (tree, sourceCode) => {
         title: "TODO Comment",
         type: "info",
         line: comment.line,
-        message: "Found TODO/FIXME/HACK comment.",
-        suggestion: "Resolve unfinished tasks.",
-        why: "Pending TODOs can become hidden bugs when ignored.",
+        message:
+          "Found a TODO/FIXME/HACK comment. This usually means the work is not finished.",
+        suggestion:
+          "Write a short note about what is missing, then finish or remove this TODO as soon as you can.",
+        why: "Old TODO comments are easy to forget and may turn into bugs later.",
         code: comment.code,
       });
     }
@@ -287,10 +296,11 @@ const analyzeTree = (tree, sourceCode) => {
         title: "Commented-out Code",
         type: "improvement",
         line: comment.line,
-        message: "Comment appears to contain disabled code.",
+        message:
+          "This comment looks like old disabled code, not an explanation.",
         suggestion:
-          "Prefer deleting dead code and using git history for recovery.",
-        why: "Commented-out code adds clutter and is often outdated.",
+          "Delete commented-out code. Keep comments for explanations only.",
+        why: "Old code in comments makes the real code harder to read.",
         code: comment.code,
       });
     }

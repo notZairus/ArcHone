@@ -3,7 +3,7 @@ import OpenAI from "openai";
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey:
-    "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",
+    "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",
 });
 
 export async function explainIssue(issue) {
@@ -50,3 +50,19 @@ export async function explainIssue(issue) {
 
   return fullText;
 }
+
+////////////////////////////////////////////////////////////
+// calls the serverless function to get the explanation for a specific issue
+// export async function explainIssue(issue) {
+//   try {
+//     const response = await axios.post(
+//       "https://69ca6ce30003822d6cdc.sgp.appwrite.run",
+//       { issue: issue },
+//     );
+
+//     const data = response.data;
+//     return JSON.stringify(data.output);
+//   } catch (error) {
+//     console.error("Error fetching explanation:", error);
+//   }
+// }

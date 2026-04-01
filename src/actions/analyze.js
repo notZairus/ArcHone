@@ -19,6 +19,8 @@ import {
 } from "../utils/helpers.js";
 import Database from "../lib/db.js";
 
+const spinner = clack.spinner();
+
 export default async () => {
   const providedInputPath = process.argv[3] || null;
   let completeFilePath = providedInputPath
@@ -92,8 +94,6 @@ export default async () => {
   const sortedIssues = sortIssuesBySeverity(result.issues || []);
   result.issues = sortedIssues;
 
-  await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
-
   // save the latest analysis result to a JSON file for future reference
   const analysisResultPath = path.join(ARCHONE_DIR, "latest_analysis.json");
 
@@ -131,4 +131,8 @@ export default async () => {
     ),
   );
   console.log("\n");
+
+  spinner.start("Saving Analysis Result...");
+  await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
+  spinner.stop("Analysis Result Saved!");
 };
