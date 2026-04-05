@@ -17,6 +17,7 @@ import {
   selectFileFromDirectory,
   sortIssuesBySeverity,
 } from "../utils/helpers.js";
+import { withIssuePrinciple } from "../utils/issue-principles.js";
 import Database from "../lib/db.js";
 
 const spinner = clack.spinner();
@@ -91,7 +92,8 @@ export default async () => {
       return;
   }
 
-  const sortedIssues = sortIssuesBySeverity(result.issues || []);
+  const issuesWithPrinciples = (result.issues || []).map(withIssuePrinciple);
+  const sortedIssues = sortIssuesBySeverity(issuesWithPrinciples);
   result.issues = sortedIssues;
 
   // save the latest analysis result to a JSON file for future reference
@@ -117,20 +119,20 @@ export default async () => {
     }),
   );
 
-  console.log(
-    boxen(
-      "Use archone explain <issue_id> to get a detailed explanation of a specific issue.",
-      {
-        padding: 1,
-        width: CONSOLE_MAX_WIDTH,
-        textAlignment: "center",
-        borderStyle: "double",
-        title: "Tips",
-        titleAlignment: "center",
-      },
-    ),
-  );
-  console.log("\n");
+  // console.log(
+  //   boxen(
+  //     "Use archone explain <issue_id> to get a detailed explanation of a specific issue.",
+  //     {
+  //       padding: 1,
+  //       width: CONSOLE_MAX_WIDTH,
+  //       textAlignment: "center",
+  //       borderStyle: "double",
+  //       title: "Tips",
+  //       titleAlignment: "center",
+  //     },
+  //   ),
+  // );
+  // console.log("\n");
 
   spinner.start("Saving Analysis Result...");
   await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);

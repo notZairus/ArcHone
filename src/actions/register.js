@@ -5,6 +5,8 @@ import chalk from "chalk";
 import clack from "../lib/clack.js";
 import { account } from "../lib/appwrite.js";
 import { mainBanner } from "../ui/banner.js";
+import Database from "../lib/db.js";
+import { CONSOLE_MAX_WIDTH } from "../constants.js";
 
 export default async function register() {
   console.clear();
@@ -25,6 +27,7 @@ export default async function register() {
   console.log(
     boxen(registerGuide, {
       padding: { top: 1, right: 2, bottom: 1, left: 2 },
+      width: CONSOLE_MAX_WIDTH,
       borderStyle: "double",
       title: "ArcHone Registration",
       titleAlignment: "center",
@@ -70,6 +73,7 @@ export default async function register() {
         ),
         {
           padding: 1,
+          width: CONSOLE_MAX_WIDTH,
           borderStyle: "round",
           title: "Validation Error",
         },
@@ -80,12 +84,16 @@ export default async function register() {
   }
 
   try {
+    const userId = ID.unique();
+
     await account.create({
-      userId: ID.unique(),
+      userId,
       email,
       name,
       password,
     });
+
+    await Database.saveNewUser(userId, email, name);
 
     clack.outro(
       "\n" +
@@ -93,6 +101,7 @@ export default async function register() {
           `${chalk.green("Registration successful.")}\n\nYour ArcHone account is ready. Next step: run ${chalk.cyan("archone login")} to sign in on this machine.`,
           {
             padding: 1,
+            width: CONSOLE_MAX_WIDTH,
             borderStyle: "round",
             title: "Account Created",
           },
@@ -102,6 +111,7 @@ export default async function register() {
     console.log(
       boxen(chalk.red(`Registration failed: ${error.message}`), {
         padding: 1,
+        width: CONSOLE_MAX_WIDTH,
         borderStyle: "round",
         title: "Registration Error",
       }),

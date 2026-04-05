@@ -1,6 +1,9 @@
 import boxen from "boxen";
 import Database from "../lib/db.js";
 import { boxError, boxSuccess } from "../ui/box.js";
+import { CONSOLE_MAX_WIDTH } from "../constants.js";
+import chalk from "chalk";
+import { getSession } from "../utils/session.js";
 
 export default async function stats() {
   const analyses = await Database.getUserAnalyses();
@@ -15,7 +18,8 @@ export default async function stats() {
     boxen(formatAnalytics(analytics), {
       padding: 2,
       margin: 1,
-      borderStyle: "round",
+      width: CONSOLE_MAX_WIDTH,
+      borderStyle: "double",
     }),
   );
 }
@@ -184,23 +188,29 @@ function buildAnalytics(analyses) {
 }
 
 function formatAnalytics(analytics) {
+  const { name } = getSession() || {};
+
   const lines = [
-    "Archone Developer Stats",
+    chalk.bold(
+      `Archone Developer Stats:     ${name ? chalk.cyan(name) : chalk.yellow("Unknown User")}`,
+    ),
     "",
-    boxen("User Summary", {
+    boxen(chalk.bold("User Summary"), {
       padding: 0,
       margin: 0,
-      borderStyle: "round",
+      borderStyle: "singleDouble",
+      width: CONSOLE_MAX_WIDTH - 20,
     }),
     `Code Quality Score : ${analytics.qualityScore} / 100`,
     `Trend              : ${formatTrend(analytics.trend)}`,
     `Files Analyzed     : ${analytics.totalAnalyses}`,
     `Total Lines        : ${formatNumber(analytics.estimatedTotalLines)}`,
     "",
-    boxen("Issues Overview", {
+    boxen(chalk.bold("Issues Overview"), {
       padding: 0,
       margin: 0,
-      borderStyle: "round",
+      borderStyle: "singleDouble",
+      width: CONSOLE_MAX_WIDTH - 20,
     }),
     `Total Issues       : ${analytics.totalIssues}`,
     `Warnings           : ${analytics.warnings}`,
@@ -210,10 +220,11 @@ function formatAnalytics(analytics) {
     "Top Issues:",
     ...formatTopIssues(analytics.topIssueTitles),
     "",
-    boxen("Code Behavior", {
+    boxen(chalk.bold("Code Behavior"), {
       padding: 0,
       margin: 0,
-      borderStyle: "round",
+      borderStyle: "singleDouble",
+      width: CONSOLE_MAX_WIDTH - 20,
     }),
     `Avg Complexity     : ${analytics.avgComplexity.toFixed(1)}`,
     `Max Complexity     : ${analytics.maxComplexity}`,
@@ -225,23 +236,21 @@ function formatAnalytics(analytics) {
 
   lines.push(
     "",
-    boxen("Progress Insights", {
+    boxen(chalk.bold("Progress Insights"), {
       padding: 0,
       margin: 0,
-      borderStyle: "round",
+      borderStyle: "singleDouble",
+      width: CONSOLE_MAX_WIDTH - 20,
     }),
     ...analytics.insights,
     "",
-    boxen("Recommendations", {
+    boxen(chalk.bold("Recommendations"), {
       padding: 0,
       margin: 0,
-      borderStyle: "round",
+      borderStyle: "singleDouble",
+      width: CONSOLE_MAX_WIDTH - 20,
     }),
     ...analytics.recommendations,
-    "",
-    "------------------------------",
-    `Skill Level: ${analytics.skillLevel}`,
-    "------------------------------",
   );
 
   return lines.join("\n");

@@ -53,6 +53,7 @@ export default async () => {
           `${chalk.yellow("ArcHone is already initialized.")}\n\nYou can continue using the CLI normally.\nIf you want a clean reset, remove ~/.archone and run 'archone init' again.`,
           {
             padding: 1,
+            width: CONSOLE_MAX_WIDTH,
             borderStyle: "round",
             title: "No Action Needed",
           },
@@ -72,6 +73,7 @@ export default async () => {
           `${chalk.green("Initialization complete.")}\n\nArcHone is ready on this machine.\nNext step: run ${chalk.cyan("archone login")} to connect your account.`,
           {
             padding: 1,
+            width: CONSOLE_MAX_WIDTH,
             borderStyle: "round",
             title: "Setup Successful",
           },

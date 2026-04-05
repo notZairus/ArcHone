@@ -11,9 +11,11 @@ import register from "./actions/register.js";
 import login from "./actions/login.js";
 import about from "./actions/about.js";
 import analyze from "./actions/analyze.js";
-import explain from "./actions/explain.js";
+import explain from "./actions/teach.js";
 import stats from "./actions/stats.js";
 import scan from "./actions/scan.js";
+import whoami from "./actions/whoami.js";
+import issues from "./actions/issues.js";
 
 const commands = [
   {
@@ -45,6 +47,18 @@ const commands = [
     description:
       "Display your personal analysis metrics, such as scan activity and usage patterns from previous runs.",
     function: stats,
+  },
+  {
+    triggers: ["who"],
+    description:
+      "Show the authenticated ArcHone user from your local session file.",
+    function: whoami,
+  },
+  {
+    triggers: ["issues"],
+    description:
+      "Show student-friendly lessons for each detectable issue, including why it matters and how to fix it.",
+    function: issues,
   },
   {
     triggers: ["help"],

@@ -6,7 +6,9 @@ import path from "path";
 import { account } from "../lib/appwrite.js";
 import { mainBanner } from "../ui/banner.js";
 import clack from "../lib/clack.js";
-import { ARCHONE_DIR } from "../constants.js";
+import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
+import { TablesDB } from "appwrite";
+import Database from "../lib/db.js";
 
 export default async function login() {
   console.clear();
@@ -20,6 +22,7 @@ export default async function login() {
         `${chalk.red("Archie:")} I cannot log you in yet because ArcHone is not initialized.\n\nRun ${chalk.cyan("archone init")} first, then come back and run ${chalk.cyan("archone login")}.`,
         {
           padding: 1,
+          width: CONSOLE_MAX_WIDTH,
           borderStyle: "round",
           title: "Initialization Required",
         },
@@ -41,6 +44,7 @@ export default async function login() {
   console.log(
     boxen(loginGuide, {
       padding: { top: 1, right: 2, bottom: 1, left: 2 },
+      width: CONSOLE_MAX_WIDTH,
       borderStyle: "double",
       title: "ArcHone Login",
       titleAlignment: "center",
@@ -69,11 +73,18 @@ export default async function login() {
   );
 
   try {
-    const session = await account.createEmailPasswordSession(email, password);
-    const { userId, expire } = session;
+    const { userId, expire } = await account.createEmailPasswordSession(
+      email,
+      password,
+    );
+
+    const user = await Database.getUserById(userId);
 
     // Save session data to .archone/session.json
-    fs.writeFileSync(sessionPath, JSON.stringify({ userId, expire }, null, 2));
+    fs.writeFileSync(
+      sessionPath,
+      JSON.stringify({ userId, name: user.name, expire }, null, 2),
+    );
 
     clack.outro(
       "\n" +
@@ -81,6 +92,7 @@ export default async function login() {
           `${chalk.green("Login successful.")}\n\nYou are now connected and ArcHone can access your account data on this machine.`,
           {
             padding: 1,
+            width: CONSOLE_MAX_WIDTH,
             borderStyle: "round",
             title: "Welcome Back",
           },
@@ -91,6 +103,7 @@ export default async function login() {
       "\n" +
         boxen(chalk.red(`Login failed: ${error.message}`), {
           padding: 1,
+          width: CONSOLE_MAX_WIDTH,
           borderStyle: "round",
           title: "Authentication Error",
         }),

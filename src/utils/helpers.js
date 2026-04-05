@@ -3,7 +3,11 @@ import path from "path";
 import chalk from "chalk";
 import boxen from "boxen";
 import clack from "../lib/clack.js";
-import { VALID_FILE_EXTENSIONS, IGNORED_FILE_NAMES } from "../constants.js";
+import {
+  VALID_FILE_EXTENSIONS,
+  IGNORED_FILE_NAMES,
+  CONSOLE_MAX_WIDTH,
+} from "../constants.js";
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -65,6 +69,7 @@ export const selectFileFromDirectory = async (
             title: "ArcHone Analyze",
             titleAlignment: "center",
             borderStyle: "double",
+            width: CONSOLE_MAX_WIDTH,
             padding: { top: 1, right: 2, bottom: 1, left: 2 },
             margin: { top: 0, right: 0, bottom: 0, left: 0 },
           }),

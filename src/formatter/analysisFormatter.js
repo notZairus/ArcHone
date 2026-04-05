@@ -7,6 +7,7 @@ import {
   TYPE_DISPLAY_ORDER,
   LANGUAGE_BY_EXTENSION,
 } from "../constants.js";
+import { getViolatedPrinciple } from "../utils/issue-principles.js";
 
 const getLanguageFromFileName = (fileName) => {
   if (!fileName || typeof fileName !== "string") {
@@ -227,6 +228,7 @@ const formatIssuesForBeginners = (issues) => {
     }
 
     block.push(formatLocation(issue));
+    block.push(`   Violated principle: ${getViolatedPrinciple(issue)}`);
 
     block.push(`   Advice: ${formatAdvice(issue)}\n`);
 

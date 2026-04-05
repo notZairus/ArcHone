@@ -5,6 +5,19 @@ import { APPWRITE_DATABASE_ID } from "../constants.js";
 import { getSession } from "../utils/session.js";
 
 export default class Database {
+  static async saveNewUser(userId, email, name) {
+    await tablesDB.createRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "users",
+      rowId: userId,
+      data: {
+        userId,
+        email,
+        name,
+      },
+    });
+  }
+
   // saves analysis result on the db
   static async saveAnalysisResult(fileName, fileType, analysisResult) {
     const { userId } = await getSession();
@@ -74,20 +87,50 @@ export default class Database {
 
     return formattedAnalysesWithProperties;
   }
+
+  static async getUserById(userId) {
+    const userData = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "users",
+      queries: [Query.equal("userId", userId)],
+    });
+
+    if (userData.total === 0) {
+      return null;
+    }
+
+    const user = userData.rows[0];
+    return {
+      userId: user.userId,
+      email: user.email,
+      name: user.name,
+    };
+  }
 }
 
 // ========================== Helper functions ========================== //
 
 async function analysisPropertySaver(tableId, analysisId, data) {
+  const sanitizedData = sanitizeDataForTable(tableId, data);
+
   await tablesDB.createRow({
     databaseId: APPWRITE_DATABASE_ID,
     tableId,
     rowId: "unique()",
     data: {
       analysisId: analysisId,
-      ...data,
+      ...sanitizedData,
     },
   });
+}
+
+function sanitizeDataForTable(tableId, data) {
+  if (tableId !== "issues") {
+    return data;
+  }
+
+  const { principle, ...dbCompatibleIssue } = data;
+  return dbCompatibleIssue;
 }
 
 async function getAnalysisProperty(tableId, analysisId) {
