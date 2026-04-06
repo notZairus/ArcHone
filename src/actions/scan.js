@@ -24,6 +24,7 @@ const severityRank = {
 };
 
 export default async () => {
+  console.clear();
   const args = process.argv.slice(3);
   const showAll = args.includes("--all");
   const targetArg = args.find((arg) => arg !== "--all") || ".";
@@ -136,8 +137,6 @@ export default async () => {
   });
 
   const lines = [
-    "Archie: Here is your ArcHone directory scan summary.",
-    "",
     chalk.bold("What ArcHone checked"),
     `- Directory: ${path.relative(process.cwd(), targetPath) || "."}`,
     `- Total files checked: ${sourceFiles.length}`,

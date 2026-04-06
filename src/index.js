@@ -9,6 +9,7 @@ import { CONSOLE_MAX_WIDTH } from "./constants.js";
 import initialize from "./actions/initialize.js";
 import register from "./actions/register.js";
 import login from "./actions/login.js";
+import logout from "./actions/logout.js";
 import about from "./actions/about.js";
 import analyze from "./actions/analyze.js";
 import explain from "./actions/teach.js";
@@ -31,6 +32,12 @@ const commands = [
     function: login,
   },
   {
+    triggers: ["logout"],
+    description:
+      "Sign out on this machine by clearing your local ArcHone session file.",
+    function: logout,
+  },
+  {
     triggers: ["register"],
     description:
       "Create a new ArcHone account and connect it to this CLI so you can start analyzing files right away.",
@@ -50,8 +57,7 @@ const commands = [
   },
   {
     triggers: ["who"],
-    description:
-      "Show the authenticated ArcHone user from your local session file.",
+    description: "Show the authenticated ArcHone user.\n",
     function: whoami,
   },
   {
@@ -65,6 +71,7 @@ const commands = [
     description:
       "Open Archie assistant mode to see command explanations, practical hints, and quick-start guidance.",
     function: () => {
+      console.clear();
       const contentWidth = Math.max(56, CONSOLE_MAX_WIDTH - 10);
 
       const wrapText = (text, width) => {
@@ -117,7 +124,6 @@ const commands = [
       });
 
       const archieIntro = [
-        "(^_^): Hi, I am Archie, your ArcHone assistant.",
         "Here is a quick guide to everything you can run:",
       ].join("\n");
 
@@ -132,7 +138,8 @@ const commands = [
         archieIntro,
         "",
         chalk.bold("Commands"),
-        commandRows.join("\n"),
+        "",
+        commandRows.join("\n\n"),
         "",
         chalk.bold("Quick Hints"),
         usageHints,

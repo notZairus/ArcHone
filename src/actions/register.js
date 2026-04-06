@@ -13,8 +13,9 @@ export default async function register() {
   mainBanner();
 
   const registerGuide = [
-    `${chalk.cyan("Archie:")} Let us create your ArcHone account.`,
-    "",
+    `${chalk.bold("Welcome to ArcHone!")}`,
+    `Let's create your ArcHone account so you can start analyzing code and tracking your progress!`,
+    ``,
     `${chalk.bold("What you will provide")}`,
     "- Email address",
     "- Display name",

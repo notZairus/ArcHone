@@ -21,7 +21,7 @@ export function boxError(text = "Text Placeholder") {
   console.log("\n");
 
   console.log(
-    boxen(chalk.red("(≧︿≦): " + text), {
+    boxen(chalk.red(text), {
       borderColor: "red",
       padding: 1,
       width: CONSOLE_MAX_WIDTH,

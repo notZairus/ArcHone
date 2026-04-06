@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { spawnSync } from "child_process";
 import { createRequire } from "module";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
+import { mainBanner } from "../ui/banner.js";
 
 const require = createRequire(import.meta.url);
 const detectableIssues = {
@@ -60,8 +61,8 @@ const detectableIssues = {
       why: "Inconsistent naming makes code harder to scan because students cannot predict identifier styles.",
       suggestion:
         "Follow the language naming style consistently (camelCase, snake_case, or PascalCase based on language rules).",
-      code: "function get_user_name(user_list) {\n  const UserName = user_list[0].name;\n  return UserName;\n}",
-      fix: "function getUserName(userList) {\n  const userName = userList[0].name;\n  return userName;\n}",
+      code: "//Javascript code\n\nfunction get_user_name(user_list) {\n  const UserName = user_list[0].name;\n  return UserName;\n}",
+      fix: "//Javascript code\n\nfunction getUserName(userList) {\n  const userName = userList[0].name;\n  return userName;\n}",
     },
     {
       title: "Name Reuse",
@@ -81,8 +82,8 @@ const detectableIssues = {
       why: "Long functions mix too many tasks, which makes them difficult for students to understand and test.",
       suggestion:
         "Break long functions into small helpers with one clear responsibility.",
-      code: "function processOrder(order) {\n  // validation\n  // pricing\n  // discount\n  // tax\n  // inventory\n  // invoice\n  // notification\n  // audit log\n  // analytics\n  // ... many more lines\n}",
-      fix: "function processOrder(order) {\n  validateOrder(order);\n  const priceSummary = calculatePrice(order);\n  saveInvoice(order, priceSummary);\n  notifyCustomer(order);\n}",
+      code: "// multiple logic code in a single function\n\nfunction processOrder(order) {\n  // logic for validation\n  // logic for pricing\n  // logic for  discount\n  // logic for tax\n  // logic for inventory\n  // logic for invoice\n  // logic for notification\n  // logic for audit log\n  // logic for analytics\n  // ... many more lines\n}",
+      fix: "// each logic has their own function\n\nfunction processOrder(order) {\n  validateOrder(order);\n  const priceSummary = calculatePrice(order);\n  saveInvoice(order, priceSummary);\n  notifyCustomer(order);\n}",
     },
     {
       title: "Too Many Parameters",
@@ -102,8 +103,81 @@ const detectableIssues = {
       why: "Highly complex branching logic is harder to reason about and easier to break.",
       suggestion:
         "Split logic into focused helper functions and reduce nested decision points.",
-      code: 'function decideDiscount(user, order) {\n  if (user.isVip) {\n    if (order.total > 1000) return 0.2;\n    if (order.total > 500) return 0.15;\n  } else {\n    if (order.total > 1000 && user.loyalty > 8) return 0.1;\n    if (order.total > 500 && user.loyalty > 5) return 0.07;\n  }\n\n  if (order.hasCoupon) {\n    if (order.couponType === "FLASH") return 0.12;\n    if (order.couponType === "WELCOME") return 0.05;\n  }\n\n  return 0;\n}',
-      fix: "function decideDiscount(user, order) {\n  if (user.isVip) return getVipDiscount(order);\n  if (order.hasCoupon) return getCouponDiscount(order);\n  return getLoyaltyDiscount(user, order);\n}",
+      code: `function getAccessLevel(user) {
+  if (user) {
+    if (user.isActive) {
+      if (user.role === "admin") {
+        if (user.permissions.includes("ALL")) {
+          return "FULL_ACCESS";
+        } else {
+          return "LIMITED_ADMIN";
+        }
+      } else if (user.role === "teacher") {
+        if (user.years > 5) {
+          return "SENIOR_TEACHER";
+        } else {
+          return "JUNIOR_TEACHER";
+        }
+      } else if (user.role === "student") {
+        if (user.grade >= 90) {
+          return "HONOR_STUDENT";
+        } else {
+          return "REGULAR_STUDENT";
+        }
+      }
+    } else {
+      return "INACTIVE";
+    }
+  }
+  return "GUEST";
+}`,
+      fix: `function getAccessLevel(user) {
+  if (!user) {
+    return "GUEST";
+  }
+
+  if (!user.isActive) {
+    return "INACTIVE";
+  }
+
+  if (user.role === "admin") {
+    return getAdminAccess(user);
+  }
+
+  if (user.role === "teacher") {
+    return getTeacherAccess(user);
+  }
+
+  if (user.role === "student") {
+    return getStudentAccess(user);
+  }
+
+  return "GUEST";
+}
+
+function getAdminAccess(user) {
+  if (user.permissions.includes("ALL")) {
+    return "FULL_ACCESS";
+  }
+
+  return "LIMITED_ADMIN";
+}
+
+function getTeacherAccess(user) {
+  if (user.years > 5) {
+    return "SENIOR_TEACHER";
+  }
+
+  return "JUNIOR_TEACHER";
+}
+
+function getStudentAccess(user) {
+  if (user.grade >= 90) {
+    return "HONOR_STUDENT";
+  }
+
+  return "REGULAR_STUDENT";
+}`,
     },
     {
       title: "Deep Nesting",
@@ -162,6 +236,8 @@ function toTitleCase(value = "") {
 }
 
 function formatIssueList(issues) {
+  console.clear();
+  mainBanner();
   const lines = [
     "Archie: Here are ArcHone's detectable issues.",
     "",
@@ -259,12 +335,12 @@ function findIssue(issues, query) {
 }
 
 export default async function issues(initial_query = null) {
+  console.clear();
   try {
     const issuesCatalog = detectableIssues.issues || [];
     const query = initial_query || process.argv.slice(3).join(" ").trim();
 
     if (!query) {
-      console.log("\n");
       console.log(
         boxen(formatIssueList(issuesCatalog), {
           width: CONSOLE_MAX_WIDTH,

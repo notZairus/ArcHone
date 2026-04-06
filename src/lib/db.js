@@ -46,10 +46,7 @@ export default class Database {
   }
 
   // fetch all analyses of the user from the db
-  static async getUserAnalyses() {
-    const { userId } = await getSession();
-    if (!userId) return;
-
+  static async getUserAnalyses(userId) {
     const analyses = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "analyses",

@@ -51,7 +51,7 @@ export const selectFileFromDirectory = async (
     if (!didRenderHeader) {
       const startPath = path.relative(process.cwd(), currentDirectory) || ".";
       const intro = [
-        `${chalk.cyan("Archie:")} Choose a file for analysis.`,
+        `Choose a file for analysis.`,
         "",
         `${chalk.bold("Picker Overview")}`,
         `- Start directory: ${chalk.cyan(startPath)}`,

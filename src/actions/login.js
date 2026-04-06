@@ -33,8 +33,14 @@ export default async function login() {
   }
 
   const loginGuide = [
-    `${chalk.cyan("Archie:")} Let us get you signed in.`,
+    `${chalk.bold("Welcome to ArcHone!")}`,
+    "Let's get you logged in to your ArcHone account on this machine.",
     "",
+    `${chalk.bold("What this login does")}`,
+    "- Connects your local ArcHone CLI to your ArcHone account",
+    "- Allows you to run analyses and access your data securely",
+    "- Saves a local session for seamless future access",
+    ``,
     `${chalk.bold("What happens next")}`,
     "- Enter your ArcHone account email and password",
     "- ArcHone securely verifies your account",

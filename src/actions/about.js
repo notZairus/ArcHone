@@ -8,8 +8,6 @@ export default async function about() {
   mainBanner();
 
   const aboutText = [
-    `${chalk.cyan("Archie:")} Welcome to ArcHone.`,
-    "",
     `${chalk.bold("What ArcHone does")}`,
     "ArcHone analyzes your source files and explains bad coding practices in plain language.",
     "",

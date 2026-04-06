@@ -14,7 +14,8 @@ export default async () => {
   const lastAnalysisPath = path.join(ARCHONE_DIR, "last_analysis.json");
 
   const setupGuide = [
-    `${chalk.cyan("Archie:")} I will set up ArcHone on this machine.`,
+    `${chalk.bold("Welcome to ArcHone!")}`,
+    "Let's get you set up with the ArcHone CLI on this machine.",
     "",
     `${chalk.bold("What this setup does")}`,
     "- Creates ~/.archone in your home directory",

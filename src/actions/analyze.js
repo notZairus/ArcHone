@@ -19,10 +19,12 @@ import {
 } from "../utils/helpers.js";
 import { withIssuePrinciple } from "../utils/issue-principles.js";
 import Database from "../lib/db.js";
+import { getSession } from "../utils/session.js";
 
 const spinner = clack.spinner();
 
 export default async () => {
+  console.clear();
   const providedInputPath = process.argv[3] || null;
   let completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)
@@ -108,7 +110,7 @@ export default async () => {
     ),
   );
 
-  console.log("\n");
+  console.clear();
   console.log(
     boxen(formatAnalysisResult(fileToAnalyze, result), {
       padding: 1,
@@ -119,22 +121,44 @@ export default async () => {
     }),
   );
 
-  // console.log(
-  //   boxen(
-  //     "Use archone explain <issue_id> to get a detailed explanation of a specific issue.",
-  //     {
-  //       padding: 1,
-  //       width: CONSOLE_MAX_WIDTH,
-  //       textAlignment: "center",
-  //       borderStyle: "double",
-  //       title: "Tips",
-  //       titleAlignment: "center",
-  //     },
-  //   ),
-  // );
-  // console.log("\n");
+  console.log(
+    boxen(
+      "Use archone explain <issue_id> to get a detailed explanation of a specific issue.",
+      {
+        padding: 1,
+        width: CONSOLE_MAX_WIDTH,
+        textAlignment: "center",
+        borderStyle: "double",
+        title: "Tips",
+        titleAlignment: "center",
+      },
+    ),
+  );
+  console.log("\n");
+
+  const { userId } = await getSession();
+
+  if (!userId) {
+    console.log("\n");
+    console.log(
+      boxen(
+        "You are not logged in. Log in to save your analysis results and access personalized insights.",
+        {
+          padding: 1,
+          width: CONSOLE_MAX_WIDTH,
+          textAlignment: "center",
+          borderStyle: "double",
+          title: "Login Required",
+          titleAlignment: "center",
+        },
+      ),
+    );
+    console.log("\n");
+    return;
+  }
 
   spinner.start("Saving Analysis Result...");
   await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
   spinner.stop("Analysis Result Saved!");
+  console.log("\n");
 };

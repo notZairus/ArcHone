@@ -6,7 +6,17 @@ import chalk from "chalk";
 import { getSession } from "../utils/session.js";
 
 export default async function stats() {
-  const analyses = await Database.getUserAnalyses();
+  console.clear();
+
+  const { userId } = await getSession();
+  if (!userId) {
+    boxError(
+      "You need to be logged in to view your stats. Please run 'archone login' first.",
+    );
+    return;
+  }
+
+  const analyses = await Database.getUserAnalyses(userId);
 
   if (!analyses || analyses.length === 0) {
     boxError("No analyses found yet. Run 'archone analyze <file>' first.");
@@ -17,7 +27,7 @@ export default async function stats() {
   console.log(
     boxen(formatAnalytics(analytics), {
       padding: 2,
-      margin: 1,
+      margin: 0,
       width: CONSOLE_MAX_WIDTH,
       borderStyle: "double",
     }),

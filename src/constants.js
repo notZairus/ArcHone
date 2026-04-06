@@ -2,7 +2,7 @@ import path from "path";
 import os from "os";
 
 export const CONSOLE_MAX_WIDTH = Math.min(
-  process.stdout.columns - 40 || 100,
+  process.stdout.columns - 20 || 100,
   100,
 );
 
