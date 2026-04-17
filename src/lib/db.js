@@ -5,21 +5,21 @@ import { APPWRITE_DATABASE_ID } from "../constants.js";
 import { getSession } from "../utils/session.js";
 
 export default class Database {
-  static async saveNewUser(userId, email, name) {
+  static async saveNewUser(userId, email, name, role) {
     await tablesDB.createRow({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "users",
       rowId: userId,
       data: {
-        userId,
         email,
         name,
+        role,
       },
     });
   }
 
   // saves analysis result on the db
-  static async saveAnalysisResult(fileName, fileType, analysisResult) {
+  static async saveAnalysisResult(fileName, fileType, code, analysisResult) {
     const { userId } = await getSession();
     if (!userId) return;
 
@@ -31,6 +31,7 @@ export default class Database {
         userId: userId,
         fileName: fileName,
         fileType: fileType,
+        code: code,
       },
     });
 
@@ -86,22 +87,96 @@ export default class Database {
   }
 
   static async getUserById(userId) {
-    const userData = await tablesDB.listRows({
+    const user = await tablesDB.getRow({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "users",
-      queries: [Query.equal("userId", userId)],
+      rowId: userId,
     });
 
-    if (userData.total === 0) {
+    if (!user) {
       return null;
     }
 
-    const user = userData.rows[0];
-    return {
-      userId: user.userId,
-      email: user.email,
-      name: user.name,
-    };
+    return user;
+  }
+
+  static async getClassroomsByUserId(userId) {
+    const resultAccepted = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "classroom_user",
+      queries: [Query.equal("userId", userId), Query.equal("accepted", true)],
+    });
+
+    const resultPending = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "classroom_user",
+      queries: [Query.equal("userId", userId), Query.equal("accepted", false)],
+    });
+
+    const classroomIdsAccepted = resultAccepted.rows.map(
+      (row) => row.classroomId,
+    );
+
+    const classroomIdsPending = resultPending.rows.map(
+      (row) => row.classroomId,
+    );
+
+    const classrooms = [];
+
+    for (const classroomId of classroomIdsAccepted) {
+      const classroomResultAccepted = await tablesDB.getRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: "classrooms",
+        rowId: classroomId,
+      });
+
+      if (classroomResultAccepted) {
+        classroomResultAccepted.accepted = true;
+        classrooms.push(classroomResultAccepted);
+      }
+    }
+
+    for (const classroomId of classroomIdsPending) {
+      const classroomResultPending = await tablesDB.getRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: "classrooms",
+        rowId: classroomId,
+      });
+
+      if (classroomResultPending) {
+        classroomResultPending.accepted = false;
+        classrooms.push(classroomResultPending);
+      }
+    }
+
+    return classrooms;
+  }
+
+  static async joinClassroom(userId, classroomCode) {
+    const classrooms = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "classrooms",
+      queries: [Query.equal("code", classroomCode)],
+    });
+
+    if (classrooms.total === 0) {
+      throw new Error("Invalid classroom code.");
+    }
+
+    const classroom = classrooms.rows[0];
+
+    await tablesDB.createRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "classroom_user",
+      rowId: "unique()",
+      data: {
+        userId,
+        classroomId: classroom.$id,
+        accepted: false,
+      },
+    });
+
+    return true;
   }
 }
 

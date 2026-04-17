@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { boxError } from "../ui/box.js";
+import { boxError, boxSuccess } from "../ui/box.js";
 import analyzeJavaScript from "../analyzer/javascript.js";
 import analyzePython from "../analyzer/python.js";
 import analyzeCSharp from "../analyzer/csharp.js";
@@ -77,21 +77,38 @@ export default async () => {
   }
 
   const sourceCode = fs.readFileSync(completeFilePath, "utf-8") || "";
+  const isEmptyFile = sourceCode.trim().length === 0;
+  const hasExecutableCode = hasExecutableCodeByLanguage(
+    sourceCode,
+    fileExtension,
+  );
+  const isCommentOnlyFile = !isEmptyFile && !hasExecutableCode;
 
   let result = null;
-  switch (fileExtension) {
-    case "js":
-      result = await analyzeJavaScript(sourceCode, fileExtension);
-      break;
-    case "py":
-      result = await analyzePython(sourceCode, fileExtension);
-      break;
-    case "cs":
-      result = await analyzeCSharp(sourceCode, fileExtension);
-      break;
-    default:
-      boxError(`Parsing for .${fileExtension} is not implemented yet.`);
-      return;
+  if (isEmptyFile || isCommentOnlyFile) {
+    result = {
+      functions: [],
+      variables: [],
+      comments: [],
+      issues: [],
+      isEmptyFile: true,
+      isCommentOnlyFile,
+    };
+  } else {
+    switch (fileExtension) {
+      case "js":
+        result = await analyzeJavaScript(sourceCode, fileExtension);
+        break;
+      case "py":
+        result = await analyzePython(sourceCode, fileExtension);
+        break;
+      case "cs":
+        result = await analyzeCSharp(sourceCode, fileExtension);
+        break;
+      default:
+        boxError(`Parsing for .${fileExtension} is not implemented yet.`);
+        return;
+    }
   }
 
   const issuesWithPrinciples = (result.issues || []).map(withIssuePrinciple);
@@ -123,7 +140,7 @@ export default async () => {
 
   console.log(
     boxen(
-      "Use archone explain <issue_id> to get a detailed explanation of a specific issue.",
+      "Use archone explain <issue_id> for more information about the specific issue.",
       {
         padding: 1,
         width: CONSOLE_MAX_WIDTH,
@@ -134,7 +151,6 @@ export default async () => {
       },
     ),
   );
-  console.log("\n");
 
   const { userId } = await getSession();
 
@@ -157,8 +173,53 @@ export default async () => {
     return;
   }
 
+  const code = fs.readFileSync(
+    path.join(process.cwd(), fileToAnalyze),
+    "utf-8",
+  );
+
   spinner.start("Saving Analysis Result...");
-  await Database.saveAnalysisResult(fileToAnalyze, fileExtension, result);
+  try {
+    await Database.saveAnalysisResult(
+      fileToAnalyze,
+      fileExtension,
+      code,
+      result,
+    );
+  } catch (error) {
+    if (code.length < 100) {
+      spinner.stop("Analysis Finished.");
+      boxSuccess(
+        "The code on the selected file is rather short, so the analysis result will not be saved.",
+      );
+      return;
+    }
+
+    console.log(code.length);
+
+    spinner.stop("Failed to save analysis result.");
+    boxError("An error occurred while saving the analysis result: " + error);
+    return;
+  }
+
   spinner.stop("Analysis Result Saved!");
   console.log("\n");
+};
+
+const hasExecutableCodeByLanguage = (sourceCode, fileExtension) => {
+  if (!sourceCode || typeof sourceCode !== "string") {
+    return false;
+  }
+
+  let withoutComments = sourceCode;
+
+  if (fileExtension === "py") {
+    withoutComments = withoutComments.replace(/^\s*#.*$/gm, "");
+  } else {
+    withoutComments = withoutComments
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+  }
+
+  return withoutComments.trim().length > 0;
 };

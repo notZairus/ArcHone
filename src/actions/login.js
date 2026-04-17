@@ -6,17 +6,13 @@ import path from "path";
 import { account } from "../lib/appwrite.js";
 import { mainBanner } from "../ui/banner.js";
 import clack from "../lib/clack.js";
-import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
+import { ARCHONE_DIR, CONSOLE_MAX_WIDTH, SESSION_PATH } from "../constants.js";
 import { TablesDB } from "appwrite";
 import Database from "../lib/db.js";
+import { getSession } from "../utils/session.js";
 
-export default async function login() {
-  console.clear();
-  mainBanner();
-
-  const sessionPath = path.join(ARCHONE_DIR, "session.json");
-
-  if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(sessionPath)) {
+function isInitialized() {
+  if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(SESSION_PATH)) {
     console.log(
       boxen(
         `${chalk.red("Archie:")} I cannot log you in yet because ArcHone is not initialized.\n\nRun ${chalk.cyan("archone init")} first, then come back and run ${chalk.cyan("archone login")}.`,
@@ -29,6 +25,44 @@ export default async function login() {
       ),
     );
     clack.outro(chalk.yellow("Login skipped until setup is complete."));
+    return false;
+  }
+  return true;
+}
+
+function isLoggedIn() {
+  const session = getSession();
+
+  if (!session.userId) {
+    return false;
+  }
+
+  console.log(
+    boxen(
+      `${chalk.green("You are already logged in.")}\n\nWelcome back, ${chalk.bold(
+        session.name,
+      )}! Your ArcHone CLI is connected to your account on this machine.`,
+      {
+        padding: 1,
+        width: CONSOLE_MAX_WIDTH,
+        borderStyle: "round",
+        title: "Already Logged In",
+      },
+    ) + "\n",
+  );
+
+  return true;
+}
+
+export default async function login() {
+  console.clear();
+  mainBanner();
+
+  if (!isInitialized()) {
+    return;
+  }
+
+  if (isLoggedIn()) {
     return;
   }
 
@@ -88,8 +122,12 @@ export default async function login() {
 
     // Save session data to .archone/session.json
     fs.writeFileSync(
-      sessionPath,
-      JSON.stringify({ userId, name: user.name, expire }, null, 2),
+      SESSION_PATH,
+      JSON.stringify(
+        { userId: user.$id, name: user.name, role: user.role, expire },
+        null,
+        2,
+      ),
     );
 
     clack.outro(

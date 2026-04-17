@@ -136,6 +136,7 @@ function buildAnalytics(analyses) {
 
   const warnings = issueTypeCounts.warning || 0;
   const improvements = issueTypeCounts.improvement || 0;
+  const infos = issueTypeCounts.info || 0;
   const issueDensity = totalIssues / Math.max(1, estimatedTotalLines);
 
   const modernJsUsage = computeModernJsUsage(jsVariableKinds);
@@ -158,9 +159,7 @@ function buildAnalytics(analyses) {
   });
 
   const recommendations = buildRecommendations({
-    issueTitleCounts,
-    modernJsUsage,
-    avgNesting,
+    topIssueTitles,
   });
 
   const skillLevel = getSkillLevel(qualityScore, trend.direction);
@@ -170,6 +169,7 @@ function buildAnalytics(analyses) {
     totalIssues,
     warnings,
     improvements,
+    infos,
     totalFunctions,
     totalVariables,
     totalComments,
@@ -199,6 +199,7 @@ function buildAnalytics(analyses) {
 
 function formatAnalytics(analytics) {
   const { name } = getSession() || {};
+  const topIssue = analytics.topIssueTitles[0];
 
   const lines = [
     chalk.bold(
@@ -211,6 +212,9 @@ function formatAnalytics(analytics) {
       borderStyle: "singleDouble",
       width: CONSOLE_MAX_WIDTH - 20,
     }),
+    chalk.dim(
+      `This section gives a quick snapshot of your overall progress and code activity.`,
+    ),
     `Code Quality Score : ${analytics.qualityScore} / 100`,
     `Trend              : ${formatTrend(analytics.trend)}`,
     `Files Analyzed     : ${analytics.totalAnalyses}`,
@@ -222,26 +226,21 @@ function formatAnalytics(analytics) {
       borderStyle: "singleDouble",
       width: CONSOLE_MAX_WIDTH - 20,
     }),
+    chalk.dim(
+      "This section shows how many problems were found and how serious they are.",
+    ),
     `Total Issues       : ${analytics.totalIssues}`,
     `Warnings           : ${analytics.warnings}`,
     `Improvements       : ${analytics.improvements}`,
-    `Issue Density      : ${analytics.issueDensity.toFixed(3)} issues/line`,
+    `Info               : ${analytics.infos}`,
     "",
-    "Top Issues:",
+    chalk.bold("Top Issues:"),
+    chalk.dim(
+      topIssue
+        ? `These are your most frequent issue types. Right now, \"${topIssue.title}\" appears the most.`
+        : "These are your most frequent issue types based on your analyzed files.",
+    ),
     ...formatTopIssues(analytics.topIssueTitles),
-    "",
-    boxen(chalk.bold("Code Behavior"), {
-      padding: 0,
-      margin: 0,
-      borderStyle: "singleDouble",
-      width: CONSOLE_MAX_WIDTH - 20,
-    }),
-    `Avg Complexity     : ${analytics.avgComplexity.toFixed(1)}`,
-    `Max Complexity     : ${analytics.maxComplexity}`,
-    `Avg Nesting        : ${analytics.avgNesting.toFixed(1)}`,
-    "",
-    `Style Consistency  : ${analytics.styleConsistency}%`,
-    `Modern JS Usage    : ${analytics.modernJsUsage}%`,
   ];
 
   lines.push(
@@ -252,6 +251,9 @@ function formatAnalytics(analytics) {
       borderStyle: "singleDouble",
       width: CONSOLE_MAX_WIDTH - 20,
     }),
+    chalk.dim(
+      "This section highlights recent patterns so you can see if you are improving week by week.",
+    ),
     ...analytics.insights,
     "",
     boxen(chalk.bold("Recommendations"), {
@@ -260,6 +262,9 @@ function formatAnalytics(analytics) {
       borderStyle: "singleDouble",
       width: CONSOLE_MAX_WIDTH - 20,
     }),
+    chalk.dim(
+      "Start with these small next steps to improve your code quality faster.",
+    ),
     ...analytics.recommendations,
   );
 
@@ -490,26 +495,37 @@ function buildInsights({
   return insights;
 }
 
-function buildRecommendations({ issueTitleCounts, modernJsUsage, avgNesting }) {
-  const recommendations = [];
-
-  if ((issueTitleCounts["Use of var"] || 0) > 0 || modernJsUsage < 70) {
-    recommendations.push("- Replace 'var' with 'const' or 'let'");
-  }
-
-  if ((issueTitleCounts["Poor Variable Naming"] || 0) > 0) {
-    recommendations.push("- Use clearer variable names");
-  }
-
-  if ((issueTitleCounts["Deep Nesting"] || 0) > 0 || avgNesting >= 4) {
-    recommendations.push("- Refactor deeply nested logic using early returns");
-  }
+function buildRecommendations({ topIssueTitles }) {
+  const recommendations = topIssueTitles.map((issue) => {
+    const action = getRecommendationForIssueTitle(issue.title);
+    return `- ${issue.title} (${issue.percent}%): ${action}`;
+  });
 
   if (!recommendations.length) {
-    recommendations.push("- Keep the current pace and maintain consistency");
+    return ["- Keep the current pace and maintain consistency"];
   }
 
   return recommendations;
+}
+
+function getRecommendationForIssueTitle(title) {
+  const recommendationsByTitle = {
+    "Poor Variable Naming": "Use clearer, intention-revealing variable names.",
+    "Naming Convention":
+      "Apply one naming style consistently across your code.",
+    "Use of var": "Replace 'var' with 'const' or 'let'.",
+    "Deep Nesting":
+      "Refactor nested logic with early returns or helper functions.",
+    "Commented-out Code":
+      "Remove dead commented code to keep files clean and maintainable.",
+    "TODO Comment":
+      "Convert TODO comments into tracked tasks and resolve them regularly.",
+  };
+
+  return (
+    recommendationsByTitle[title] ||
+    "Review this issue pattern and apply the suggested fix consistently."
+  );
 }
 
 function getSkillLevel(qualityScore, trendDirection) {

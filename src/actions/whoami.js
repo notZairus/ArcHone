@@ -15,7 +15,7 @@ export default async function whoami() {
   if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(sessionPath)) {
     console.log(
       boxen(
-        `${chalk.red("Archie:")} ArcHone is not initialized yet.\n\nRun ${chalk.cyan("archone init")} first, then ${chalk.cyan("archone login")}.`,
+        `ArcHone is not initialized yet.\n\nRun ${chalk.cyan("archone init")} first, then ${chalk.cyan("archone login")}.`,
         {
           padding: 1,
           width: CONSOLE_MAX_WIDTH,
@@ -24,14 +24,16 @@ export default async function whoami() {
         },
       ),
     );
+
+    console.log("\n");
     return;
   }
 
-  const { name } = getSession();
+  const { name, role } = getSession();
   if (!name) {
     console.log(
       boxen(
-        `${chalk.yellow("Archie:")} I could not find an authenticated user name in your session.\n\nRun ${chalk.cyan("archone login")} to refresh your local session.`,
+        `I could not find an authenticated user in your session.\n\nRun ${chalk.cyan("archone login")} to refresh your local session.`,
         {
           padding: 1,
           width: CONSOLE_MAX_WIDTH,
@@ -40,6 +42,7 @@ export default async function whoami() {
         },
       ),
     );
+    console.log("\n");
     return;
   }
 

@@ -76,6 +76,7 @@ export const VALID_FILE_EXTENSIONS = ["js", "cs", "py"];
 export const APPWRITE_DATABASE_ID = "69b86a1600132cab3e71";
 
 export const ARCHONE_DIR = path.join(os.homedir(), ".archone");
+export const SESSION_PATH = path.join(ARCHONE_DIR, "session.json");
 
 /// formatter.js constants
 
@@ -99,6 +100,10 @@ export const BASE_ISSUE_PENALTIES = [
   {
     title: "Name Reuse",
     penalty: 0.75,
+  },
+  {
+    title: "Duplicate Code Blocks",
+    penalty: 1.0,
   },
   {
     title: "Poor Variable Naming",

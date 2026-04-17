@@ -93,8 +93,7 @@ export default async function register() {
       name,
       password,
     });
-
-    await Database.saveNewUser(userId, email, name);
+    await Database.saveNewUser(userId, email, name, "student");
 
     clack.outro(
       "\n" +

@@ -13,5 +13,6 @@ export function getSession() {
     path.join(ARCHONE_DIR, "session.json"),
     "utf8",
   );
+
   return JSON.parse(sessionJson);
 }

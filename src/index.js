@@ -17,6 +17,8 @@ import stats from "./actions/stats.js";
 import scan from "./actions/scan.js";
 import whoami from "./actions/whoami.js";
 import issues from "./actions/issues.js";
+import classrooms from "./actions/classrooms.js";
+import join from "./actions/join.js";
 
 const commands = [
   {
@@ -185,6 +187,16 @@ const commands = [
     description:
       "Get a detailed explanation of a specific good practices issue of the latest analysis, including why it matters and how to fix it.",
     function: explain,
+  },
+  {
+    triggers: ["classrooms"],
+    description: "View classrooms you are a member of.",
+    function: classrooms,
+  },
+  {
+    triggers: ["join"],
+    description: "Join a classroom using a classroom code.",
+    function: join,
   },
 ];
 

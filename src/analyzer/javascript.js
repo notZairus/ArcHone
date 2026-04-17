@@ -276,6 +276,26 @@ const analyzeTree = (tree, sourceCode) => {
     }
   }
 
+  for (const group of findDuplicateFunctionGroups(functions)) {
+    for (const fn of group) {
+      const duplicatedWith = group
+        .filter((peer) => peer !== fn)
+        .map((peer) => `\`${peer.name}\` (line ${peer.line})`)
+        .join(", ");
+
+      issues.push({
+        title: "Duplicate Code Blocks",
+        type: "improvement",
+        line: fn.line,
+        message: `Function \`${fn.name}\` repeats the same code block as ${duplicatedWith}.`,
+        suggestion:
+          "Extract the shared logic into one helper function and reuse it from each call site.",
+        why: "Duplicated logic is harder to maintain because bug fixes must be repeated in multiple places.",
+        code: fn.code,
+      });
+    }
+  }
+
   for (const comment of comments) {
     if (/TODO|FIXME|HACK/i.test(comment.text)) {
       issues.push({
@@ -316,6 +336,7 @@ const analyzeTree = (tree, sourceCode) => {
 
 const buildFunctionData = (node, name, sourceCode) => {
   const parametersNode = node.childForFieldName("parameters");
+  const bodyNode = node.childForFieldName("body");
   const parameterCount = countParameterIdentifiers(parametersNode);
   const complexity = estimateCyclomaticComplexity(node);
   const maxNesting = estimateMaxNesting(node);
@@ -327,6 +348,9 @@ const buildFunctionData = (node, name, sourceCode) => {
     parameterCount,
     complexity,
     maxNesting,
+    bodyCode: bodyNode
+      ? getNodeText(bodyNode, sourceCode)
+      : getNodeText(node, sourceCode),
     code: getNodeText(node, sourceCode),
   };
 };
@@ -575,6 +599,50 @@ const estimateMaxNesting = (functionNode) => {
   return walk(functionNode, 0);
 };
 
+const findDuplicateFunctionGroups = (functions) => {
+  const groupsByFingerprint = new Map();
+
+  for (const fn of functions) {
+    if (!fn || fn.name === "(anonymous)") {
+      continue;
+    }
+
+    const fingerprint = normalizeCodeForDuplicateCheck(fn.bodyCode || fn.code);
+    if (!fingerprint) {
+      continue;
+    }
+
+    if (!groupsByFingerprint.has(fingerprint)) {
+      groupsByFingerprint.set(fingerprint, []);
+    }
+
+    groupsByFingerprint.get(fingerprint).push(fn);
+  }
+
+  return Array.from(groupsByFingerprint.values()).filter(
+    (group) => group.length > 1,
+  );
+};
+
+const normalizeCodeForDuplicateCheck = (code) => {
+  if (!code || typeof code !== "string") {
+    return "";
+  }
+
+  const withoutBlockComments = code.replace(/\/\*[\s\S]*?\*\//g, " ");
+  const withoutLineComments = withoutBlockComments.replace(/\/\/.*$/gm, " ");
+  const normalizedLines = withoutLineComments
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && line !== "{" && line !== "}");
+
+  if (normalizedLines.length < 3) {
+    return "";
+  }
+
+  return normalizedLines.join(" ").replace(/\s+/g, " ");
+};
+
 const isPoorVariableName = (name) => {
   const genericNames = new Set([
     "a",
@@ -627,7 +695,7 @@ const looksLikeCommentedCode = (commentText) => {
     return false;
   }
 
-  return /(const|let|var|function|class|if\s*\(|for\s*\(|while\s*\(|return\s+|=>|;|\{\s*\})/.test(
+  return /(\b(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*(?:=|;)|\bfunction\s+[A-Za-z_$][\w$]*\s*\(|\bclass\s+[A-Za-z_$][\w$]*\s*\{|\b(?:if|for|while)\s*\(|\breturn\b[^\n;]*;|=>|\{\s*\})/.test(
     normalized,
   );
 };

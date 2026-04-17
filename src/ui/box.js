@@ -6,8 +6,7 @@ export function boxSuccess(text = "Text Placeholder") {
   console.log("\n");
 
   console.log(
-    boxen(chalk.green("(≧◡≦): " + text), {
-      borderColor: "green",
+    boxen(text, {
       padding: 1,
       width: CONSOLE_MAX_WIDTH,
       borderStyle: "round",

@@ -119,15 +119,28 @@ const calculateScoreFromIssues = (issues, basePenaltyByTitle) => {
 
 export default (fileName, result) => {
   const prioritizedIssues = result.issues || [];
+  const isEmptyFile = Boolean(result.isEmptyFile);
+  const isCommentOnlyFile = Boolean(result.isCommentOnlyFile);
   const language = getLanguageFromFileName(fileName);
   const penaltyByTitle = getPenaltyByTitle(language);
   const positiveHighlights = buildPositiveHighlights(
     prioritizedIssues,
     result,
     language,
+    isEmptyFile,
+    isCommentOnlyFile,
   );
 
-  const score = calculateOverallScore(prioritizedIssues, penaltyByTitle);
+  const score = calculateOverallScore(
+    prioritizedIssues,
+    penaltyByTitle,
+    isEmptyFile,
+    isCommentOnlyFile,
+  );
+  const severityBreakdown =
+    isEmptyFile || isCommentOnlyFile
+      ? "info: 1"
+      : formatSeverityBreakdown(prioritizedIssues);
 
   const lines = [
     chalk.bold("Archie: Here is your ArcHone analysis summary."),
@@ -140,14 +153,18 @@ export default (fileName, result) => {
     ...positiveHighlights,
     "",
     chalk.bold("Bad practices ArcHone detected"),
-    `- Total findings: ${prioritizedIssues.length}`,
-    `- Severity breakdown: ${formatSeverityBreakdown(prioritizedIssues)}`,
+    `- Total findings: ${isEmptyFile || isCommentOnlyFile ? 1 : prioritizedIssues.length}`,
+    `- Severity breakdown: ${severityBreakdown}`,
     "",
     chalk.bold("Overall quality score"),
     `- Score: ${score}/10 ${buildScoreBar(score)}`,
     "",
     chalk.bold("Detailed findings"),
-    ...formatIssuesForBeginners(prioritizedIssues),
+    ...formatIssuesForBeginners(
+      prioritizedIssues,
+      isEmptyFile,
+      isCommentOnlyFile,
+    ),
   ];
 
   return lines.join("\n");
@@ -208,7 +225,29 @@ const formatTypeTag = (type) => {
   return colorize(label);
 };
 
-const formatIssuesForBeginners = (issues) => {
+const formatIssuesForBeginners = (
+  issues,
+  isEmptyFile = false,
+  isCommentOnlyFile = false,
+) => {
+  if (isCommentOnlyFile) {
+    return [
+      "1. [INFO] No Executable Code",
+      "   Location: file start",
+      "   Violated principle: N/A",
+      "   Advice: This file contains comments only. Add actual code (functions, statements, or declarations) before running analysis.",
+    ];
+  }
+
+  if (isEmptyFile) {
+    return [
+      "1. [INFO] Empty File",
+      "   Location: file start",
+      "   Violated principle: N/A",
+      "   Advice: Add meaningful code content before running analysis. ArcHone cannot evaluate quality on an empty file.",
+    ];
+  }
+
   if (!issues.length) {
     return ["- No major bad practices found. Nice work."];
   }
@@ -244,7 +283,16 @@ const formatIssuesForBeginners = (issues) => {
   return output;
 };
 
-const calculateOverallScore = (issues, basePenaltyByTitle) => {
+const calculateOverallScore = (
+  issues,
+  basePenaltyByTitle,
+  isEmptyFile = false,
+  isCommentOnlyFile = false,
+) => {
+  if (isEmptyFile || isCommentOnlyFile) {
+    return 1;
+  }
+
   if (!issues.length) {
     return 10;
   }
@@ -252,7 +300,27 @@ const calculateOverallScore = (issues, basePenaltyByTitle) => {
   return calculateScoreFromIssues(issues, basePenaltyByTitle);
 };
 
-const buildPositiveHighlights = (issues, result, language) => {
+const buildPositiveHighlights = (
+  issues,
+  result,
+  language,
+  isEmptyFile = false,
+  isCommentOnlyFile = false,
+) => {
+  if (isCommentOnlyFile) {
+    return [
+      "- This file has comments only, so ArcHone cannot assess real code quality yet.",
+      "- Add executable code and run analysis again for a meaningful score.",
+    ];
+  }
+
+  if (isEmptyFile) {
+    return [
+      "- This file is empty, so ArcHone cannot assess code quality yet.",
+      "- Add implementation details and run analysis again for a meaningful score.",
+    ];
+  }
+
   if (!issues.length) {
     return [
       "- Great job: no bad practices detected in this file.",
@@ -275,7 +343,7 @@ const buildPositiveHighlights = (issues, result, language) => {
     !typeCounts.get("error") &&
     !typeCounts.get("warning")
   ) {
-    highlights.push("- No high-severity findings were detected.");
+    highlights.push("- No big findings were detected.");
   }
 
   if (

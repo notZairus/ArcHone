@@ -36,7 +36,7 @@ const detectableIssues = {
       title: "Use of var",
       severity: "improvement",
       detectableIn: ["javascript"],
-      principle: "POLA (Principle of Least Astonishment)",
+      principle: "KISS (Keep It Simple, Stupid)",
       why: "Using var can cause confusing scope behavior for beginners, especially inside loops and blocks.",
       suggestion:
         "Use const by default and let only when the value must change.",
@@ -47,7 +47,7 @@ const detectableIssues = {
       title: "Poor Variable Naming",
       severity: "improvement",
       detectableIn: ["javascript", "python", "csharp"],
-      principle: "Clean Code (Meaningful Names)",
+      principle: "KISS (Keep It Simple, Stupid)",
       why: "Unclear names force students to guess what values represent, slowing down learning and debugging.",
       suggestion: "Use names that describe the purpose of the data.",
       code: "function buildReceipt(cartItems) {\n  const x = cartItems.length;\n  const y = cartItems.reduce((a, b) => a + b.price, 0);\n\n  return { x, y };\n}",
@@ -57,7 +57,7 @@ const detectableIssues = {
       title: "Naming Convention",
       severity: "improvement",
       detectableIn: ["javascript", "python", "csharp"],
-      principle: "Clean Code (Consistent Naming)",
+      principle: "KISS (Keep It Simple, Stupid)",
       why: "Inconsistent naming makes code harder to scan because students cannot predict identifier styles.",
       suggestion:
         "Follow the language naming style consistently (camelCase, snake_case, or PascalCase based on language rules).",
@@ -75,10 +75,21 @@ const detectableIssues = {
       fix: "function summarizeOrder(order) {\n  const subtotal = order.subtotal;\n  const grandTotal = order.subtotal + order.tax;\n  return grandTotal;\n}",
     },
     {
+      title: "Duplicate Code Blocks",
+      severity: "improvement",
+      detectableIn: ["javascript", "python", "csharp"],
+      principle: "DRY (Don't Repeat Yourself)",
+      why: "Duplicated logic is harder to maintain because every fix has to be repeated in multiple places.",
+      suggestion:
+        "Extract repeated logic into one helper function and reuse it instead of copying the same block.",
+      code: "function calculateTax(amount) {\n  const base = amount * 0.12;\n  const total = base + 5;\n  return total;\n}\n\nfunction calculateServiceTax(amount) {\n  const base = amount * 0.12;\n  const total = base + 5;\n  return total;\n}",
+      fix: "function computeTaxWithFee(amount) {\n  const base = amount * 0.12;\n  const total = base + 5;\n  return total;\n}\n\nfunction calculateTax(amount) {\n  return computeTaxWithFee(amount);\n}\n\nfunction calculateServiceTax(amount) {\n  return computeTaxWithFee(amount);\n}",
+    },
+    {
       title: "Function Too Long",
       severity: "improvement",
       detectableIn: ["javascript", "python", "csharp"],
-      principle: "SRP (Single Responsibility Principle)",
+      principle: "SOLID",
       why: "Long functions mix too many tasks, which makes them difficult for students to understand and test.",
       suggestion:
         "Break long functions into small helpers with one clear responsibility.",
@@ -99,7 +110,7 @@ const detectableIssues = {
       title: "High Complexity",
       severity: "warning",
       detectableIn: ["javascript", "python", "csharp"],
-      principle: "KISS (Keep It Simple, Stupid)",
+      principle: "Separation of Concerns",
       why: "Highly complex branching logic is harder to reason about and easier to break.",
       suggestion:
         "Split logic into focused helper functions and reduce nested decision points.",
@@ -194,7 +205,7 @@ function getStudentAccess(user) {
       title: "TODO Comment",
       severity: "info",
       detectableIn: ["javascript", "python", "csharp"],
-      principle: "None (TODOs should be resolved, not ignored)",
+      principle: "Avoid Premature Optimization",
       why: "TODO comments can be useful, but unresolved TODOs often become forgotten technical debt.",
       suggestion:
         "Convert TODO comments into actionable tasks and remove them once completed.",
@@ -220,6 +231,7 @@ function getStudentAccess(user) {
     "Poor Variable Naming",
     "Naming Convention",
     "Name Reuse",
+    "Duplicate Code Blocks",
     "Function Too Long",
     "Too Many Parameters",
     "High Complexity",
