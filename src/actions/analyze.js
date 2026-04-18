@@ -14,6 +14,7 @@ import formatAnalysisResult from "../formatter/analysisFormatter.js";
 import boxen from "boxen";
 import clack from "../lib/clack.js";
 import {
+  isInitialized,
   selectFileFromDirectory,
   sortIssuesBySeverity,
 } from "../utils/helpers.js";
@@ -25,6 +26,11 @@ const spinner = clack.spinner();
 
 export default async () => {
   console.clear();
+
+  if (!isInitialized()) {
+    return;
+  }
+
   const providedInputPath = process.argv[3] || null;
   let completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)

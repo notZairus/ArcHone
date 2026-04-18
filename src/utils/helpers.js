@@ -7,7 +7,10 @@ import {
   VALID_FILE_EXTENSIONS,
   IGNORED_FILE_NAMES,
   CONSOLE_MAX_WIDTH,
+  ARCHONE_DIR,
+  SESSION_PATH,
 } from "../constants.js";
+import { getSession } from "./session.js";
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -172,4 +175,47 @@ export function sortIssuesBySeverity(issues) {
 
     return (issueA.line || 0) - (issueB.line || 0);
   });
+}
+
+export function isInitialized() {
+  if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(SESSION_PATH)) {
+    console.log(
+      boxen(
+        `You cannot analyze files yet because ArcHone is not initialized.\n\nRun ${chalk.cyan("archone init")} first, then come back and run ${chalk.cyan("archone analyze")}.`,
+        {
+          padding: 1,
+          width: CONSOLE_MAX_WIDTH,
+          borderStyle: "round",
+          title: "Initialization Required",
+        },
+      ),
+    );
+    clack.outro(chalk.yellow("Analysis skipped until setup is complete."));
+    return false;
+  }
+  return true;
+}
+
+function isLoggedIn() {
+  const session = getSession();
+
+  if (!session.userId) {
+    return false;
+  }
+
+  console.log(
+    boxen(
+      `${chalk.green("You are already logged in.")}\n\nWelcome back, ${chalk.bold(
+        session.name,
+      )}! Your ArcHone CLI is connected to your account on this machine.`,
+      {
+        padding: 1,
+        width: CONSOLE_MAX_WIDTH,
+        borderStyle: "round",
+        title: "Already Logged In",
+      },
+    ) + "\n",
+  );
+
+  return true;
 }
