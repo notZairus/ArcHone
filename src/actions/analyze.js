@@ -194,12 +194,6 @@ export default async () => {
       );
       return;
     }
-
-    console.log(code.length);
-
-    spinner.stop("Failed to save analysis result.");
-    boxError("An error occurred while saving the analysis result: " + error);
-    return;
   }
 
   spinner.stop("Analysis Result Saved!");
