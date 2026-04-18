@@ -90,6 +90,24 @@ export default async () => {
   );
   const isCommentOnlyFile = !isEmptyFile && !hasExecutableCode;
 
+  if (isEmptyFile) {
+    boxError(
+      "This file is empty and cannot be analyzed. Add code to the file and run analysis again.",
+    );
+    return;
+  }
+
+  if (!isCommentOnlyFile) {
+    const hasMeaningfulCode = hasMinimumCodeSignal(sourceCode, fileExtension);
+
+    if (!hasMeaningfulCode) {
+      boxError(
+        "This file has too little code to analyze. Add a valid code block (for example, declarations, functions, or executable statements) and run analysis again.",
+      );
+      return;
+    }
+  }
+
   let result = null;
   if (isEmptyFile || isCommentOnlyFile) {
     result = {
@@ -222,4 +240,49 @@ const hasExecutableCodeByLanguage = (sourceCode, fileExtension) => {
   }
 
   return withoutComments.trim().length > 0;
+};
+
+const hasMinimumCodeSignal = (sourceCode, fileExtension) => {
+  if (!sourceCode || typeof sourceCode !== "string") {
+    return false;
+  }
+
+  let stripped = sourceCode;
+
+  if (fileExtension === "py") {
+    stripped = stripped.replace(/^\s*#.*$/gm, "");
+  } else {
+    stripped = stripped
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+  }
+
+  const compact = stripped.trim();
+  if (!compact) {
+    return false;
+  }
+
+  const minLengthByLanguage = {
+    js: 5,
+    cs: 5,
+    py: 4,
+  };
+
+  if (compact.length < (minLengthByLanguage[fileExtension] || 5)) {
+    return false;
+  }
+
+  const keywordPatternByLanguage = {
+    js: /\b(function|class|const|let|var|if|for|while|return|import|export|new|async|await|try|catch|switch)\b/g,
+    cs: /\b(class|namespace|using|public|private|protected|static|void|int|string|if|for|while|return|new|try|catch|switch)\b/g,
+    py: /\b(def|class|import|from|if|for|while|return|with|try|except|lambda|yield)\b/g,
+  };
+
+  const identifierMatches =
+    compact.match(/[A-Za-z_][A-Za-z0-9_]*/g)?.length || 0;
+  const keywordMatches =
+    compact.match(keywordPatternByLanguage[fileExtension] || /$^/g)?.length ||
+    0;
+
+  return identifierMatches >= 2 || keywordMatches >= 1;
 };
