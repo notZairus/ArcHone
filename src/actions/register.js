@@ -152,11 +152,25 @@ export default async function register() {
     }),
   );
 
-  open(registrationUrl).catch(() => {
-    console.log(
-      chalk.yellow(
-        "Unable to open the browser automatically. Please copy and paste the URL above into your browser to complete registration.",
-      ),
-    );
-  });
+  clack.outro(
+    chalk.green(
+      "ArcHone: Registration initiated. Please complete the process in your browser.",
+    ),
+  );
+
+  // if the browser tab did not open, the user can copy and paste the URL to complete registration
+  console.log(
+    boxen(registrationUrl, {
+      padding: 1,
+      width: CONSOLE_MAX_WIDTH,
+      borderStyle: "double",
+      title: "Registration URL",
+    }),
+  );
+
+  console.log(
+    chalk.yellow(
+      "\Please copy and paste the URL above into your browser to complete registration.\n",
+    ),
+  );
 }
