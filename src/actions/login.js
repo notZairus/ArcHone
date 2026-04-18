@@ -120,6 +120,40 @@ export default async function login() {
 
     const user = await Database.getUserById(userId);
 
+    if (user.role === "instructor") {
+      clack.outro(
+        "\n" +
+          boxen(
+            chalk.red(
+              "Instructor accounts cannot log in to the ArcHone CLI. Please use a student account to access the CLI features.",
+            ),
+            {
+              padding: 1,
+              width: CONSOLE_MAX_WIDTH,
+              title: "Access Denied",
+            },
+          ),
+      );
+      return;
+    }
+
+    if (user.status !== "verified") {
+      clack.outro(
+        "\n" +
+          boxen(
+            chalk.yellow(
+              "Your email address is not verified. Please check your email's inbox for a verification email and verify your account before logging in.",
+            ),
+            {
+              padding: 1,
+              width: CONSOLE_MAX_WIDTH,
+              title: "Email Not Verified",
+            },
+          ),
+      );
+      return;
+    }
+
     // Save session data to .archone/session.json
     fs.writeFileSync(
       SESSION_PATH,
