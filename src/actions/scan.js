@@ -14,6 +14,12 @@ const analyzersByExtension = {
   cs: analyzeCSharp,
 };
 
+const SCAN_LIMITS = {
+  maxScanDurationMs: 10000,
+  maxFilesystemEntries: 50000,
+  maxSupportedFiles: 5000,
+};
+
 const severityRank = {
   critical: 0,
   error: 1,
@@ -29,6 +35,7 @@ export default async () => {
   const showAll = args.includes("--all");
   const targetArg = args.find((arg) => arg !== "--all") || ".";
   const targetPath = path.resolve(process.cwd(), targetArg);
+  const scanStartedAt = Date.now();
   const spinner = clack.spinner();
 
   if (!fs.existsSync(targetPath) || !fs.lstatSync(targetPath).isDirectory()) {
@@ -38,7 +45,17 @@ export default async () => {
 
   spinner.start("Scanning and analyzing directory...");
 
-  const sourceFiles = collectSourceFiles(targetPath);
+  let sourceFiles = [];
+
+  try {
+    sourceFiles = collectSourceFiles(targetPath, scanStartedAt);
+  } catch (error) {
+    if (handleFolderTooLargeError(error, spinner)) {
+      return;
+    }
+
+    throw error;
+  }
 
   if (!sourceFiles.length) {
     spinner.stop("Scan complete!");
@@ -59,65 +76,75 @@ export default async () => {
   let totalFindings = 0;
   const languageCounts = { js: 0, py: 0, cs: 0 };
 
-  for (const filePath of sourceFiles) {
-    const extension = path.extname(filePath).slice(1).toLowerCase();
-    const analyzer = analyzersByExtension[extension];
-    const relativeFilePath = path.relative(process.cwd(), filePath);
-    if (languageCounts[extension] != null) {
-      languageCounts[extension] += 1;
-    }
-    const sourceCode = fs.readFileSync(filePath, "utf-8");
-    const result = await analyzer(sourceCode, extension);
-    const issues = result.issues || [];
+  try {
+    for (const filePath of sourceFiles) {
+      ensureScanWithinDuration(scanStartedAt);
 
-    if (issues.length) {
-      if (!fileSummary.has(relativeFilePath)) {
-        fileSummary.set(relativeFilePath, {
-          file: relativeFilePath,
-          total: 0,
-          warning: 0,
-          improvement: 0,
-          info: 0,
-          unknown: 0,
-        });
+      const extension = path.extname(filePath).slice(1).toLowerCase();
+      const analyzer = analyzersByExtension[extension];
+      const relativeFilePath = path.relative(process.cwd(), filePath);
+      if (languageCounts[extension] != null) {
+        languageCounts[extension] += 1;
       }
+      const sourceCode = fs.readFileSync(filePath, "utf-8");
+      const result = await analyzer(sourceCode, extension);
+      const issues = result.issues || [];
 
-      const fileEntry = fileSummary.get(relativeFilePath);
-      for (const issue of issues) {
-        fileEntry.total += 1;
-        const issueType = issue.type || "unknown";
+      if (issues.length) {
+        if (!fileSummary.has(relativeFilePath)) {
+          fileSummary.set(relativeFilePath, {
+            file: relativeFilePath,
+            total: 0,
+            warning: 0,
+            improvement: 0,
+            info: 0,
+            unknown: 0,
+          });
+        }
 
-        if (issueType === "warning") {
-          fileEntry.warning += 1;
-        } else if (issueType === "improvement") {
-          fileEntry.improvement += 1;
-        } else if (issueType === "info") {
-          fileEntry.info += 1;
-        } else {
-          fileEntry.unknown += 1;
+        const fileEntry = fileSummary.get(relativeFilePath);
+        for (const issue of issues) {
+          fileEntry.total += 1;
+          const issueType = issue.type || "unknown";
+
+          if (issueType === "warning") {
+            fileEntry.warning += 1;
+          } else if (issueType === "improvement") {
+            fileEntry.improvement += 1;
+          } else if (issueType === "info") {
+            fileEntry.info += 1;
+          } else {
+            fileEntry.unknown += 1;
+          }
         }
       }
-    }
 
-    for (const issue of issues) {
-      totalFindings += 1;
+      for (const issue of issues) {
+        totalFindings += 1;
 
-      const title = issue.title || "Unknown Issue";
-      const type = issue.type || "unknown";
+        const title = issue.title || "Unknown Issue";
+        const type = issue.type || "unknown";
 
-      if (!issueSummary.has(title)) {
-        issueSummary.set(title, {
-          title,
-          type,
-          count: 0,
-          files: new Set(),
-        });
+        if (!issueSummary.has(title)) {
+          issueSummary.set(title, {
+            title,
+            type,
+            count: 0,
+            files: new Set(),
+          });
+        }
+
+        const entry = issueSummary.get(title);
+        entry.count += 1;
+        entry.files.add(relativeFilePath);
       }
-
-      const entry = issueSummary.get(title);
-      entry.count += 1;
-      entry.files.add(relativeFilePath);
     }
+  } catch (error) {
+    if (handleFolderTooLargeError(error, spinner)) {
+      return;
+    }
+
+    throw error;
   }
 
   const sortedIssues = [...issueSummary.values()].sort((a, b) => {
@@ -177,7 +204,7 @@ export default async () => {
   console.log("\n");
 };
 
-function collectSourceFiles(rootDir) {
+function collectSourceFiles(rootDir, scanStartedAt) {
   const ignored = new Set([
     "node_modules",
     "vendor",
@@ -191,14 +218,27 @@ function collectSourceFiles(rootDir) {
 
   const output = [];
   const stack = [rootDir];
+  let filesystemEntriesScanned = 0;
 
   while (stack.length) {
     const currentDir = stack.pop();
     const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
     for (const entry of entries) {
+      ensureScanWithinDuration(scanStartedAt);
+
       if (ignored.has(entry.name)) {
         continue;
+      }
+
+      filesystemEntriesScanned += 1;
+
+      if (filesystemEntriesScanned > SCAN_LIMITS.maxFilesystemEntries) {
+        const error = new Error(
+          `Scanned more than ${SCAN_LIMITS.maxFilesystemEntries.toLocaleString()} files/folders while traversing this directory.`,
+        );
+        error.code = "FOLDER_TOO_LARGE";
+        throw error;
       }
 
       const fullPath = path.join(currentDir, entry.name);
@@ -211,11 +251,58 @@ function collectSourceFiles(rootDir) {
       const extension = path.extname(entry.name).slice(1).toLowerCase();
       if (analyzersByExtension[extension]) {
         output.push(fullPath);
+
+        if (output.length > SCAN_LIMITS.maxSupportedFiles) {
+          const error = new Error(
+            `Found more than ${SCAN_LIMITS.maxSupportedFiles.toLocaleString()} supported source files (.js, .py, .cs).`,
+          );
+          error.code = "FOLDER_TOO_LARGE";
+          throw error;
+        }
       }
     }
   }
 
   return output;
+}
+
+function ensureScanWithinDuration(scanStartedAt) {
+  const elapsedMs = Date.now() - scanStartedAt;
+
+  if (elapsedMs > SCAN_LIMITS.maxScanDurationMs) {
+    const error = new Error(
+      `Scan exceeded ${Math.floor(SCAN_LIMITS.maxScanDurationMs / 1000)} seconds.`,
+    );
+    error.code = "FOLDER_TOO_LARGE";
+    throw error;
+  }
+}
+
+function handleFolderTooLargeError(error, spinner) {
+  if (error?.code !== "FOLDER_TOO_LARGE") {
+    return false;
+  }
+
+  spinner.stop("Scan stopped.");
+  console.log(
+    boxen(
+      [
+        "Folder is too large to scan.",
+        "",
+        `- ${error.message}`,
+        "- Try scanning a smaller subfolder.",
+      ].join("\n"),
+      {
+        padding: 1,
+        width: CONSOLE_MAX_WIDTH,
+        borderStyle: "double",
+        title: "ArcHone Scan Result",
+        titleAlignment: "center",
+      },
+    ),
+  );
+
+  return true;
 }
 
 function buildSeverityBreakdown(issues) {
