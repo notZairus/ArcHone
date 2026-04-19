@@ -1,3 +1,9 @@
+// YAGNI
+// KISS
+// DRY
+// Single Responsibility Principle
+// Separation of Concerns
+
 const ISSUE_PRINCIPLE_BY_TITLE = {
   "Unused Variable": "YAGNI (You Aren't Gonna Need It)",
   "Unused Function": "YAGNI (You Aren't Gonna Need It)",
@@ -10,11 +16,11 @@ const ISSUE_PRINCIPLE_BY_TITLE = {
   "High Complexity": "Separation of Concerns",
   "Duplicate Code Blocks": "DRY (Don't Repeat Yourself)",
   "Deep Nesting": "KISS (Keep It Simple, Stupid)",
-  "TODO Comment": "Avoid Premature Optimization",
+  "TODO Comment": "N/A",
   "Commented-out Code": "YAGNI (You Aren't Gonna Need It)",
 };
 
-const DEFAULT_PRINCIPLE = "Law of Demeter";
+const DEFAULT_PRINCIPLE = "N/A";
 
 export const getViolatedPrinciple = (issue = {}) => {
   if (issue.principle && typeof issue.principle === "string") {
