@@ -5,6 +5,9 @@ import { APPWRITE_DATABASE_ID } from "../constants.js";
 import { getSession } from "../utils/session.js";
 
 export default class Database {
+  //////////////////////////////
+  // SAVE NEW USER TO THE USERS TABLE
+  //////////////////////////////
   static async saveNewUser(userId, email, name, role) {
     await tablesDB.createRow({
       databaseId: APPWRITE_DATABASE_ID,
@@ -18,7 +21,9 @@ export default class Database {
     });
   }
 
-  // saves analysis result on the db
+  //////////////////////////////
+  // SAVE ANALYSIS RESULT
+  //////////////////////////////
   static async saveAnalysisResult(fileName, fileType, code, analysisResult) {
     const { userId } = await getSession();
     if (!userId) return;
@@ -35,18 +40,22 @@ export default class Database {
       },
     });
 
-    const entries = Object.entries(analysisResult);
+    const comments = analysisResult.comments || [];
+    const variables = analysisResult.variables || [];
+    const functions = analysisResult.functions || [];
+    const issues = analysisResult.issues || [];
 
-    for (const [key, value] of entries) {
-      for (const item of value) {
-        await analysisPropertySaver(key, analysisId, item);
-      }
-    }
-
-    return;
+    await new Promise.all([
+      saveComments(analysisId, comments),
+      saveVariables(analysisId, variables),
+      saveFunctions(analysisId, functions),
+      saveIssues(analysisId, issues),
+    ]);
   }
 
-  // fetch all analyses of the user from the db
+  //////////////////////////////
+  // FETCH AUTHENTICATED USER ANALYSES
+  //////////////////////////////
   static async getUserAnalyses(userId) {
     const analyses = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
@@ -86,6 +95,9 @@ export default class Database {
     return formattedAnalysesWithProperties;
   }
 
+  //////////////////////////////
+  // GET USER BY ID
+  //////////////////////////////
   static async getUserById(userId) {
     const user = await tablesDB.getRow({
       databaseId: APPWRITE_DATABASE_ID,
@@ -100,6 +112,9 @@ export default class Database {
     return user;
   }
 
+  //////////////////////////////
+  // GET CLASSROOM
+  //////////////////////////////
   static async getClassroomsByUserId(userId) {
     const resultAccepted = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
@@ -152,6 +167,9 @@ export default class Database {
     return classrooms;
   }
 
+  //////////////////////////////
+  // JOIN CLASSROOM
+  //////////////////////////////
   static async joinClassroom(userId, classroomCode) {
     const classrooms = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
@@ -182,18 +200,84 @@ export default class Database {
 
 // ========================== Helper functions ========================== //
 
-async function analysisPropertySaver(tableId, analysisId, data) {
-  const sanitizedData = sanitizeDataForTable(tableId, data);
+async function saveComments(analysisId, comments) {
+  for (const comment of comments) {
+    await tablesDB.createRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "comments",
+      rowId: "unique()",
+      data: {
+        analysisId: analysisId,
+        text: comment.text,
+        line: comment.line,
+        code: comment.code,
+      },
+    });
+  }
+}
 
-  await tablesDB.createRow({
-    databaseId: APPWRITE_DATABASE_ID,
-    tableId,
-    rowId: "unique()",
-    data: {
-      analysisId: analysisId,
-      ...sanitizedData,
-    },
-  });
+async function saveVariables(analysisId, variables) {
+  for (const variable of variables) {
+    await tablesDB.createRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "variables",
+      rowId: "unique()",
+      data: {
+        analysisId: analysisId,
+        name: variable.name,
+        kind: variable.kind,
+        dataType: variable.dataType,
+        line: variable.line,
+        code: variable.code,
+        skipUnusedCheck: variable.skipUnusedCheck ?? true,
+        scopeKey: variable.scopeKey,
+        isExported: variable.isExported,
+      },
+    });
+  }
+}
+
+async function saveFunctions(analysisId, funcs) {
+  for (const func of funcs) {
+    await tablesDB.createRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "functions",
+      rowId: "unique()",
+      data: {
+        analysisId: analysisId,
+        name: func.name,
+        lines: func.lines,
+        parameterCount: func.parameterCount,
+        complexity: func.complexity,
+        maxNesting: func.maxNesting,
+        line: func.line,
+        code: func.code,
+        bodyCode: func.bodyCode,
+      },
+    });
+  }
+}
+
+async function saveIssues(analysisId, issues) {
+  for (const issue of issues) {
+    await tablesDB.createRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "issues",
+      rowId: "unique()",
+      data: {
+        analysisId: analysisId,
+        title: issue.title,
+        type: issue.type,
+        line: issue.line,
+        message: issue.message,
+        suggestion: issue.suggestion,
+        why: issue.why,
+        functionName: issue.functionName,
+        functionLines: issue.functionLines,
+        code: issue.code,
+      },
+    });
+  }
 }
 
 function sanitizeDataForTable(tableId, data) {

@@ -30,3 +30,21 @@ export function boxError(text = "Text Placeholder") {
 
   console.log("\n");
 }
+
+export function box(
+  text = "Text PlaceHolder",
+  title = "",
+  alignment = "center",
+  style = "double",
+) {
+  console.log("\n");
+  console.log(
+    boxen(text, {
+      padding: 1,
+      width: CONSOLE_MAX_WIDTH,
+      borderStyle: style,
+      title: title,
+      titleAlignment: alignment,
+    }),
+  );
+}
