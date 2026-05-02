@@ -3,13 +3,11 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import boxen from "boxen";
+import { box } from "../ui/box.js";
 import { mainBanner } from "../ui/banner.js";
 import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
 
 export default async () => {
-  console.clear();
-  mainBanner();
-
   const sessionPath = path.join(ARCHONE_DIR, "session.json");
   const lastAnalysisPath = path.join(ARCHONE_DIR, "last_analysis.json");
 
@@ -26,15 +24,7 @@ export default async () => {
     chalk.yellow(ARCHONE_DIR),
   ].join("\n");
 
-  console.log(
-    boxen(setupGuide, {
-      padding: { top: 1, right: 2, bottom: 1, left: 2 },
-      borderStyle: "double",
-      title: "ArcHone Initialization",
-      titleAlignment: "center",
-      width: CONSOLE_MAX_WIDTH,
-    }),
-  );
+  box(setupGuide, "Initialization", null, null, true);
 
   const allowed = await clack.confirm({
     message: "Proceed with initialization now?",

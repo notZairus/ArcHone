@@ -1,6 +1,7 @@
 import boxen from "boxen";
 import chalk from "chalk";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
+import { mainBanner } from "./banner.js";
 
 export function boxSuccess(text = "Text Placeholder") {
   console.log("\n");
@@ -34,17 +35,19 @@ export function boxError(text = "Text Placeholder") {
 export function box(
   text = "Text PlaceHolder",
   title = "",
-  alignment = "center",
+  alignment = "left",
   style = "double",
+  banner = false,
 ) {
-  console.log("\n");
+  !banner && console.log("\n");
+  banner && mainBanner();
   console.log(
     boxen(text, {
       padding: 1,
       width: CONSOLE_MAX_WIDTH,
-      borderStyle: style,
-      title: title,
-      titleAlignment: alignment,
+      borderStyle: style || "double",
+      title: chalk.bold(title.toUpperCase()),
+      titleAlignment: alignment || "left",
     }),
   );
 }

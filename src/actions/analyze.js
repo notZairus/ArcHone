@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { boxError, boxSuccess } from "../ui/box.js";
+import { boxError, boxSuccess, box } from "../ui/box.js";
 import analyzeJavaScript from "../analyzer/javascript.js";
 import analyzePython from "../analyzer/python.js";
 import analyzeCSharp from "../analyzer/csharp.js";
@@ -25,25 +25,10 @@ import { getSession } from "../utils/session.js";
 const spinner = clack.spinner();
 
 export default async () => {
-  console.clear();
-
-  if (!isInitialized()) {
-    return;
-  }
-
   const providedInputPath = process.argv[3] || null;
-  let completeFilePath = providedInputPath
+  const completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)
-    : null;
-
-  if (!providedInputPath) {
-    completeFilePath = await selectFileFromDirectory(process.cwd());
-  }
-
-  if (!completeFilePath) {
-    clack.outro("Analysis canceled.");
-    return;
-  }
+    : await selectFileFromDirectory(process.cwd());
 
   if (!fs.existsSync(completeFilePath)) {
     boxError(
@@ -54,6 +39,10 @@ export default async () => {
 
   const stat = fs.lstatSync(completeFilePath);
 
+  if (stat.isDirectory()) {
+    completeFilePath = await selectFileFromDirectory(completeFilePath);
+  }
+
   if (stat.isSymbolicLink()) {
     boxError(
       "Oops! The path you provided is a symbolic link. Please provide a valid file path to analyze.",
@@ -61,16 +50,6 @@ export default async () => {
     return;
   }
 
-  if (stat.isDirectory()) {
-    completeFilePath = await selectFileFromDirectory(completeFilePath);
-
-    if (!completeFilePath) {
-      clack.cancel("Analysis canceled.");
-      return;
-    }
-  }
-
-  const fileToAnalyze = path.relative(process.cwd(), completeFilePath);
   const fileExtension = path.extname(completeFilePath).slice(1).toLowerCase();
 
   if (!VALID_FILE_EXTENSIONS.includes(fileExtension)) {
@@ -82,7 +61,9 @@ export default async () => {
     return;
   }
 
+  const fileToAnalyze = path.relative(process.cwd(), completeFilePath);
   const sourceCode = fs.readFileSync(completeFilePath, "utf-8") || "";
+
   const isEmptyFile = sourceCode.trim().length === 0;
   const hasExecutableCode = hasExecutableCodeByLanguage(
     sourceCode,
@@ -121,13 +102,13 @@ export default async () => {
   } else {
     switch (fileExtension) {
       case "js":
-        result = await analyzeJavaScript(sourceCode, fileExtension);
+        result = await analyzeJavaScript(sourceCode);
         break;
       case "py":
-        result = await analyzePython(sourceCode, fileExtension);
+        result = await analyzePython(sourceCode);
         break;
       case "cs":
-        result = await analyzeCSharp(sourceCode, fileExtension);
+        result = await analyzeCSharp(sourceCode);
         break;
       default:
         boxError(`Parsing for .${fileExtension} is not implemented yet.`);
@@ -139,59 +120,33 @@ export default async () => {
   const sortedIssues = sortIssuesBySeverity(issuesWithPrinciples);
   result.issues = sortedIssues;
 
-  // save the latest analysis result to a JSON file for future reference
   const analysisResultPath = path.join(ARCHONE_DIR, "latest_analysis.json");
 
   fs.writeFileSync(
     analysisResultPath,
-    JSON.stringify(
-      { file: path.join(process.cwd(), fileToAnalyze), result },
-      null,
-      2,
-    ),
+    JSON.stringify({ file: fileToAnalyze, result }, null, 2),
   );
 
-  console.clear();
-  console.log(
-    boxen(formatAnalysisResult(fileToAnalyze, result), {
-      padding: 1,
-      width: CONSOLE_MAX_WIDTH,
-      borderStyle: "double",
-      title: "ArcHone Analysis Result",
-      titleAlignment: "center",
-    }),
+  box(
+    formatAnalysisResult(fileToAnalyze, result),
+    `${fileToAnalyze} Analysis Result`,
+    null,
+    null,
+    true,
   );
 
-  console.log(
-    boxen(
-      "Use archone explain <issue_id> for more information about the specific issue.",
-      {
-        padding: 1,
-        width: CONSOLE_MAX_WIDTH,
-        textAlignment: "center",
-        borderStyle: "double",
-        title: "Tips",
-        titleAlignment: "center",
-      },
-    ),
+  box(
+    "Use archone explain <issue_id> for more information about the specific issue.",
+    "Tips",
   );
 
   const { userId } = await getSession();
 
   if (!userId) {
     console.log("\n");
-    console.log(
-      boxen(
-        "You are not logged in. Log in to save your analysis results and access personalized insights.",
-        {
-          padding: 1,
-          width: CONSOLE_MAX_WIDTH,
-          textAlignment: "center",
-          borderStyle: "double",
-          title: "Login Required",
-          titleAlignment: "center",
-        },
-      ),
+    box(
+      "You are not logged in. Log in to save your analysis results and access personalized insights.",
+      "Login Required",
     );
     console.log("\n");
     return;
@@ -203,6 +158,7 @@ export default async () => {
   );
 
   spinner.start("Saving Analysis Result...");
+
   try {
     await Database.saveAnalysisResult(
       fileToAnalyze,
@@ -213,16 +169,19 @@ export default async () => {
   } catch (error) {
     if (code.length < 100) {
       spinner.stop("Analysis Finished.");
-      boxSuccess(
-        "The code on the selected file is rather short, so the analysis result will not be saved.",
+      boxError(
+        "The code on the selected file is short, so the analysis result will not be saved.",
       );
       return;
     }
   }
 
   spinner.stop("Analysis Result Saved!");
-  console.log("\n");
 };
+
+// HELPERS //////////////////////////////////////////////////////////
+// HELPERS //////////////////////////////////////////////////////////
+// HELPERS //////////////////////////////////////////////////////////
 
 const hasExecutableCodeByLanguage = (sourceCode, fileExtension) => {
   if (!sourceCode || typeof sourceCode !== "string") {

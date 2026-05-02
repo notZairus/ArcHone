@@ -4,6 +4,7 @@ import { spawnSync } from "child_process";
 import { createRequire } from "module";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
 import { mainBanner } from "../ui/banner.js";
+import { box } from "../ui/box.js";
 
 const require = createRequire(import.meta.url);
 const detectableIssues = {
@@ -248,8 +249,6 @@ function toTitleCase(value = "") {
 }
 
 function formatIssueList(issues) {
-  console.clear();
-  mainBanner();
   const lines = [
     "Archie: Here are ArcHone's detectable issues.",
     "",
@@ -347,22 +346,18 @@ function findIssue(issues, query) {
 }
 
 export default async function issues(initial_query = null) {
-  console.clear();
   try {
     const issuesCatalog = detectableIssues.issues || [];
     const query = initial_query || process.argv.slice(3).join(" ").trim();
 
     if (!query) {
-      console.log(
-        boxen(formatIssueList(issuesCatalog), {
-          width: CONSOLE_MAX_WIDTH,
-          padding: { top: 1, right: 2, bottom: 1, left: 2 },
-          borderStyle: "double",
-          title: "ArcHone Issues",
-          titleAlignment: "center",
-        }),
+      box(
+        formatIssueList(issuesCatalog),
+        "Detectable Issues",
+        null,
+        null,
+        true,
       );
-      console.log("\n");
       return;
     }
 
@@ -387,16 +382,8 @@ export default async function issues(initial_query = null) {
     const markdownLesson = formatIssueLessonMarkdown(selectedIssue);
     const renderedLesson = renderWithTerminalMarkdown(markdownLesson);
 
-    console.log("\n");
-    console.log(
-      boxen(`ArcHone Issue Lesson: ${selectedIssue.title}`, {
-        width: CONSOLE_MAX_WIDTH,
-        padding: { top: 0, right: 2, bottom: 0, left: 2 },
-        borderStyle: "double",
-        title: "ArcHone Issues",
-        titleAlignment: "center",
-      }),
-    );
+    box("Issue: " + selectedIssue.title, "Issue Explanation");
+
     console.log("\n");
     console.log(renderedLesson);
     console.log("\n");

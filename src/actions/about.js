@@ -2,11 +2,9 @@ import { mainBanner } from "../ui/banner.js";
 import boxen from "boxen";
 import chalk from "chalk";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
+import { box } from "../ui/box.js";
 
 export default async function about() {
-  console.clear();
-  mainBanner();
-
   const aboutText = [
     `${chalk.bold("What ArcHone does")}`,
     "ArcHone analyzes your source files and explains bad coding practices in plain language.",
@@ -26,15 +24,5 @@ export default async function about() {
     `Run ${chalk.cyan("archone init")}, then ${chalk.cyan("archone login")}, and finally ${chalk.cyan("archone analyze <file>")}.`,
   ].join("\n");
 
-  console.log(
-    boxen(aboutText, {
-      title: "About ArcHone",
-      titleAlignment: "center",
-      borderStyle: "double",
-      padding: { top: 1, right: 2, bottom: 1, left: 2 },
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      width: CONSOLE_MAX_WIDTH,
-    }),
-  );
-  console.log("\n");
+  box(aboutText, "About", null, null, true);
 }

@@ -4,6 +4,7 @@ import { boxError, boxSuccess } from "../ui/box.js";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
 import chalk from "chalk";
 import { getSession } from "../utils/session.js";
+import { box } from "../ui/box.js";
 
 export default async function stats() {
   console.clear();
@@ -24,14 +25,8 @@ export default async function stats() {
   }
 
   const analytics = buildAnalytics(analyses);
-  console.log(
-    boxen(formatAnalytics(analytics), {
-      padding: 2,
-      margin: 0,
-      width: CONSOLE_MAX_WIDTH,
-      borderStyle: "double",
-    }),
-  );
+
+  box(formatAnalytics(analytics), "Your Developer Stats", null, null, true);
 }
 
 function buildAnalytics(analyses) {

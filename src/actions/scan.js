@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
-import boxen from "boxen";
 import clack from "../lib/clack.js";
 import chalk from "chalk";
 import analyzeJavaScript from "../analyzer/javascript.js";
 import analyzePython from "../analyzer/python.js";
 import analyzeCSharp from "../analyzer/csharp.js";
+import { box } from "../ui/box.js";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
 
 const analyzersByExtension = {
@@ -59,15 +59,7 @@ export default async () => {
 
   if (!sourceFiles.length) {
     spinner.stop("Scan complete!");
-    console.log(
-      boxen("No supported files found (.js, .py, .cs).", {
-        padding: 1,
-        width: CONSOLE_MAX_WIDTH,
-        borderStyle: "double",
-        title: "ArcHone Scan Result",
-        titleAlignment: "center",
-      }),
-    );
+    box("No supported files found (.js, .py, .cs).", "ArcHone Scan Result");
     return;
   }
 
@@ -191,17 +183,7 @@ export default async () => {
 
   spinner.stop("Scan complete!");
 
-  console.log("\n");
-  console.log(
-    boxen(lines.join("\n"), {
-      padding: 1,
-      width: CONSOLE_MAX_WIDTH,
-      borderStyle: "double",
-      title: "ArcHone Scan Result",
-      titleAlignment: "center",
-    }),
-  );
-  console.log("\n");
+  box(lines.join("\n"), "Scan Result", null, null, true);
 };
 
 function collectSourceFiles(rootDir, scanStartedAt) {
@@ -284,22 +266,18 @@ function handleFolderTooLargeError(error, spinner) {
   }
 
   spinner.stop("Scan stopped.");
-  console.log(
-    boxen(
-      [
-        "Folder is too large to scan.",
-        "",
-        `- ${error.message}`,
-        "- Try scanning a smaller subfolder.",
-      ].join("\n"),
-      {
-        padding: 1,
-        width: CONSOLE_MAX_WIDTH,
-        borderStyle: "double",
-        title: "ArcHone Scan Result",
-        titleAlignment: "center",
-      },
-    ),
+
+  box(
+    [
+      "Folder is too large to scan.",
+      "",
+      `- ${error.message}`,
+      "- Try scanning a smaller subfolder.",
+    ].join("\n"),
+    "ArcHone Scan Result",
+    null,
+    null,
+    true,
   );
 
   return true;

@@ -10,6 +10,7 @@ import { ARCHONE_DIR, CONSOLE_MAX_WIDTH, SESSION_PATH } from "../constants.js";
 import { TablesDB } from "appwrite";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
+import { box } from "../ui/box.js";
 
 function isInitialized() {
   if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(SESSION_PATH)) {
@@ -55,13 +56,6 @@ function isLoggedIn() {
 }
 
 export default async function login() {
-  console.clear();
-  mainBanner();
-
-  if (!isInitialized()) {
-    return;
-  }
-
   if (isLoggedIn()) {
     return;
   }
@@ -81,15 +75,7 @@ export default async function login() {
     "- Your local session is saved automatically",
   ].join("\n");
 
-  console.log(
-    boxen(loginGuide, {
-      padding: { top: 1, right: 2, bottom: 1, left: 2 },
-      width: CONSOLE_MAX_WIDTH,
-      borderStyle: "double",
-      title: "ArcHone Login",
-      titleAlignment: "center",
-    }),
-  );
+  box(loginGuide, "Login", null, null, true);
 
   const { email, password } = await clack.group(
     {

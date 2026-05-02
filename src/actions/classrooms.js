@@ -4,6 +4,7 @@ import { mainBanner } from "../ui/banner.js";
 import boxen from "boxen";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
 import chalk from "chalk";
+import { box } from "../ui/box.js";
 
 export default async () => {
   const { userId } = await getSession();
@@ -14,19 +15,15 @@ export default async () => {
 
   const classrooms = await Database.getClassroomsByUserId(userId);
 
-  console.log("\n");
-  mainBanner();
-
   if (classrooms.length === 0) {
-    console.log(
-      boxen("You are not a member of any classrooms yet.", {
-        padding: 1,
-        width: 50,
-        borderStyle: "double",
-        title: "My Classrooms",
-        titleAlignment: "center",
-      }),
+    box(
+      "You are not a member of any classrooms yet.",
+      "My Classrooms",
+      null,
+      null,
+      true,
     );
+
     return;
   }
 
@@ -47,14 +44,5 @@ export default async () => {
     })
     .join("\n");
 
-  console.log(
-    boxen(classroomList, {
-      padding: 1,
-      width: CONSOLE_MAX_WIDTH,
-      borderStyle: "double",
-      title: "My Classrooms",
-      titleAlignment: "left",
-    }),
-  );
-  console.log("\n");
+  box(classroomList, "My Classrooms", null, null, true);
 };

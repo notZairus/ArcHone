@@ -1,7 +1,7 @@
 import analysisParser from "../parser/analysis-parser.js";
 
-export default async function analyzePython(sourceCode, fileExtension) {
-  const tree = await analysisParser(sourceCode, fileExtension);
+export default async function analyzePython(sourceCode) {
+  const tree = await analysisParser(sourceCode, "py");
   const result = analyzeTree(tree, sourceCode);
   return result;
 }

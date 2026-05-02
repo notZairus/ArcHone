@@ -11,6 +11,7 @@ import {
   SESSION_PATH,
 } from "../constants.js";
 import { getSession } from "./session.js";
+import { box } from "../ui/box.js";
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -66,17 +67,7 @@ export const selectFileFromDirectory = async (
         "- Use Cancel to exit the picker",
       ].join("\n");
 
-      console.log(
-        "\n" +
-          boxen(intro, {
-            title: "ArcHone Analyze",
-            titleAlignment: "center",
-            borderStyle: "double",
-            width: CONSOLE_MAX_WIDTH,
-            padding: { top: 1, right: 2, bottom: 1, left: 2 },
-            margin: { top: 0, right: 0, bottom: 0, left: 0 },
-          }),
-      );
+      box(intro, "Archone Analyze", null, null, true);
 
       didRenderHeader = true;
     }
@@ -154,6 +145,10 @@ export const selectFileFromDirectory = async (
       continue;
     }
 
+    clack.outro(
+      `You selected: ${chalk.cyan(path.relative(process.cwd(), selectedPath))}`,
+    );
+
     return selectedPath;
   }
 };
@@ -190,9 +185,12 @@ export function isInitialized() {
         },
       ),
     );
+
     clack.outro(chalk.yellow("Analysis skipped until setup is complete."));
+
     return false;
   }
+
   return true;
 }
 

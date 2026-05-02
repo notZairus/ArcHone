@@ -2,30 +2,20 @@ import clack from "../lib/clack.js";
 import chalk from "chalk";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
-import boxen from "boxen";
-import { CONSOLE_MAX_WIDTH } from "../constants.js";
-import { mainBanner } from "../ui/banner.js";
+import { box } from "../ui/box.js";
 
 export default async () => {
-  console.clear();
-  mainBanner();
-
   const { userId } = await getSession();
 
   if (!userId) {
-    console.log(
-      chalk.red(
-        boxen(
-          "You must be logged in to join a classroom. Please run 'archone login' first.",
-          {
-            padding: 1,
-            width: CONSOLE_MAX_WIDTH,
-            borderStyle: "double",
-            title: "Unauthenticated",
-          },
-        ) + "\n",
-      ),
+    box(
+      "You must be logged in to join a classroom. Please run 'archone login' first.",
+      "Unauthenticated",
+      null,
+      null,
+      true,
     );
+
     return;
   }
 
@@ -43,15 +33,7 @@ export default async () => {
     chalk.dim("Press Ctrl+C to cancel at any time"),
   ].join("\n");
 
-  console.log(
-    boxen(joinGuide, {
-      padding: 1,
-      width: CONSOLE_MAX_WIDTH,
-      borderStyle: "double",
-      title: "Join Classroom",
-      titleAlignment: "center",
-    }),
-  );
+  box(joinGuide, "Join Classroom", null, null, true);
 
   const { classroomCode } = await clack.group(
     {
@@ -92,7 +74,7 @@ export default async () => {
 
   spinner.stop(
     chalk.green(
-      `Successfully requested to joined the classroom with code: ${classroomCode}!\nWait for your instructor to approve your request.`,
+      `Successfully requested to join the classroom with code: ${classroomCode}!\nWait for your instructor to approve your request.`,
     ),
   );
   console.log("\n");
