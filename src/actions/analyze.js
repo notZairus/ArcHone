@@ -1,20 +1,13 @@
 import fs from "fs";
 import path from "path";
-
 import { boxError, boxSuccess, box } from "../ui/box.js";
-import analyzeJavaScript from "../analyzer/javascript.js";
-import analyzePython from "../analyzer/python.js";
-import analyzeCSharp from "../analyzer/csharp.js";
 import {
   VALID_FILE_EXTENSIONS,
   ARCHONE_DIR,
   CONSOLE_MAX_WIDTH,
 } from "../constants.js";
-import formatAnalysisResult from "../formatter/analysisFormatter.js";
-import boxen from "boxen";
 import clack from "../lib/clack.js";
 import {
-  isInitialized,
   selectFileFromDirectory,
   sortIssuesBySeverity,
 } from "../utils/helpers.js";
@@ -22,11 +15,15 @@ import { withIssuePrinciple } from "../utils/issue-principles.js";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
 
-const spinner = clack.spinner();
+// CORE ANALYSIS LOGIC
+import treeParser from "../parser/analysis-parser.js";
+import treeAnalyzer from "../analyzer/analyzer.js";
+import formatAnalysisResult from "../formatter/analysisFormatter.js";
 
 export default async () => {
   const providedInputPath = process.argv[3] || null;
-  const completeFilePath = providedInputPath
+
+  let completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)
     : await selectFileFromDirectory(process.cwd());
 
@@ -34,7 +31,7 @@ export default async () => {
     boxError(
       "Oops! The file you provided does not exist. Please check the file path and try again.",
     );
-    return;
+    process.exit(0);
   }
 
   const stat = fs.lstatSync(completeFilePath);
@@ -47,7 +44,8 @@ export default async () => {
     boxError(
       "Oops! The path you provided is a symbolic link. Please provide a valid file path to analyze.",
     );
-    return;
+
+    process.exit(0);
   }
 
   const fileExtension = path.extname(completeFilePath).slice(1).toLowerCase();
@@ -58,7 +56,7 @@ export default async () => {
         VALID_FILE_EXTENSIONS.join(", ") +
         ".",
     );
-    return;
+    process.exit(0);
   }
 
   const fileToAnalyze = path.relative(process.cwd(), completeFilePath);
@@ -70,61 +68,37 @@ export default async () => {
     fileExtension,
   );
   const isCommentOnlyFile = !isEmptyFile && !hasExecutableCode;
+  const isValid = !isEmptyFile && !isCommentOnlyFile;
 
-  if (isEmptyFile) {
+  if (!isValid) {
     boxError(
-      "This file is empty and cannot be analyzed. Add code to the file and run analysis again.",
+      isEmptyFile
+        ? "This file is empty and cannot be analyzed. Add code to the file and run analysis again."
+        : "This file is full of comments. Add a valid code block (for example, declarations, functions, or executable statements) and run analysis again.",
     );
-    return;
+    process.exit(0);
   }
 
-  if (!isCommentOnlyFile) {
-    const hasMeaningfulCode = hasMinimumCodeSignal(sourceCode, fileExtension);
+  const tree = await treeParser(sourceCode, fileExtension);
 
-    if (!hasMeaningfulCode) {
-      boxError(
-        "This file has too little code to analyze. Add a valid code block (for example, declarations, functions, or executable statements) and run analysis again.",
-      );
-      return;
-    }
-  }
-
-  let result = null;
-  if (isEmptyFile || isCommentOnlyFile) {
-    result = {
-      functions: [],
-      variables: [],
-      comments: [],
-      issues: [],
-      isEmptyFile: true,
-      isCommentOnlyFile,
-    };
-  } else {
-    switch (fileExtension) {
-      case "js":
-        result = await analyzeJavaScript(sourceCode);
-        break;
-      case "py":
-        result = await analyzePython(sourceCode);
-        break;
-      case "cs":
-        result = await analyzeCSharp(sourceCode);
-        break;
-      default:
-        boxError(`Parsing for .${fileExtension} is not implemented yet.`);
-        return;
-    }
-  }
+  const result = isValid
+    ? treeAnalyzer(tree, sourceCode, fileExtension)
+    : {
+        functions: [],
+        variables: [],
+        comments: [],
+        issues: [],
+        isEmptyFile: true,
+        isCommentOnlyFile,
+      };
 
   const issuesWithPrinciples = (result.issues || []).map(withIssuePrinciple);
   const sortedIssues = sortIssuesBySeverity(issuesWithPrinciples);
   result.issues = sortedIssues;
 
-  const analysisResultPath = path.join(ARCHONE_DIR, "latest_analysis.json");
-
-  fs.writeFileSync(
-    analysisResultPath,
-    JSON.stringify({ file: fileToAnalyze, result }, null, 2),
+  const code = fs.readFileSync(
+    path.join(process.cwd(), fileToAnalyze),
+    "utf-8",
   );
 
   box(
@@ -140,43 +114,9 @@ export default async () => {
     "Tips",
   );
 
-  const { userId } = await getSession();
-
-  if (!userId) {
-    console.log("\n");
-    box(
-      "You are not logged in. Log in to save your analysis results and access personalized insights.",
-      "Login Required",
-    );
-    console.log("\n");
-    return;
-  }
-
-  const code = fs.readFileSync(
-    path.join(process.cwd(), fileToAnalyze),
-    "utf-8",
-  );
-
-  spinner.start("Saving Analysis Result...");
-
-  try {
-    await Database.saveAnalysisResult(
-      fileToAnalyze,
-      fileExtension,
-      code,
-      result,
-    );
-  } catch (error) {
-    if (code.length < 100) {
-      spinner.stop("Analysis Finished.");
-      boxError(
-        "The code on the selected file is short, so the analysis result will not be saved.",
-      );
-      return;
-    }
-  }
-
-  spinner.stop("Analysis Result Saved!");
+  saveResultLocally(fileToAnalyze, result);
+  await checkAuth();
+  await saveToDatabase(fileToAnalyze, fileExtension, code, result);
 };
 
 // HELPERS //////////////////////////////////////////////////////////
@@ -245,3 +185,46 @@ const hasMinimumCodeSignal = (sourceCode, fileExtension) => {
 
   return identifierMatches >= 2 || keywordMatches >= 1;
 };
+
+function saveResultLocally(fileToAnalyze, result) {
+  const analysisResultPath = path.join(ARCHONE_DIR, "latest_analysis.json");
+
+  fs.writeFileSync(
+    analysisResultPath,
+    JSON.stringify({ file: fileToAnalyze, result }, null, 2),
+  );
+}
+
+async function checkAuth() {
+  const { userId } = await getSession();
+
+  if (!userId) {
+    box(
+      "You are not logged in. Log in to save your analysis results and access personalized insights.",
+      "Login Required",
+    );
+    process.exit(0);
+  }
+}
+
+async function saveToDatabase(fileToAnalyze, fileExtension, code, result) {
+  const spinner = clack.spinner();
+  spinner.start("Saving Analysis Result...");
+  try {
+    await Database.saveAnalysisResult(
+      fileToAnalyze,
+      fileExtension,
+      code,
+      result,
+    );
+  } catch (error) {
+    if (code.length < 100) {
+      spinner.stop("Analysis Finished.\n");
+      boxError(
+        "The code on the selected file is short, so the analysis result will not be saved.",
+      );
+      process.exit(0);
+    }
+  }
+  spinner.stop("Analysis Result Saved!\n");
+}

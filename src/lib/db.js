@@ -196,6 +196,37 @@ export default class Database {
 
     return true;
   }
+
+  //////////////////////////////
+  // GET CLASSROOM_USER
+  //////////////////////////////
+
+  static async getClassroomByCode(classroomCode) {
+    const result = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "classrooms",
+      queries: [Query.equal("code", classroomCode)],
+    });
+
+    if (result.total === 0) {
+      return null;
+    }
+
+    return result.rows[0];
+  }
+
+  static async getClassroomUser(userId, classroomId) {
+    const row = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "classroom_user",
+      queries: [
+        Query.equal("userId", userId),
+        Query.equal("classroomId", classroomId),
+      ],
+    });
+
+    return row.rows[0];
+  }
 }
 
 // ========================== Helper functions ========================== //

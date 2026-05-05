@@ -2,16 +2,16 @@ import fs from "fs";
 import path from "path";
 import clack from "../lib/clack.js";
 import chalk from "chalk";
-import analyzeJavaScript from "../analyzer/javascript.js";
-import analyzePython from "../analyzer/python.js";
-import analyzeCSharp from "../analyzer/csharp.js";
 import { box } from "../ui/box.js";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
+import analyzeGeneralCS from "../analyzer/general/csharp.js";
+import analyzeGeneralJS from "../analyzer/general/javascript.js";
+import analyzeGeneralPy from "../analyzer/general/python.js";
 
 const analyzersByExtension = {
-  js: analyzeJavaScript,
-  py: analyzePython,
-  cs: analyzeCSharp,
+  js: analyzeGeneralJS,
+  py: analyzeGeneralPy,
+  cs: analyzeGeneralCS,
 };
 
 const SCAN_LIMITS = {
@@ -79,7 +79,8 @@ export default async () => {
         languageCounts[extension] += 1;
       }
       const sourceCode = fs.readFileSync(filePath, "utf-8");
-      const result = await analyzer(sourceCode, extension);
+      const tree = await treeParser(sourceCode, extension);
+      const result = await analyzer(tree, sourceCode, extension);
       const issues = result.issues || [];
 
       if (issues.length) {

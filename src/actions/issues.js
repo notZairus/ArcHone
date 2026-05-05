@@ -1,4 +1,3 @@
-import boxen from "boxen";
 import chalk from "chalk";
 import { spawnSync } from "child_process";
 import { createRequire } from "module";
@@ -363,19 +362,13 @@ export default async function issues(initial_query = null) {
 
     const selectedIssue = findIssue(issuesCatalog, query);
     if (!selectedIssue) {
-      console.log("\n");
-      console.log(
-        boxen(
-          `${chalk.yellow("Archie:")} I could not find that issue lesson.\n\nTry ${chalk.cyan("archone issues")} to list available lessons.`,
-          {
-            width: CONSOLE_MAX_WIDTH,
-            padding: 1,
-            borderStyle: "round",
-            title: "Issue Not Found",
-          },
-        ),
+      box(
+        `Could not find that issue lesson.\n\nTry ${chalk.cyan("archone issues")} to list available lessons.`,
+        "Issue Not Found",
+        "left",
+        "round",
+        false,
       );
-      console.log("\n");
       return;
     }
 
@@ -388,15 +381,12 @@ export default async function issues(initial_query = null) {
     console.log(renderedLesson);
     console.log("\n");
   } catch (error) {
-    console.log("\n");
-    console.log(
-      boxen(chalk.red(`Failed to load issue lessons: ${error.message}`), {
-        width: CONSOLE_MAX_WIDTH,
-        padding: 1,
-        borderStyle: "round",
-        title: "ArcHone Issues Error",
-      }),
+    box(
+      chalk.red(`Failed to load issue lessons: ${error.message}`),
+      "Issues Error",
+      "left",
+      "round",
+      false,
     );
-    console.log("\n");
   }
 }

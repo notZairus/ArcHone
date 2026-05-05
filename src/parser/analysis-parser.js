@@ -15,7 +15,7 @@ const wasmPaths = {
 
 let parsers = {};
 
-export default async (sourceCode, language) => {
+export default async function treeParser(sourceCode, language) {
   await Parser.init();
 
   if (!parsers[language]) {
@@ -31,4 +31,4 @@ export default async (sourceCode, language) => {
   const parsed = parsers[language].parse(sourceCode);
 
   return parsed;
-};
+}

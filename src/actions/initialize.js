@@ -2,7 +2,6 @@ import clack from "../lib/clack.js";
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
-import boxen from "boxen";
 import { box } from "../ui/box.js";
 import { mainBanner } from "../ui/banner.js";
 import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
@@ -38,17 +37,12 @@ export default async () => {
   }
 
   if (fs.existsSync(ARCHONE_DIR)) {
-    clack.outro(
-      "\n" +
-        boxen(
-          `${chalk.yellow("ArcHone is already initialized.")}\n\nYou can continue using the CLI normally.\nIf you want a clean reset, remove ~/.archone and run 'archone init' again.`,
-          {
-            padding: 1,
-            width: CONSOLE_MAX_WIDTH,
-            borderStyle: "round",
-            title: "No Action Needed",
-          },
-        ),
+    box(
+      `${chalk.yellow("ArcHone is already initialized.")}\n\nYou can continue using the CLI normally.\nIf you want a clean reset, remove ~/.archone and run 'archone init' again.`,
+      "Already Initialized",
+      "left",
+      "round",
+      false,
     );
     return;
   }
@@ -58,18 +52,15 @@ export default async () => {
     fs.writeFileSync(sessionPath, JSON.stringify({}, null, 2));
     fs.writeFileSync(lastAnalysisPath, JSON.stringify({}, null, 2));
 
-    clack.outro(
-      "\n" +
-        boxen(
-          `${chalk.green("Initialization complete.")}\n\nArcHone is ready on this machine.\nNext step: run ${chalk.cyan("archone login")} to connect your account.`,
-          {
-            padding: 1,
-            width: CONSOLE_MAX_WIDTH,
-            borderStyle: "round",
-            title: "Setup Successful",
-          },
-        ),
+    box(
+      `${chalk.green("Initialization complete.")}\n\nArcHone is ready on this machine.\nNext step: run ${chalk.cyan("archone login")} to connect your account.`,
+      "Setup Successful",
+      "left",
+      "round",
+      false,
     );
+
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   } catch (error) {
     clack.outro(chalk.red(`Error initializing project: ${error.message}`));
   }

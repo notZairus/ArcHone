@@ -6,6 +6,7 @@ import chalk from "chalk";
 import { CONSOLE_MAX_WIDTH } from "./constants.js";
 import { isInitialized } from "./utils/helpers.js";
 import { box, boxError, boxSuccess } from "./ui/box.js";
+import initialize from "./actions/initialize.js";
 
 import commands from "./actions/barrel.js";
 

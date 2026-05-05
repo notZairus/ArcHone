@@ -60,6 +60,39 @@ export default async () => {
 
   spinner.start(chalk.blue(`Joining classroom with code: ${classroomCode}...`));
 
+  // validate if the user is already part of the classroom
+
+  const classroom = await Database.getClassroomByCode(classroomCode);
+
+  if (!classroom) {
+    spinner.stop(chalk.red(`No classroom found with code: ${classroomCode}.`));
+    console.log("\n");
+    return;
+  }
+
+  const existingClassroomUser = await Database.getClassroomUser(
+    userId,
+    classroom.$id,
+  );
+
+  if (existingClassroomUser) {
+    if (existingClassroomUser.accepted) {
+      spinner.stop(
+        chalk.yellow(
+          `You are already a member of the classroom with code: ${classroomCode}.\n`,
+        ),
+      );
+    } else {
+      spinner.stop(
+        chalk.yellow(
+          `You have already requested to join the classroom with code: ${classroomCode}. Please wait for your instructor to approve your request.\n`,
+        ),
+      );
+    }
+
+    return;
+  }
+
   try {
     await Database.joinClassroom(userId, classroomCode);
   } catch {

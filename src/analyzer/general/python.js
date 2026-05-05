@@ -1,12 +1,4 @@
-import analysisParser from "../parser/analysis-parser.js";
-
-export default async function analyzePython(sourceCode) {
-  const tree = await analysisParser(sourceCode, "py");
-  const result = analyzeTree(tree, sourceCode);
-  return result;
-}
-
-const analyzeTree = (tree, sourceCode) => {
+export default function analyseGeneralPy(tree, sourceCode) {
   const functions = [];
   const variables = [];
   const comments = [];
@@ -380,7 +372,7 @@ const analyzeTree = (tree, sourceCode) => {
     comments,
     issues,
   };
-};
+}
 
 const buildFunctionData = (node, name, sourceCode) => {
   const parametersNode = node.childForFieldName("parameters");

@@ -33,7 +33,7 @@ export default async function register() {
     ),
   );
 
-  const registrationUrl = "https://archone.vercel.app/register-student";
+  const registrationUrl = "https://archone.netlify.app/register-student";
 
   box(registrationUrl, "Registration URL");
 

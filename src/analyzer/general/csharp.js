@@ -1,14 +1,4 @@
-import analysisParser from "../parser/analysis-parser.js";
-
-export default async function analyzeJavaScript(sourceCode) {
-  const tree = await analysisParser(sourceCode, "js");
-  const result = analyzeTree(tree, sourceCode);
-  return result;
-}
-
-// --- helpers --- //
-
-const analyzeTree = (tree, sourceCode) => {
+export default function analyzeGeneralCS(tree, sourceCode) {
   const functions = [];
   const variables = [];
   const comments = [];
@@ -16,7 +6,8 @@ const analyzeTree = (tree, sourceCode) => {
 
   const declarationNodeKeys = new Set();
   const identifierUsageCount = new Map();
-  const variableNameDeclarationByScope = new Map();
+  const variableNameDeclarationCount = new Map();
+  const variableNameDeclarationMeta = new Map();
   const functionDeclarationNames = [];
 
   traverseTree(tree.rootNode, (node, parent) => {
@@ -29,26 +20,33 @@ const analyzeTree = (tree, sourceCode) => {
       return;
     }
 
-    if (node.type === "function_declaration") {
+    if (
+      node.type === "method_declaration" ||
+      node.type === "local_function_statement"
+    ) {
       const nameNode = node.childForFieldName("name");
       const name = nameNode ? getNodeText(nameNode, sourceCode) : "(anonymous)";
-      const isExported = isExportedDeclaration(node);
 
       if (nameNode) {
         declarationNodeKeys.add(getNodeKey(nameNode));
         functionDeclarationNames.push({
           name,
           line: getLine(nameNode),
-          isExported,
+          isEntryPoint: isEntryPointMethod(node, sourceCode),
           code: getNodeText(node, sourceCode),
         });
+      }
+
+      const parametersNode = node.childForFieldName("parameters");
+      for (const idNode of extractIdentifiersFromPattern(parametersNode)) {
+        declarationNodeKeys.add(getNodeKey(idNode));
       }
 
       functions.push(buildFunctionData(node, name, sourceCode));
       return;
     }
 
-    if (node.type === "function_expression" || node.type === "arrow_function") {
+    if (node.type === "lambda_expression") {
       const inferredNameNode = inferFunctionNameNode(node, parent);
       const inferredName = inferredNameNode
         ? getNodeText(inferredNameNode, sourceCode)
@@ -63,16 +61,15 @@ const analyzeTree = (tree, sourceCode) => {
     }
 
     if (node.type === "variable_declarator") {
-      const nameField = node.childForFieldName("name");
-      const valueField = node.childForFieldName("value");
+      const nameNode = node.childForFieldName("name");
+      const valueNode = node.childForFieldName("value");
       const kind = inferVariableKind(parent);
-      const dataType = inferVariableDataType(valueField, sourceCode);
-      const isExported = isExportedDeclaration(node);
+      const dataType = inferVariableDataType(valueNode, sourceCode);
 
-      for (const idNode of extractIdentifiersFromPattern(nameField)) {
+      for (const idNode of extractIdentifiersFromPattern(nameNode)) {
         const variableName = getNodeText(idNode, sourceCode);
-        const scopeKey = getDeclarationScopeKey(node, kind);
-        const scopeNameKey = `${scopeKey}::${variableName}`;
+        const scopeKey = getDeclarationScopeKey(idNode, kind);
+        const declarationKey = `${scopeKey}::${variableName}`;
 
         declarationNodeKeys.add(getNodeKey(idNode));
         variables.push({
@@ -80,32 +77,60 @@ const analyzeTree = (tree, sourceCode) => {
           kind,
           dataType,
           line: getLine(idNode),
-          scopeKey,
-          isExported,
-          code: getVariableDeclarationCode(node, sourceCode),
+          skipUnusedCheck: false,
+          code: getNodeText(node.parent || node, sourceCode),
         });
 
-        const existing = variableNameDeclarationByScope.get(scopeNameKey);
-        if (!existing) {
-          variableNameDeclarationByScope.set(scopeNameKey, {
+        variableNameDeclarationCount.set(
+          declarationKey,
+          (variableNameDeclarationCount.get(declarationKey) || 0) + 1,
+        );
+        if (!variableNameDeclarationMeta.has(declarationKey)) {
+          variableNameDeclarationMeta.set(declarationKey, {
             name: variableName,
-            scopeKey,
-            count: 1,
-            firstLine: getLine(idNode),
-            code: getVariableDeclarationCode(node, sourceCode),
+            line: getLine(idNode),
+            code: getNodeText(node.parent || node, sourceCode),
           });
-        } else {
-          existing.count += 1;
         }
       }
 
       return;
     }
 
-    if (
-      node.type === "identifier" ||
-      node.type === "shorthand_property_identifier"
-    ) {
+    if (node.type === "parameter") {
+      const nameNode = node.childForFieldName("name");
+      if (!nameNode) {
+        return;
+      }
+
+      const variableName = getNodeText(nameNode, sourceCode);
+      const scopeKey = getDeclarationScopeKey(nameNode, "parameter");
+      const declarationKey = `${scopeKey}::${variableName}`;
+      declarationNodeKeys.add(getNodeKey(nameNode));
+      variables.push({
+        name: variableName,
+        kind: "parameter",
+        dataType: "unknown",
+        line: getLine(nameNode),
+        skipUnusedCheck: shouldIgnoreUnusedParameter(node, sourceCode),
+        code: getNodeText(node, sourceCode),
+      });
+
+      variableNameDeclarationCount.set(
+        declarationKey,
+        (variableNameDeclarationCount.get(declarationKey) || 0) + 1,
+      );
+      if (!variableNameDeclarationMeta.has(declarationKey)) {
+        variableNameDeclarationMeta.set(declarationKey, {
+          name: variableName,
+          line: getLine(nameNode),
+          code: getNodeText(node, sourceCode),
+        });
+      }
+      return;
+    }
+
+    if (node.type === "identifier") {
       const key = getNodeKey(node);
       if (declarationNodeKeys.has(key)) {
         return;
@@ -122,28 +147,15 @@ const analyzeTree = (tree, sourceCode) => {
   for (const variable of variables) {
     const usageCount = identifierUsageCount.get(variable.name) || 0;
 
-    if (usageCount === 0 && !variable.isExported) {
+    if (usageCount === 0 && !variable.skipUnusedCheck) {
       issues.push({
         title: "Unused Variable",
         type: "warning",
         line: variable.line,
         message: `You created \`${variable.name}\`, but your code never uses it.`,
         suggestion:
-          "Delete this variable if you do not need it, or use it in your code where it belongs.",
-        why: "Extra unused variables make code harder to read because people waste time trying to understand them.",
-        code: variable.code,
-      });
-    }
-
-    if (variable.kind === "var") {
-      issues.push({
-        title: "Use of var",
-        type: "improvement",
-        line: variable.line,
-        message: `\`${variable.name}\` uses \`var\`, which can be confusing in JavaScript.`,
-        suggestion:
-          "Use `const` by default. Use `let` only when the value needs to change.",
-        why: "`let` and `const` are safer and easier for beginners to understand than `var`.",
+          "Delete this variable if you do not need it, or use it where it should be used.",
+        why: "Unused variables add clutter and make code harder to understand.",
         code: variable.code,
       });
     }
@@ -155,13 +167,13 @@ const analyzeTree = (tree, sourceCode) => {
         line: variable.line,
         message: `The variable name \`${variable.name}\` is not clear.`,
         suggestion:
-          "Rename it to something more descriptive, like `userCount`, `isValid`, or `totalPrice`.",
-        why: "Clear names help you and others understand the code faster.",
+          "Rename it to something clearer, like `userCount`, `isValid`, or `totalPrice`.",
+        why: "Clear names make code easier to read and maintain.",
         code: variable.code,
       });
     }
 
-    if (!isCamelCaseName(variable.name)) {
+    if (!isCSharpVariableName(variable.name)) {
       issues.push({
         title: "Naming Convention",
         type: "improvement",
@@ -169,7 +181,7 @@ const analyzeTree = (tree, sourceCode) => {
         message: `Variable name \`${variable.name}\` is not written in camelCase.`,
         suggestion:
           "Rename it to camelCase, for example `totalScore` or `isValidUser`.",
-        why: "Using one naming style keeps code neat and easier to scan.",
+        why: "Using one naming style keeps code clean and easier to scan.",
         code: variable.code,
       });
     }
@@ -178,44 +190,48 @@ const analyzeTree = (tree, sourceCode) => {
   for (const fn of functionDeclarationNames) {
     const usageCount = identifierUsageCount.get(fn.name) || 0;
 
-    if (usageCount === 0 && !fn.isExported) {
+    if (usageCount === 0 && !fn.isEntryPoint) {
       issues.push({
         title: "Unused Function",
         type: "warning",
         line: fn.line,
         message: `Function \`${fn.name}\` is never called in your code.`,
         suggestion:
-          "Remove the function if you do not need it, or call it where it should be used.",
-        why: "Unused functions add clutter and can confuse readers about what really runs.",
+          "Remove the function if you do not need it, or call it where it should run.",
+        why: "Unused functions can confuse readers about what really happens.",
         code: fn.code,
       });
     }
 
-    if (!isCamelCaseName(fn.name)) {
+    if (!isPascalCaseName(fn.name)) {
       issues.push({
         title: "Naming Convention",
         type: "improvement",
         line: fn.line,
-        message: `Function name \`${fn.name}\` is not written in camelCase.`,
+        message: `Function name \`${fn.name}\` is not written in PascalCase.`,
         suggestion:
-          "Rename it to camelCase, for example `parseScores` or `analyzeResults`.",
-        why: "Consistent function names make your code easier to read.",
+          "Rename it to PascalCase, for example `ParseScores` or `AnalyzeResults`.",
+        why: "Consistent naming helps other developers read your code faster.",
         code: fn.code,
       });
     }
   }
 
-  for (const declaration of variableNameDeclarationByScope.values()) {
-    if (declaration.count > 1) {
+  for (const [
+    declarationKey,
+    count,
+  ] of variableNameDeclarationCount.entries()) {
+    if (count > 1) {
+      const declarationMeta = variableNameDeclarationMeta.get(declarationKey);
       issues.push({
         title: "Name Reuse",
         type: "improvement",
-        line: declaration.firstLine,
-        message: `Variable name \`${declaration.name}\` appears ${declaration.count} times in the same scope.`,
+        line: declarationMeta ? declarationMeta.line : 1,
+        message: `Variable name \`${declarationMeta ? declarationMeta.name : "value"}\` is reused ${count} times in the same scope.`,
         suggestion:
           "Use different names for different values so each one has a clear purpose.",
-        why: "Reusing names can cause mistakes and makes debugging harder.",
-        code: declaration.code,
+        why: "Reusing names can cause confusion and mistakes.",
+        code: declarationMeta ? declarationMeta.code : "",
       });
     }
   }
@@ -229,9 +245,8 @@ const analyzeTree = (tree, sourceCode) => {
         functionName: fn.name,
         functionLines: fn.lines,
         message: `Function \`${fn.name}\` is very long (${fn.lines} lines).`,
-        suggestion:
-          "Split this function into smaller helper functions with clear names.",
-        why: "Shorter functions are easier to understand, test, and fix.",
+        suggestion: "Split this function into smaller helper methods.",
+        why: "Smaller methods are easier to read, test, and update.",
         code: fn.code,
       });
     }
@@ -243,8 +258,8 @@ const analyzeTree = (tree, sourceCode) => {
         line: fn.line,
         message: `Function \`${fn.name}\` has many parameters (${fn.parameterCount}).`,
         suggestion:
-          "Group related parameters into one object to make function calls simpler.",
-        why: "Too many parameters are easy to mix up and hard to remember.",
+          "Group related parameters into one object to make calls simpler.",
+        why: "Too many parameters are easy to mix up.",
         code: fn.code,
       });
     }
@@ -256,8 +271,8 @@ const analyzeTree = (tree, sourceCode) => {
         line: fn.line,
         message: `Function \`${fn.name}\` has complex logic with many branches (${fn.complexity}).`,
         suggestion:
-          "Simplify conditions and move parts of the logic into smaller helper functions.",
-        why: "Complex code is harder to test and easier to break by accident.",
+          "Simplify conditions and move parts of the logic into helper methods.",
+        why: "Complex code is harder to test and easier to break.",
         code: fn.code,
       });
     }
@@ -268,9 +283,8 @@ const analyzeTree = (tree, sourceCode) => {
         type: "warning",
         line: fn.line,
         message: `Function \`${fn.name}\` has deep nesting (level ${fn.maxNesting}).`,
-        suggestion:
-          "Use early returns and helper functions to flatten nested blocks.",
-        why: "Deep nesting is hard to read because you must track many levels at once.",
+        suggestion: "Use early returns and helper methods to reduce nesting.",
+        why: "Deep nesting is hard to read because you must track many levels.",
         code: fn.code,
       });
     }
@@ -289,7 +303,7 @@ const analyzeTree = (tree, sourceCode) => {
         line: fn.line,
         message: `Function \`${fn.name}\` repeats the same code block as ${duplicatedWith}.`,
         suggestion:
-          "Extract the shared logic into one helper function and reuse it from each call site.",
+          "Extract the shared logic into one helper method and reuse it from each call site.",
         why: "Duplicated logic is harder to maintain because bug fixes must be repeated in multiple places.",
         code: fn.code,
       });
@@ -306,7 +320,7 @@ const analyzeTree = (tree, sourceCode) => {
           "Found a TODO/FIXME/HACK comment. This usually means the work is not finished.",
         suggestion:
           "Write a short note about what is missing, then finish or remove this TODO as soon as you can.",
-        why: "Old TODO comments are easy to forget and may turn into bugs later.",
+        why: "Old TODO comments are easy to forget and may become bugs later.",
         code: comment.code,
       });
     }
@@ -320,7 +334,7 @@ const analyzeTree = (tree, sourceCode) => {
           "This comment looks like old disabled code, not an explanation.",
         suggestion:
           "Delete commented-out code. Keep comments for explanations only.",
-        why: "Old code in comments makes the real code harder to read.",
+        why: "Old code in comments makes real code harder to read.",
         code: comment.code,
       });
     }
@@ -332,44 +346,24 @@ const analyzeTree = (tree, sourceCode) => {
     comments,
     issues,
   };
-};
+}
 
 const buildFunctionData = (node, name, sourceCode) => {
   const parametersNode = node.childForFieldName("parameters");
   const bodyNode = node.childForFieldName("body");
-  const parameterCount = countParameterIdentifiers(parametersNode);
-  const complexity = estimateCyclomaticComplexity(node);
-  const maxNesting = estimateMaxNesting(node);
 
   return {
     name,
     line: getLine(node),
     lines: node.endPosition.row - node.startPosition.row + 1,
-    parameterCount,
-    complexity,
-    maxNesting,
+    parameterCount: countParameterIdentifiers(parametersNode),
+    complexity: estimateCyclomaticComplexity(node),
+    maxNesting: estimateMaxNesting(node),
     bodyCode: bodyNode
       ? getNodeText(bodyNode, sourceCode)
       : getNodeText(node, sourceCode),
     code: getNodeText(node, sourceCode),
   };
-};
-
-const getVariableDeclarationCode = (declaratorNode, sourceCode) => {
-  if (!declaratorNode) {
-    return "";
-  }
-
-  const declarationNode = declaratorNode.parent;
-  if (
-    declarationNode &&
-    (declarationNode.type === "variable_declaration" ||
-      declarationNode.type === "lexical_declaration")
-  ) {
-    return getNodeText(declarationNode, sourceCode);
-  }
-
-  return getNodeText(declaratorNode, sourceCode);
 };
 
 const inferFunctionNameNode = (node, parent) => {
@@ -385,23 +379,28 @@ const inferFunctionNameNode = (node, parent) => {
     return parent.childForFieldName("left");
   }
 
-  if (parent.type === "pair") {
-    return parent.childForFieldName("key");
-  }
-
   return node.childForFieldName("name");
 };
 
-const isExportedDeclaration = (node) => {
-  let current = node;
+const isEntryPointMethod = (methodNode, sourceCode) => {
+  if (!methodNode || methodNode.type !== "method_declaration") {
+    return false;
+  }
+
+  const nameNode = methodNode.childForFieldName("name");
+  if (!nameNode) {
+    return false;
+  }
+
+  return getNodeText(nameNode, sourceCode) === "Main";
+};
+
+const shouldIgnoreUnusedParameter = (parameterNode, sourceCode) => {
+  let current = parameterNode;
 
   while (current) {
-    if (
-      current.type === "export_statement" ||
-      current.type === "export_clause" ||
-      current.type === "export_specifier"
-    ) {
-      return true;
+    if (current.type === "method_declaration") {
+      return isEntryPointMethod(current, sourceCode);
     }
 
     current = current.parent;
@@ -410,26 +409,75 @@ const isExportedDeclaration = (node) => {
   return false;
 };
 
+const getDeclarationScopeKey = (node, kind = "unknown") => {
+  const scopeNode = findDeclarationScopeNode(node, kind);
+  return `${scopeNode.type}:${scopeNode.startIndex}:${scopeNode.endIndex}`;
+};
+
+const findDeclarationScopeNode = (node, kind) => {
+  const memberScopeTypes = new Set([
+    "class_declaration",
+    "struct_declaration",
+    "record_declaration",
+  ]);
+
+  const functionScopeTypes = new Set([
+    "method_declaration",
+    "local_function_statement",
+    "lambda_expression",
+    "anonymous_method_expression",
+    "constructor_declaration",
+    "operator_declaration",
+    "conversion_operator_declaration",
+    "accessor_declaration",
+  ]);
+
+  const localScopeTypes = new Set([
+    "statement_block",
+    "for_statement",
+    "for_each_statement",
+    "using_statement",
+    "switch_section",
+    "catch_clause",
+    ...functionScopeTypes,
+  ]);
+
+  const preferredScopeTypes =
+    kind === "field"
+      ? memberScopeTypes
+      : kind === "parameter"
+        ? functionScopeTypes
+        : localScopeTypes;
+
+  let current = node;
+  while (current) {
+    if (preferredScopeTypes.has(current.type)) {
+      return current;
+    }
+
+    current = current.parent;
+  }
+
+  return node;
+};
+
 const inferVariableKind = (parent) => {
   if (!parent) {
     return "unknown";
   }
 
-  if (
-    parent.type === "variable_declaration" ||
-    parent.type === "lexical_declaration"
-  ) {
-    const kindNode = parent.firstChild;
-    return kindNode ? kindNode.type : "unknown";
-  }
+  if (parent.type === "variable_declaration") {
+    const scopeNode = parent.parent;
 
-  if (
-    parent.parent &&
-    (parent.parent.type === "variable_declaration" ||
-      parent.parent.type === "lexical_declaration")
-  ) {
-    const kindNode = parent.parent.firstChild;
-    return kindNode ? kindNode.type : "unknown";
+    if (scopeNode && scopeNode.type === "field_declaration") {
+      return "field";
+    }
+
+    if (scopeNode && scopeNode.type === "local_declaration_statement") {
+      return "local";
+    }
+
+    return "declaration";
   }
 
   return "unknown";
@@ -440,104 +488,55 @@ const inferVariableDataType = (valueNode, sourceCode) => {
     return "unknown";
   }
 
-  if (valueNode.type === "parenthesized_expression") {
-    const expressionNode = valueNode.childForFieldName("expression");
-    return inferVariableDataType(expressionNode, sourceCode);
-  }
-
-  if (valueNode.type === "string" || valueNode.type === "template_string") {
-    return "string";
-  }
-
-  if (valueNode.type === "number") {
+  if (
+    valueNode.type === "integer_literal" ||
+    valueNode.type === "real_literal"
+  ) {
     return "number";
   }
 
-  if (valueNode.type === "true" || valueNode.type === "false") {
-    return "boolean";
-  }
-
-  if (valueNode.type === "null") {
-    return "null";
-  }
-
-  if (valueNode.type === "array") {
-    return "array";
-  }
-
-  if (valueNode.type === "object") {
-    return "object";
+  if (
+    valueNode.type === "string_literal" ||
+    valueNode.type === "interpolated_string_expression"
+  ) {
+    return "string";
   }
 
   if (
-    valueNode.type === "function" ||
-    valueNode.type === "function_expression" ||
-    valueNode.type === "arrow_function"
+    valueNode.type === "true" ||
+    valueNode.type === "false" ||
+    valueNode.type === "boolean_literal"
   ) {
-    return "function";
+    return "boolean";
   }
 
-  if (valueNode.type === "new_expression") {
+  if (valueNode.type === "null_literal") {
+    return "null";
+  }
+
+  if (
+    valueNode.type === "array_creation_expression" ||
+    valueNode.type === "implicit_array_creation_expression"
+  ) {
+    return "array";
+  }
+
+  if (valueNode.type === "object_creation_expression") {
     return "instance";
   }
 
-  if (valueNode.type === "regex") {
-    return "regexp";
+  if (valueNode.type === "lambda_expression") {
+    return "function";
   }
 
   if (valueNode.type === "identifier") {
     const text = getNodeText(valueNode, sourceCode);
-
-    if (text === "undefined") {
-      return "undefined";
-    }
-
-    if (text === "NaN" || text === "Infinity") {
-      return "number";
+    if (text === "null") {
+      return "null";
     }
   }
 
   return "unknown";
-};
-
-const getDeclarationScopeKey = (declaratorNode, variableKind) => {
-  const scopeNode = findDeclarationScopeNode(declaratorNode, variableKind);
-  return getNodeKey(scopeNode);
-};
-
-const findDeclarationScopeNode = (node, variableKind) => {
-  const varScopeTypes = new Set([
-    "program",
-    "function_declaration",
-    "function_expression",
-    "arrow_function",
-    "generator_function_declaration",
-    "generator_function",
-    "method_definition",
-  ]);
-
-  const lexicalScopeTypes = new Set([
-    "program",
-    "statement_block",
-    "for_statement",
-    "for_in_statement",
-    "for_of_statement",
-    "switch_statement",
-    "catch_clause",
-  ]);
-
-  const scopeTypes = variableKind === "var" ? varScopeTypes : lexicalScopeTypes;
-
-  let current = node;
-  while (current) {
-    if (scopeTypes.has(current.type)) {
-      return current;
-    }
-
-    current = current.parent;
-  }
-
-  return node;
 };
 
 const countParameterIdentifiers = (parametersNode) => {
@@ -552,12 +551,12 @@ const estimateCyclomaticComplexity = (functionNode) => {
   const complexityNodes = new Set([
     "if_statement",
     "for_statement",
-    "for_in_statement",
+    "for_each_statement",
     "while_statement",
     "do_statement",
-    "switch_case",
+    "switch_section",
     "catch_clause",
-    "ternary_expression",
+    "conditional_expression",
   ]);
 
   let complexity = 1;
@@ -575,8 +574,7 @@ const estimateMaxNesting = (functionNode) => {
   const nestingNodes = new Set([
     "if_statement",
     "for_statement",
-    "for_in_statement",
-    "for_of_statement",
+    "for_each_statement",
     "while_statement",
     "do_statement",
     "switch_statement",
@@ -682,20 +680,25 @@ const isPoorVariableName = (name) => {
   return /^(tmp|temp|data|value|item|obj|arr)[0-9]+$/i.test(name);
 };
 
-const isCamelCaseName = (name) => {
-  if (/^[A-Z0-9_]+$/.test(name)) {
-    return true;
-  }
-  return /^[a-z][A-Za-z0-9]*$/.test(name);
+const isCSharpVariableName = (name) => {
+  return /^_?[a-z][A-Za-z0-9]*$/.test(name);
+};
+
+const isPascalCaseName = (name) => {
+  return /^[A-Z][A-Za-z0-9]*$/.test(name);
 };
 
 const looksLikeCommentedCode = (commentText) => {
-  const normalized = commentText.replace(/^\s*\/+\s?/, "").trim();
+  const normalized = commentText
+    .replace(/^\s*\/+[/*]?\s?/, "")
+    .replace(/\*\/\s*$/, "")
+    .trim();
+
   if (normalized.length === 0) {
     return false;
   }
 
-  return /(\b(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*(?:=|;)|\bfunction\s+[A-Za-z_$][\w$]*\s*\(|\bclass\s+[A-Za-z_$][\w$]*\s*\{|\b(?:if|for|while)\s*\(|\breturn\b[^\n;]*;|=>|\{\s*\})/.test(
+  return /(\bclass\s+[A-Za-z_]\w*\s*\{|\b(?:void|int|string|bool|double|float|decimal|var)\s+[A-Za-z_]\w*\s*(?:\(|=|;)|\b(?:if|for|while)\s*\(|\breturn\b[^\n;]*;|=>|\{\s*\})/.test(
     normalized,
   );
 };
@@ -730,8 +733,10 @@ const extractIdentifiersFromPattern = (node) => {
   }
 
   const identifiers = [];
+
   for (let i = 0; i < node.childCount; i += 1) {
     identifiers.push(...extractIdentifiersFromPattern(node.child(i)));
   }
+
   return identifiers;
 };

@@ -10,7 +10,6 @@ export function boxSuccess(text = "Text Placeholder") {
     boxen(text, {
       padding: 1,
       width: CONSOLE_MAX_WIDTH,
-      borderStyle: "round",
     }),
   );
 
@@ -25,7 +24,6 @@ export function boxError(text = "Text Placeholder") {
       borderColor: "red",
       padding: 1,
       width: CONSOLE_MAX_WIDTH,
-      borderStyle: "round",
     }),
   );
 

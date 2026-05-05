@@ -1,4 +1,3 @@
-import boxen from "boxen";
 import chalk from "chalk";
 import fs from "fs";
 import path from "path";
@@ -14,20 +13,18 @@ import { box } from "../ui/box.js";
 
 function isInitialized() {
   if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(SESSION_PATH)) {
-    console.log(
-      boxen(
-        `${chalk.red("Archie:")} I cannot log you in yet because ArcHone is not initialized.\n\nRun ${chalk.cyan("archone init")} first, then come back and run ${chalk.cyan("archone login")}.`,
-        {
-          padding: 1,
-          width: CONSOLE_MAX_WIDTH,
-          borderStyle: "round",
-          title: "Initialization Required",
-        },
-      ),
+    box(
+      `Cannot log you in yet because ArcHone is not initialized.\n\nRun ${chalk.cyan("archone init")} first, then come back and run ${chalk.cyan("archone login")}.`,
+      "Initialization Required",
+      "left",
+      "round",
+      false,
     );
+
     clack.outro(chalk.yellow("Login skipped until setup is complete."));
     return false;
   }
+
   return true;
 }
 
@@ -38,18 +35,14 @@ function isLoggedIn() {
     return false;
   }
 
-  console.log(
-    boxen(
-      `${chalk.green("You are already logged in.")}\n\nWelcome back, ${chalk.bold(
-        session.name,
-      )}! Your ArcHone CLI is connected to your account on this machine.`,
-      {
-        padding: 1,
-        width: CONSOLE_MAX_WIDTH,
-        borderStyle: "round",
-        title: "Already Logged In",
-      },
-    ) + "\n",
+  box(
+    `${chalk.green("You are already logged in.")}\n\nWelcome back, ${chalk.bold(
+      session.name,
+    )}! Your ArcHone CLI is connected to your account on this machine.`,
+    "Already Logged In",
+    "left",
+    "round",
+    false,
   );
 
   return true;
@@ -107,35 +100,25 @@ export default async function login() {
     const user = await Database.getUserById(userId);
 
     if (user.role === "instructor") {
-      clack.outro(
-        "\n" +
-          boxen(
-            chalk.red(
-              "Instructor accounts cannot log in to the ArcHone CLI. Please use a student account to access the CLI features.",
-            ),
-            {
-              padding: 1,
-              width: CONSOLE_MAX_WIDTH,
-              title: "Access Denied",
-            },
-          ),
+      box(
+        chalk.red(
+          "Instructor accounts cannot log in to the ArcHone CLI. Please use a student account to access the CLI features.",
+        ),
+        "Access Denied",
+        "left",
+        "double",
+        false,
       );
       return;
     }
 
     if (user.status !== "verified") {
-      clack.outro(
-        "\n" +
-          boxen(
-            chalk.yellow(
-              "Your email address is not verified. Please check your email's inbox for a verification email and verify your account before logging in.",
-            ),
-            {
-              padding: 1,
-              width: CONSOLE_MAX_WIDTH,
-              title: "Email Not Verified",
-            },
-          ),
+      box(
+        "Your email address is not verified. Please check your email's inbox for a verification email and verify your account before logging in.",
+        "Verification Required",
+        "left",
+        "round",
+        false,
       );
       return;
     }
@@ -150,27 +133,20 @@ export default async function login() {
       ),
     );
 
-    clack.outro(
-      "\n" +
-        boxen(
-          `${chalk.green("Login successful.")}\n\nYou are now connected and ArcHone can access your account data on this machine.`,
-          {
-            padding: 1,
-            width: CONSOLE_MAX_WIDTH,
-            borderStyle: "round",
-            title: "Welcome Back",
-          },
-        ),
+    box(
+      `Hello, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.`,
+      "Login Successful",
+      "left",
+      "round",
+      false,
     );
   } catch (error) {
-    clack.outro(
-      "\n" +
-        boxen(chalk.red(`Login failed: ${error.message}`), {
-          padding: 1,
-          width: CONSOLE_MAX_WIDTH,
-          borderStyle: "round",
-          title: "Authentication Error",
-        }),
+    box(
+      `Login failed: ${error.message}`,
+      "Authentication Error",
+      "left",
+      "round",
+      false,
     );
   }
 }
