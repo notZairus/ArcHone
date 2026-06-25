@@ -3,15 +3,27 @@ import path from "path";
 import clack from "../lib/clack.js";
 import chalk from "chalk";
 import { box } from "../ui/box.js";
-import { CONSOLE_MAX_WIDTH } from "../constants.js";
-import analyzeGeneralCS from "../analyzer/general/csharp.js";
+import { AVAILABLE_ANALYSIS_MODES, CONSOLE_MAX_WIDTH } from "../constants.js";
 import analyzeGeneralJS from "../analyzer/general/javascript.js";
 import analyzeGeneralPy from "../analyzer/general/python.js";
+import analyzeGeneralCS from "../analyzer/general/csharp.js";
+import analyzeOopJS from "../analyzer/oop/javascript.js";
+import analyzeOopPy from "../analyzer/oop/python.js";
+import analyzeOopCS from "../analyzer/oop/csharp.js";
 
-const analyzersByExtension = {
-  js: analyzeGeneralJS,
-  py: analyzeGeneralPy,
-  cs: analyzeGeneralCS,
+import treeParser from "../parser/analysis-parser.js";
+
+const analyzersByMode = {
+  general: {
+    js: analyzeGeneralJS,
+    py: analyzeGeneralPy,
+    cs: analyzeGeneralCS,
+  },
+  oop: {
+    js: analyzeOopJS,
+    py: analyzeOopPy,
+    cs: analyzeOopCS,
+  },
 };
 
 const SCAN_LIMITS = {
@@ -33,7 +45,48 @@ export default async () => {
   console.clear();
   const args = process.argv.slice(3);
   const showAll = args.includes("--all");
-  const targetArg = args.find((arg) => arg !== "--all") || ".";
+
+  const modeFlagIndex = args.findIndex(
+    (arg) => String(arg).toLowerCase() === "--mode",
+  );
+
+  const hasModeFlag = modeFlagIndex !== -1;
+  const mode = hasModeFlag
+    ? args[modeFlagIndex + 1]
+      ? String(args[modeFlagIndex + 1]).toLowerCase()
+      : "general"
+    : "general";
+
+  if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
+    box(
+      `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
+        ", ",
+      )}. Please provide a valid mode using the --mode flag.`,
+      "ArcHone Scan Result",
+      null,
+      null,
+      true,
+    );
+    return;
+  }
+
+  const analyzersByExtension = analyzersByMode[mode] || analyzersByMode.general;
+  const positionalArgs = args.filter((arg, index) => {
+    if (String(arg).toLowerCase() === "--all") {
+      return false;
+    }
+
+    if (
+      hasModeFlag &&
+      (index === modeFlagIndex || index === modeFlagIndex + 1)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const targetArg = positionalArgs[0] || ".";
   const targetPath = path.resolve(process.cwd(), targetArg);
   const scanStartedAt = Date.now();
   const spinner = clack.spinner();
@@ -48,7 +101,11 @@ export default async () => {
   let sourceFiles = [];
 
   try {
-    sourceFiles = collectSourceFiles(targetPath, scanStartedAt);
+    sourceFiles = collectSourceFiles(
+      targetPath,
+      scanStartedAt,
+      analyzersByExtension,
+    );
   } catch (error) {
     if (handleFolderTooLargeError(error, spinner)) {
       return;
@@ -187,7 +244,7 @@ export default async () => {
   box(lines.join("\n"), "Scan Result", null, null, true);
 };
 
-function collectSourceFiles(rootDir, scanStartedAt) {
+function collectSourceFiles(rootDir, scanStartedAt, analyzersByExtension) {
   const ignored = new Set([
     "node_modules",
     "vendor",

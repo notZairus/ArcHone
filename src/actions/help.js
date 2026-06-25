@@ -48,15 +48,7 @@ export default () => {
         .join("\n");
     });
 
-  const archieHeader = figlet.textSync("Archone", {
-    font: "Small Slant",
-    horizontalLayout: "default",
-    verticalLayout: "default",
-  });
-
-  const archieIntro = ["Here is a quick guide to everything you can run:"].join(
-    "\n",
-  );
+  const intro = ["Here is a quick guide to everything you can run:"].join("\n");
 
   const usageHints = [
     "Try running the 'archone analyze' command to get started with your first analysis.",
@@ -66,7 +58,7 @@ export default () => {
     .join("\n");
 
   const helpPanel = [
-    archieIntro,
+    intro,
     "",
     chalk.bold("Commands"),
     "",

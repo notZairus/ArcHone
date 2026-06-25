@@ -5,6 +5,7 @@ import {
   VALID_FILE_EXTENSIONS,
   ARCHONE_DIR,
   CONSOLE_MAX_WIDTH,
+  AVAILABLE_ANALYSIS_MODES,
 } from "../constants.js";
 import clack from "../lib/clack.js";
 import {
@@ -15,17 +16,31 @@ import { withIssuePrinciple } from "../utils/issue-principles.js";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
 
-// CORE ANALYSIS LOGIC
 import treeParser from "../parser/analysis-parser.js";
-import treeAnalyzer from "../analyzer/analyzer.js";
 import formatAnalysisResult from "../formatter/analysisFormatter.js";
+
+import generalTreeAnalyzer from "../analyzer/generalTreeAnalyzer.js";
+import oopTreeAnalyzer from "../analyzer/oopTreeAnalyzer.js";
 
 export default async () => {
   const providedInputPath = process.argv[3] || null;
 
+  const hasModeFlag =
+    process.argv[4] && process.argv[4].toLowerCase() === "--mode";
+
+  let mode = hasModeFlag
+    ? process.argv[5]
+      ? process.argv[5].toLowerCase()
+      : "general"
+    : "general";
+
   let completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)
     : await selectFileFromDirectory(process.cwd());
+
+  if (!completeFilePath) {
+    process.exit(0);
+  }
 
   if (!fs.existsSync(completeFilePath)) {
     boxError(
@@ -59,6 +74,40 @@ export default async () => {
     process.exit(0);
   }
 
+  const shouldPromptForMode = !providedInputPath && !hasModeFlag;
+  if (shouldPromptForMode) {
+    const selectedMode = await clack.select({
+      message: "Choose analysis mode",
+      options: [
+        {
+          value: "general",
+          label: "General",
+          hint: "General code issues (functions, variables, complexity, etc.)",
+        },
+        {
+          value: "oop",
+          label: "OOP",
+          hint: "OOP smells (constructor, dependencies, responsibilities, etc.)",
+        },
+      ],
+    });
+
+    if (clack.isCancel(selectedMode)) {
+      process.exit(0);
+    }
+
+    mode = String(selectedMode).toLowerCase();
+  }
+
+  if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
+    boxError(
+      `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
+        ", ",
+      )}. Please provide a valid mode using the --mode flag.`,
+    );
+    process.exit(0);
+  }
+
   const fileToAnalyze = path.relative(process.cwd(), completeFilePath);
   const sourceCode = fs.readFileSync(completeFilePath, "utf-8") || "";
 
@@ -79,10 +128,10 @@ export default async () => {
     process.exit(0);
   }
 
+  const analyzer = getAnalyzerMode(mode);
   const tree = await treeParser(sourceCode, fileExtension);
-
   const result = isValid
-    ? treeAnalyzer(tree, sourceCode, fileExtension)
+    ? analyzer(tree, sourceCode, fileExtension)
     : {
         functions: [],
         variables: [],
@@ -227,4 +276,17 @@ async function saveToDatabase(fileToAnalyze, fileExtension, code, result) {
     }
   }
   spinner.stop("Analysis Result Saved!\n");
+}
+
+function getAnalyzerMode(mode) {
+  switch (mode) {
+    case "general":
+      return generalTreeAnalyzer;
+      break;
+    case "oop":
+      return oopTreeAnalyzer;
+      break;
+    default:
+      return generalTreeAnalyzer;
+  }
 }

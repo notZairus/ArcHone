@@ -1,8 +1,8 @@
-import analyzeGeneralJS from "../analyzer/general/javascript.js";
-import analyzeGeneralPy from "../analyzer/general/python.js";
-import analyzeGeneralCS from "../analyzer/general/csharp.js";
+import analyzeGeneralJS from "./general/javascript.js";
+import analyzeGeneralPy from "./general/python.js";
+import analyzeGeneralCS from "./general/csharp.js";
 
-export default function treeAnalyzer(tree, sourceCode, fileExtension) {
+export default function generalTreeAnalyzer(tree, sourceCode, fileExtension) {
   if (!tree || typeof tree !== "object") {
     return {
       error: "Invalid syntax tree.",

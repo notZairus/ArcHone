@@ -73,6 +73,8 @@ export const ARCHONE_DIR_PATH = path.join(process.cwd(), "archone");
 
 export const VALID_FILE_EXTENSIONS = ["js", "cs", "py"];
 
+export const AVAILABLE_ANALYSIS_MODES = ["general", "oop"];
+
 export const APPWRITE_DATABASE_ID = "69b86a1600132cab3e71";
 
 export const ARCHONE_DIR = path.join(os.homedir(), ".archone");

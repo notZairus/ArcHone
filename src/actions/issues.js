@@ -6,6 +6,7 @@ import { mainBanner } from "../ui/banner.js";
 import { box } from "../ui/box.js";
 
 const require = createRequire(import.meta.url);
+
 const detectableIssues = {
   catalog: "ArcHone Detectable Issues",
   version: 1,
@@ -223,6 +224,83 @@ function getStudentAccess(user) {
       code: 'function renderUser(user) {\n  // const fullName = user.firstName + " " + user.lastName;\n  // showLegacyProfile(user);\n  showProfile(user);\n}',
       fix: "function renderUser(user) {\n  showProfile(user);\n}",
     },
+
+    // OOP mode lessons
+    {
+      title: "No Constructor",
+      severity: "improvement",
+      detectableIn: ["javascript", "python", "csharp"],
+      principle: "KISS (Keep It Simple, Stupid)",
+      why: "When a class has instance members but no constructor/initializer, its state often gets initialized inconsistently across methods.",
+      suggestion:
+        "Add a constructor (`constructor` / `__init__`) to initialize required fields, or make the class a utility class with only static methods.",
+      code: "class UserService {\n  users = [];\n\n  addUser(user) {\n    this.users.push(user);\n  }\n}\n",
+      fix: "class UserService {\n  constructor() {\n    this.users = [];\n  }\n\n  addUser(user) {\n    this.users.push(user);\n  }\n}\n",
+    },
+    {
+      title: "Too Many Dependencies",
+      severity: "warning",
+      detectableIn: ["javascript", "python", "csharp"],
+      principle: "Separation of Concerns",
+      why: "A class with many dependencies is tightly coupled, harder to test, and harder to change without causing side effects.",
+      suggestion:
+        "Extract responsibilities into smaller classes/modules and inject collaborators rather than creating/using too many different services in one class.",
+      code: "class OrderService {\n  checkout(order) {\n    new PaymentGateway().charge(order);\n    new EmailSender().send(order);\n    new SmsSender().send(order);\n    new Analytics().track(order);\n    new AuditLogger().log(order);\n  }\n}\n",
+      fix: "class OrderService {\n  constructor({ paymentGateway, notifications, analytics, auditLogger }) {\n    this.paymentGateway = paymentGateway;\n    this.notifications = notifications;\n    this.analytics = analytics;\n    this.auditLogger = auditLogger;\n  }\n\n  checkout(order) {\n    this.paymentGateway.charge(order);\n    this.notifications.send(order);\n    this.analytics.track(order);\n    this.auditLogger.log(order);\n  }\n}\n",
+    },
+    {
+      title: "Method Too Long",
+      severity: "improvement",
+      detectableIn: ["javascript", "python", "csharp"],
+      principle: "Single Responsibility Principle",
+      why: "Long methods are harder to read and usually do more than one job.",
+      suggestion: "Split the method into smaller helpers with clear names.",
+      code: "class Report {\n  build(data) {\n    // validate\n    // transform\n    // sort\n    // format\n    // save\n    // email\n    // ... many more lines\n  }\n}\n",
+      fix: "class Report {\n  build(data) {\n    this.validate(data);\n    const normalized = this.normalize(data);\n    const report = this.format(normalized);\n    this.save(report);\n    this.notify(report);\n  }\n}\n",
+    },
+    {
+      title: "Large Class / God Class",
+      severity: "warning",
+      detectableIn: ["javascript", "python", "csharp"],
+      principle: "Single Responsibility Principle",
+      why: "God classes do too much and become difficult to test, debug, and refactor.",
+      suggestion:
+        "Split the class into smaller classes by responsibility (e.g., parsing, validation, persistence, UI).",
+      code: "class MegaManager {\n  parse() {}\n  validate() {}\n  saveToDb() {}\n  sendEmail() {}\n  renderUi() {}\n  // ... dozens more methods\n}\n",
+      fix: "class Parser {}\nclass Validator {}\nclass Repository {}\nclass Notifier {}\nclass UiRenderer {}\n",
+    },
+    {
+      title: "Hardcoded Values",
+      severity: "improvement",
+      detectableIn: ["javascript", "python", "csharp"],
+      principle: "KISS (Keep It Simple, Stupid)",
+      why: "Hardcoded values hide meaning. When something change, it’s easy to miss where the value is used.",
+      suggestion:
+        "Replace or store magic numbers/strings on a variable or constants.",
+      code: "class RetryPolicy {\n  shouldRetry(attempt) {\n    return attempt < 7 && 1500 > 0;\n  }\n}\n",
+      fix: "const MAX_RETRIES = 7;\nconst DEFAULT_DELAY_MS = 1500;\n\nclass RetryPolicy {\n  shouldRetry(attempt) {\n    return attempt < MAX_RETRIES && DEFAULT_DELAY_MS > 0;\n  }\n}\n",
+    },
+    {
+      title: "Too Many Public Methods",
+      severity: "improvement",
+      detectableIn: ["javascript", "python", "csharp"],
+      principle: "Separation of Concerns",
+      why: "A large public API surface makes the class harder to use and harder to change safely.",
+      suggestion:
+        "Make helper methods private (or internal) and keep the public API minimal.",
+      code: "class UserManager {\n  createUser() {}\n  validateEmail() {}\n  hashPassword() {}\n  normalizeName() {}\n  saveUser() {}\n  // ... all public\n}\n",
+      fix: "class UserManager {\n  createUser() {\n    this.#validateEmail();\n    this.#hashPassword();\n    this.#saveUser();\n  }\n\n  #validateEmail() {}\n  #hashPassword() {}\n  #saveUser() {}\n}\n",
+    },
+    {
+      title: "Duplicate Methods",
+      severity: "improvement",
+      detectableIn: ["javascript", "python", "csharp"],
+      principle: "DRY (Don't Repeat Yourself)",
+      why: "Duplicate method implementations increase bugs because fixes must be applied in multiple places.",
+      suggestion: "Extract shared logic into one helper method and reuse it.",
+      code: "class Tax {\n  calcA(amount) {\n    const base = amount * 0.12;\n    return base + 5;\n  }\n\n  calcB(amount) {\n    const base = amount * 0.12;\n    return base + 5;\n  }\n}\n",
+      fix: "class Tax {\n  #calc(amount) {\n    const base = amount * 0.12;\n    return base + 5;\n  }\n\n  calcA(amount) {\n    return this.#calc(amount);\n  }\n\n  calcB(amount) {\n    return this.#calc(amount);\n  }\n}\n",
+    },
   ],
   titles: [
     "Unused Variable",
@@ -238,6 +316,13 @@ function getStudentAccess(user) {
     "Deep Nesting",
     "TODO Comment",
     "Commented-out Code",
+    "No Constructor",
+    "Too Many Dependencies",
+    "Method Too Long",
+    "Large Class / God Class",
+    "Hardcoded Values",
+    "Too Many Public Methods",
+    "Duplicate Methods",
   ],
 };
 
@@ -249,7 +334,7 @@ function toTitleCase(value = "") {
 
 function formatIssueList(issues) {
   const lines = [
-    "Archie: Here are ArcHone's detectable issues.",
+    "Here are ArcHone's detectable issues.",
     "",
     chalk.bold("How to use"),
     "- Run archone issues <number> to open a full lesson",

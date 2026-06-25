@@ -64,7 +64,7 @@ const commands = [
   {
     triggers: ["help"],
     description:
-      "Open Archie assistant mode to see command explanations, practical hints, and quick-start guidance.",
+      "Open Archone assistant mode to see command explanations, practical hints, and quick-start guidance.",
     function: help,
   },
   {

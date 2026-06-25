@@ -143,7 +143,7 @@ export default (fileName, result) => {
       : formatSeverityBreakdown(prioritizedIssues);
 
   const lines = [
-    chalk.bold("Archie: Here is your ArcHone analysis summary."),
+    chalk.bold("Here is your ArcHone analysis summary."),
     "",
     chalk.bold("What ArcHone analyzed"),
     `- File: ${fileName}`,

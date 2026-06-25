@@ -18,6 +18,15 @@ const ISSUE_PRINCIPLE_BY_TITLE = {
   "Deep Nesting": "KISS (Keep It Simple, Stupid)",
   "TODO Comment": "N/A",
   "Commented-out Code": "YAGNI (You Aren't Gonna Need It)",
+
+  // OOP mode
+  "No Constructor": "KISS (Keep It Simple, Stupid)",
+  "Too Many Dependencies": "Separation of Concerns",
+  "Method Too Long": "Single Responsibility Principle",
+  "Large Class / God Class": "Single Responsibility Principle",
+  "Hardcoded Values": "KISS (Keep It Simple, Stupid)",
+  "Too Many Public Methods": "Separation of Concerns",
+  "Duplicate Methods": "DRY (Don't Repeat Yourself)",
 };
 
 const DEFAULT_PRINCIPLE = "N/A";

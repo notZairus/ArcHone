@@ -33,7 +33,7 @@ export default async function register() {
     ),
   );
 
-  const registrationUrl = "https://archone.netlify.app/register-student";
+  const registrationUrl = "http://localhost:5173" + "/register-student";
 
   box(registrationUrl, "Registration URL");
 
