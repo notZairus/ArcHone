@@ -173,28 +173,12 @@ export function sortIssuesBySeverity(issues) {
 }
 
 export function isInitialized() {
-  if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(SESSION_PATH)) {
-    console.log(
-      boxen(
-        `You cannot analyze files yet because ArcHone is not initialized.\n\nRun ${chalk.cyan("archone init")} first, then come back and run ${chalk.cyan("archone analyze")}.`,
-        {
-          padding: 1,
-          width: CONSOLE_MAX_WIDTH,
-          borderStyle: "round",
-          title: "Initialization Required",
-        },
-      ),
-    );
-
-    clack.outro(chalk.yellow("Analysis skipped until setup is complete."));
-
-    return false;
-  }
-
-  return true;
+  return !fs.existsSync(ARCHONE_DIR) || !fs.existsSync(SESSION_PATH)
+    ? false
+    : true;
 }
 
-function isLoggedIn() {
+export function isLoggedIn() {
   const session = getSession();
 
   if (!session.userId) {
@@ -216,4 +200,38 @@ function isLoggedIn() {
   );
 
   return true;
+}
+
+export async function validateApiKey(provider, apiKey) {
+  try {
+    let response;
+
+    switch (provider) {
+      case "openai":
+        response = await fetch("https://api.openai.com/v1/models", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+        });
+
+        return response.ok;
+
+      case "gemini":
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "GET",
+          },
+        );
+
+        return response.ok;
+
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  } catch (error) {
+    console.error("API key validation failed:", error);
+    return false;
+  }
 }

@@ -13,11 +13,11 @@ import commands from "./actions/barrel.js";
 async function main() {
   console.clear();
 
-  if (!isInitialized()) {
+  const action = process.argv[2];
+
+  if (!isInitialized() && action !== "init") {
     await initialize();
   }
-
-  const action = process.argv[2];
 
   if (!action) {
     box(
