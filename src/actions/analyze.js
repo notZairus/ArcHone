@@ -21,6 +21,7 @@ import formatAnalysisResult from "../formatter/analysisFormatter.js";
 
 import generalTreeAnalyzer from "../analyzer/generalTreeAnalyzer.js";
 import oopTreeAnalyzer from "../analyzer/oopTreeAnalyzer.js";
+import { setLatestAnalysis } from "../lib/local.js";
 
 export default async () => {
   const providedInputPath = process.argv[3] || null;
@@ -163,7 +164,8 @@ export default async () => {
     "Tips",
   );
 
-  saveResultLocally(fileToAnalyze, result);
+  setLatestAnalysis(fileToAnalyze, result);
+
   await checkAuth();
   await saveToDatabase(fileToAnalyze, fileExtension, code, result);
 };
@@ -234,15 +236,6 @@ const hasMinimumCodeSignal = (sourceCode, fileExtension) => {
 
   return identifierMatches >= 2 || keywordMatches >= 1;
 };
-
-function saveResultLocally(fileToAnalyze, result) {
-  const analysisResultPath = path.join(ARCHONE_DIR, "latest_analysis.json");
-
-  fs.writeFileSync(
-    analysisResultPath,
-    JSON.stringify({ file: fileToAnalyze, result }, null, 2),
-  );
-}
 
 async function checkAuth() {
   const { userId } = await getSession();

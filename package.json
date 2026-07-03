@@ -16,6 +16,7 @@
   "description": "",
   "dependencies": {
     "@clack/prompts": "^1.1.0",
+    "@google/genai": "^2.10.0",
     "appwrite": "^23.0.0",
     "archy": "^1.0.0",
     "axios": "1.14.0",

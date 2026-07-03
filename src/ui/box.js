@@ -36,12 +36,13 @@ export function box(
   alignment = "left",
   style = "double",
   banner = false,
+  padding = 1,
 ) {
   !banner && console.log("\n");
   banner && mainBanner();
   console.log(
     boxen(text, {
-      padding: 1,
+      padding: padding,
       width: CONSOLE_MAX_WIDTH,
       borderStyle: style || "double",
       title: chalk.bold(title.toUpperCase()),

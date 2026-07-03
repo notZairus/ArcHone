@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
+import { getAiConfig } from "./local.js";
 
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -51,18 +53,98 @@ export async function explainIssue(issue) {
   return fullText;
 }
 
-////////////////////////////////////////////////////////////
-// calls the serverless function to get the explanation for a specific issue
-// export async function explainIssue(issue) {
-//   try {
-//     const response = await axios.post(
-//       "https://69ca6ce30003822d6cdc.sgp.appwrite.run",
-//       { issue: issue },
-//     );
+export async function explainIssueWithGemini(issue) {
+  const aiConfig = getAiConfig();
+  if (!aiConfig.enabled) {
+    console.log("AI is not enabled in the configuration.");
+    process.exit(1);
+  }
 
-//     const data = response.data;
-//     return JSON.stringify(data.output);
-//   } catch (error) {
-//     console.error("Error fetching explanation:", error);
-//   }
-// }
+  const prompt = `You are a programming instructor and you teach student how to write a cleaner code. The student provide you the code information and you explain it in a way that a 15yrs old student with no prior programming knowledge can understand. You should only tackle the issue that the student provide you. You should not provide any other information that is not related to the issue. You should only explain the following points:
+  - Why this issue matters 
+  - What part of the code caused it 
+  - Beginner-friendly explanation 
+  - Suggested fixed code 
+  - What changed and why
+
+  below is the information about the code issue:
+  ${JSON.stringify(issue)}
+`;
+
+  const ai = new GoogleGenAI({ apiKey: aiConfig.apiKey });
+
+  const responseStream = await ai.models.generateContentStream({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          title: {
+            type: "STRING",
+            description: "The title of the code quality issue or improvement.",
+          },
+          type: { type: "STRING", enum: ["warning", "improvement", "error"] },
+          line: {
+            type: "INTEGER",
+            description:
+              "The line number in the source code where the issue occurs.",
+          },
+          message: {
+            type: "STRING",
+            description: "The original linter or analyzer message.",
+          },
+          principle: {
+            type: "STRING",
+            description:
+              "The software development principle being violated or applied.",
+          },
+          whyThisIssueMatters: { type: "STRING" },
+          whatPartOfTheCodeCausedIt: { type: "STRING" },
+          beginnerFriendlyExplanation: { type: "STRING" },
+          suggestedFixedCode: {
+            type: "STRING",
+            description:
+              "The suggested fixed code snippet. make sure that the code is ready to be rendered using markdown",
+          },
+          whatChangedAndWhy: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                change: { type: "STRING" },
+                why: { type: "STRING" },
+              },
+              required: ["change", "why"],
+            },
+          },
+        },
+        required: [
+          "title",
+          "type",
+          "line",
+          "message",
+          "principle",
+          "whyThisIssueMatters",
+          "whatPartOfTheCodeCausedIt",
+          "beginnerFriendlyExplanation",
+          "suggestedFixedCode",
+          "whatChangedAndWhy",
+        ],
+      },
+    },
+  });
+
+  let completeOutput = "";
+
+  for await (const chunk of responseStream) {
+    const chunkText = chunk.text;
+    completeOutput += chunkText;
+
+    console.log(chunkText);
+  }
+
+  const output = JSON.parse(completeOutput);
+  return output;
+}

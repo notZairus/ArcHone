@@ -429,10 +429,10 @@ function findIssue(issues, query) {
   return issues.find((issue) => issue.title.toLowerCase() === normalized);
 }
 
-export default async function issues(initial_query = null) {
+export default async function issues(issueTitle = null) {
   try {
     const issuesCatalog = detectableIssues.issues || [];
-    const query = initial_query || process.argv.slice(3).join(" ").trim();
+    const query = issueTitle || process.argv.slice(3).join(" ").trim();
 
     if (!query) {
       box(
@@ -460,7 +460,9 @@ export default async function issues(initial_query = null) {
     const markdownLesson = formatIssueLessonMarkdown(selectedIssue);
     const renderedLesson = renderWithTerminalMarkdown(markdownLesson);
 
-    box("Issue: " + selectedIssue.title, "Issue Explanation");
+    box("", "ISSUE EXPLANATION STARTS HERE!", "center", "double", false, 0);
+
+    box(selectedIssue.title.toUpperCase(), "Name of the Issue");
 
     console.log("\n");
     console.log(renderedLesson);
