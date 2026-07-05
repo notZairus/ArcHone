@@ -35,8 +35,5 @@ export const getLastestAnalysis = () => {
 
 export const setLatestAnalysis = (fileName, analysis) => {
   const content = JSON.stringify({ file: fileName, result: analysis }, null, 2);
-
-  console.log(content);
-
   fs.writeFileSync(LATEST_ANALYSIS_PATH, content, "utf-8");
 };

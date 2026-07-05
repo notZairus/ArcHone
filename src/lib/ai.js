@@ -4,8 +4,7 @@ import { getAiConfig } from "./local.js";
 
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
-  apiKey:
-    "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",
+  apiKey: "???",
 });
 
 export async function explainIssue(issue) {
@@ -52,6 +51,8 @@ export async function explainIssue(issue) {
 
   return fullText;
 }
+
+// GOOGLE GEMINI
 
 export async function explainIssueWithGemini(issue) {
   const aiConfig = getAiConfig();
@@ -100,23 +101,29 @@ export async function explainIssueWithGemini(issue) {
             description:
               "The software development principle being violated or applied.",
           },
-          whyThisIssueMatters: { type: "STRING" },
-          whatPartOfTheCodeCausedIt: { type: "STRING" },
-          beginnerFriendlyExplanation: { type: "STRING" },
+          whyThisIssueMatters: {
+            type: "STRING",
+            description: "A brief explanation of why this issue is important.",
+          },
+          whatPartOfTheCodeCausedIt: {
+            type: "STRING",
+            description:
+              "A brief explanation of what part of the code caused this issue.",
+          },
+          beginnerFriendlyExplanation: {
+            type: "STRING",
+            description:
+              "A plain text beginner-friendly explanation of the issue.",
+          },
           suggestedFixedCode: {
             type: "STRING",
             description:
-              "The suggested fixed code snippet. make sure that the code is ready to be rendered using markdown",
+              "The suggested fixed code snippet without any comments in it. make sure that the whole code is ready to be rendered using markdown.",
           },
-          whatChangedAndWhy: {
+          whatChanged: {
             type: "ARRAY",
             items: {
-              type: "OBJECT",
-              properties: {
-                change: { type: "STRING" },
-                why: { type: "STRING" },
-              },
-              required: ["change", "why"],
+              type: "STRING",
             },
           },
         },
@@ -130,7 +137,7 @@ export async function explainIssueWithGemini(issue) {
           "whatPartOfTheCodeCausedIt",
           "beginnerFriendlyExplanation",
           "suggestedFixedCode",
-          "whatChangedAndWhy",
+          "whatChanged",
         ],
       },
     },

@@ -4,6 +4,8 @@ import teachIssue from "./issues.js";
 import { getLastestAnalysis, getAiConfig } from "../lib/local.js";
 import { explainIssueWithGemini } from "../lib/ai.js";
 import { formatAiOutput } from "../formatter/explanationFormatter.js";
+import { box } from "../ui/box.js";
+import chalk from "chalk";
 
 export default async () => {
   console.clear();
@@ -54,23 +56,24 @@ export default async () => {
     process.exit(0);
   }
 
-  console.log(`
-    ai will explain 
-      - Why this issue matters
-      - What part of the code caused it
-      - Beginner-friendly explanation
-      - Suggested fixed code
-      - What changed and why
-  `);
-
   try {
     const aiOutput = await explainIssueWithGemini(selectedIssue);
-    const formattedAiOutput = formatAiOutput(aiOutput);
+    const formattedAiOutput = formatAiOutput(aiOutput, selectedIssue);
     console.clear();
-    console.log("\n");
+
+    box(
+      chalk.bold(`Selected output: ${aiOutput.title}`),
+      "AI OUTPUT",
+      "center",
+      "double",
+      false,
+      1,
+    );
+
     box(formattedAiOutput);
-    console.log("\n");
   } catch (error) {
+    console.clear();
+    console.error(error);
     console.log("\n");
     await teachIssue(selectedIssue.title);
     process.exit(1);
