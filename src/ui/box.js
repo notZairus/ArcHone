@@ -50,3 +50,22 @@ export function box(
     }),
   );
 }
+
+export function boxSilent({
+  text = "Text PlaceHolder",
+  title = "",
+  alignment = "left",
+  style = "double",
+  banner = false,
+  padding = 1,
+}) {
+  !banner && console.log("\n");
+  banner && mainBanner();
+  return boxen(text, {
+    padding: padding,
+    width: CONSOLE_MAX_WIDTH,
+    borderStyle: style || "double",
+    title: chalk.bold(title.toUpperCase()),
+    titleAlignment: alignment || "left",
+  });
+}

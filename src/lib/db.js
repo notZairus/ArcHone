@@ -45,7 +45,7 @@ export default class Database {
     const functions = analysisResult.functions || [];
     const issues = analysisResult.issues || [];
 
-    await new Promise.all([
+    await Promise.all([
       saveComments(analysisId, comments),
       saveVariables(analysisId, variables),
       saveFunctions(analysisId, functions),

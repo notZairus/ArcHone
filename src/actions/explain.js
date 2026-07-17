@@ -59,8 +59,8 @@ export default async () => {
   try {
     const aiOutput = await explainIssueWithGemini(selectedIssue);
     const formattedAiOutput = formatAiOutput(aiOutput, selectedIssue);
-    console.clear();
 
+    console.clear();
     box(
       chalk.bold(`Selected output: ${aiOutput.title}`),
       "AI OUTPUT",
@@ -70,10 +70,10 @@ export default async () => {
       1,
     );
 
-    box(formattedAiOutput);
+    console.log("\n");
+    console.log(formattedAiOutput);
   } catch (error) {
     console.clear();
-    console.error(error);
     console.log("\n");
     await teachIssue(selectedIssue.title);
     process.exit(1);
