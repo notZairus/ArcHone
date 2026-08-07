@@ -90,7 +90,7 @@ const detectableIssues = {
       title: "Function Too Long",
       severity: "improvement",
       detectableIn: ["javascript", "python", "csharp"],
-      principle: "SOLID",
+      principle: "Single Responsibility Principle",
       why: "Long functions mix too many tasks, which makes them difficult for students to understand and test.",
       suggestion:
         "Break long functions into small helpers with one clear responsibility.",

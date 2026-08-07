@@ -71,7 +71,7 @@ export const IGNORED_FILE_NAMES = [
 
 export const VALID_FILE_EXTENSIONS = ["js", "cs", "py"];
 
-export const AVAILABLE_ANALYSIS_MODES = ["general", "oop"];
+export const AVAILABLE_ANALYSIS_MODES = ["general", "oop", "complexity"];
 
 export const APPWRITE_DATABASE_ID = "69b86a1600132cab3e71";
 
@@ -135,6 +135,37 @@ export const LANGUAGE_ISSUE_PENALTIES = {
     },
   ],
 };
+
+export const OOP_ISSUE_PENALTIES = [
+  {
+    title: "Method Too Long",
+    penalty: 1.0,
+  },
+  {
+    title: "No Constructor",
+    penalty: 0.75,
+  },
+  {
+    title: "Too Many Dependencies",
+    penalty: 1.25,
+  },
+  {
+    title: "Hardcoded Values",
+    penalty: 0.75,
+  },
+  {
+    title: "Too Many Public Methods",
+    penalty: 0.75,
+  },
+  {
+    title: "Duplicate Methods",
+    penalty: 1.0,
+  },
+  {
+    title: "Large Class / God Class",
+    penalty: 1.5,
+  },
+];
 
 export const DEFAULT_PENALTY_BY_TYPE = {
   critical: 2.5,

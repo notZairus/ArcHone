@@ -34,9 +34,10 @@ export default class Database {
       rowId: "unique()",
       data: {
         userId: userId,
-        fileName: fileName,
+        fileName: fileName.split("/").pop(),
         fileType: fileType,
         code: code,
+        mode: analysisResult.mode || "general",
       },
     });
 

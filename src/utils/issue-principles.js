@@ -18,6 +18,7 @@ const ISSUE_PRINCIPLE_BY_TITLE = {
   "Deep Nesting": "KISS (Keep It Simple, Stupid)",
   "TODO Comment": "N/A",
   "Commented-out Code": "YAGNI (You Aren't Gonna Need It)",
+  "Mixed Language Syntax": "KISS (Keep It Simple, Stupid)",
 
   // OOP mode
   "No Constructor": "KISS (Keep It Simple, Stupid)",

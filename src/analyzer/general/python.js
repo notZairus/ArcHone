@@ -64,6 +64,10 @@ export default function analyseGeneralPy(tree, sourceCode) {
             variableName,
           )
         ) {
+          variableNameDeclarationCount.set(
+            declarationKey,
+            (variableNameDeclarationCount.get(declarationKey) || 0) + 1,
+          );
           continue;
         }
 
@@ -107,6 +111,9 @@ export default function analyseGeneralPy(tree, sourceCode) {
         const declarationKey = `${scopeKey}::${variableName}`;
         declarationNodeKeys.add(getNodeKey(idNode));
 
+        // If we've already seen this variable in the same scope, increment
+        // the declaration count so "Name Reuse" can be detected, but avoid
+        // pushing duplicate entries into the `variables` array.
         if (
           hasSeenVariableInScope(
             seenVariableNamesByScope,
@@ -114,6 +121,10 @@ export default function analyseGeneralPy(tree, sourceCode) {
             variableName,
           )
         ) {
+          variableNameDeclarationCount.set(
+            declarationKey,
+            (variableNameDeclarationCount.get(declarationKey) || 0) + 1,
+          );
           continue;
         }
 

@@ -2,6 +2,7 @@ import chalk from "chalk";
 import {
   BASE_ISSUE_PENALTIES,
   LANGUAGE_ISSUE_PENALTIES,
+  OOP_ISSUE_PENALTIES,
   DEFAULT_PENALTY_BY_TYPE,
   DEFAULT_FALLBACK_PENALTY,
   TYPE_DISPLAY_ORDER,
@@ -26,6 +27,10 @@ const getPenaltyByTitle = (language) => {
   }
 
   for (const issue of LANGUAGE_ISSUE_PENALTIES[language] || []) {
+    table[issue.title] = issue.penalty;
+  }
+
+  for (const issue of OOP_ISSUE_PENALTIES) {
     table[issue.title] = issue.penalty;
   }
 
@@ -131,6 +136,81 @@ export default (fileName, result) => {
     isCommentOnlyFile,
   );
 
+  const complexityLines = [];
+  if (
+    result &&
+    result.complexitySummary &&
+    result.complexitySummary.functions
+  ) {
+    complexityLines.push(chalk.bold("Complexity summary"));
+    complexityLines.push("");
+
+    const mapName = (n) => (n && n !== "(anonymous)" ? n : "Unnamed function");
+
+    for (const fn of result.complexitySummary.functions) {
+      const fname = mapName(fn.name);
+      const lineNo = fn.line || "?";
+      complexityLines.push(chalk.bold(`- ${fname} [line ${lineNo}]`));
+
+      const time = fn.time?.estimate || "unknown";
+      const tconf = fn.time?.confidence || "low";
+      complexityLines.push(`    Time : ${time} — confidence: ${tconf}`);
+
+      const space = fn.space?.estimate || "unknown";
+      const sconf = fn.space?.confidence || "low";
+      complexityLines.push(`    Space: ${space} — confidence: ${sconf}`);
+
+      if (fn.reasoning && fn.reasoning.length) {
+        for (const r of fn.reasoning.slice(0, 3)) {
+          complexityLines.push(`    • ${r}`);
+        }
+      }
+
+      complexityLines.push("");
+    }
+
+    // File-level summary if present
+    const fs = result.complexitySummary.fileSummary || {};
+    if (fs && (fs.worstTime || fs.worstSpace)) {
+      complexityLines.push(chalk.bold("File summary"));
+      if (fs.worstTime) {
+        const wt = fs.worstTime;
+        const fnList = Array.isArray(wt.functions)
+          ? wt.functions.map(mapName).join(", ")
+          : mapName(wt.functions);
+        complexityLines.push(
+          `- Worst time: ${wt.estimate} — confidence: ${wt.confidence} — functions: ${fnList}`,
+        );
+      }
+      if (fs.worstSpace) {
+        const ws = fs.worstSpace;
+        const wsList = Array.isArray(ws.functions)
+          ? ws.functions.map(mapName).join(", ")
+          : mapName(ws.functions);
+        complexityLines.push(
+          `- Worst space: ${ws.estimate} — confidence: ${ws.confidence} — functions: ${wsList}`,
+        );
+      }
+      complexityLines.push("");
+    }
+  }
+
+  // If the caller requested complexity mode, return only the complexity summary
+  if (result && result.mode === "complexity") {
+    const lines = [chalk.bold("ArcHone Complexity Analysis")];
+    lines.push(`- File: ${fileName}`);
+    lines.push(`- Language: ${language}`);
+    lines.push("");
+
+    if (complexityLines.length) {
+      lines.push(...complexityLines);
+    } else {
+      lines.push("- No complexity information available for this file.");
+    }
+
+    return lines.join("\n");
+  }
+
   const score = calculateOverallScore(
     prioritizedIssues,
     penaltyByTitle,
@@ -148,6 +228,8 @@ export default (fileName, result) => {
     chalk.bold("What ArcHone analyzed"),
     `- File: ${fileName}`,
     `- Language: ${language}`,
+    "",
+    ...complexityLines,
     "",
     chalk.bold("What you did well"),
     ...positiveHighlights,
@@ -211,10 +293,10 @@ const formatTypeTag = (type) => {
   const label = `[${normalizedType.toUpperCase()}]`;
 
   const colorByType = {
-    critical: chalk.redBright.bold,
+    critical: chalk.blue.bold,
     error: chalk.red.bold,
-    warning: chalk.yellow.bold,
-    improvement: chalk.cyan.bold,
+    warning: chalk.redBright.bold,
+    improvement: chalk.yellow.bold,
     info: chalk.blue.bold,
     hint: chalk.magenta.bold,
     style: chalk.green.bold,

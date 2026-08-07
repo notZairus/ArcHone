@@ -21,6 +21,7 @@ import formatAnalysisResult from "../formatter/analysisFormatter.js";
 
 import generalTreeAnalyzer from "../analyzer/generalTreeAnalyzer.js";
 import oopTreeAnalyzer from "../analyzer/oopTreeAnalyzer.js";
+import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
 
 export default async () => {
@@ -90,6 +91,11 @@ export default async () => {
           label: "OOP",
           hint: "OOP smells (constructor, dependencies, responsibilities, etc.)",
         },
+        {
+          value: "complexity",
+          label: "Complexity",
+          hint: "Code complexity (time complexity and space complexity)",
+        },
       ],
     });
 
@@ -145,6 +151,9 @@ export default async () => {
   const issuesWithPrinciples = (result.issues || []).map(withIssuePrinciple);
   const sortedIssues = sortIssuesBySeverity(issuesWithPrinciples);
   result.issues = sortedIssues;
+  result.mode = mode;
+
+  console.log(result.mode);
 
   const code = fs.readFileSync(
     path.join(process.cwd(), fileToAnalyze),
@@ -159,10 +168,12 @@ export default async () => {
     true,
   );
 
-  box(
-    "Use archone explain <issue_id> for more information about the specific issue.",
-    "Tips",
-  );
+  if (mode !== "complexity") {
+    box(
+      "Use archone explain <issue_id> for more information about the specific issue.",
+      "Tips",
+    );
+  }
 
   setLatestAnalysis(fileToAnalyze, result);
 
@@ -275,6 +286,9 @@ function getAnalyzerMode(mode) {
   switch (mode) {
     case "general":
       return generalTreeAnalyzer;
+      break;
+    case "complexity":
+      return complexityTreeAnalyzer;
       break;
     case "oop":
       return oopTreeAnalyzer;

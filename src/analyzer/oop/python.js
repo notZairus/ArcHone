@@ -510,10 +510,6 @@ const findPythonHardcodedLiterals = (methodNode, sourceCode) => {
     parentByNode.set(node, parent);
 
     if (node.type === "integer" || node.type === "float") {
-      if (isWithinAssignmentInitializer(node, parentByNode)) {
-        return;
-      }
-
       const text = getNodeText(node, sourceCode);
       const value = Number(text);
       if (Number.isFinite(value) && ![0, 1, -1].includes(value)) {
@@ -526,10 +522,6 @@ const findPythonHardcodedLiterals = (methodNode, sourceCode) => {
     }
 
     if (node.type === "string") {
-      if (isWithinAssignmentInitializer(node, parentByNode)) {
-        return;
-      }
-
       const text = getNodeText(node, sourceCode);
       const unquoted = text.replace(/^['"]/g, "").replace(/['"]$/g, "");
       if (unquoted && unquoted.length >= 3) {
