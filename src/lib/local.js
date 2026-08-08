@@ -33,7 +33,7 @@ export const getLastestAnalysis = () => {
   return analysis;
 };
 
-export const setLatestAnalysis = (fileName, analysis) => {
+export const setLatestAnalysis = async (fileName, analysis) => {
   const content = JSON.stringify({ file: fileName, result: analysis }, null, 2);
-  fs.writeFileSync(LATEST_ANALYSIS_PATH, content, "utf-8");
+  await fs.writeFileSync(LATEST_ANALYSIS_PATH, content, "utf-8");
 };

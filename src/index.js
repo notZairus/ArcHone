@@ -27,7 +27,7 @@ async function main() {
     );
     console.log("\n");
 
-    return;
+    process.exit(0);
   }
 
   for (const command of commands) {

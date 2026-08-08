@@ -10,7 +10,9 @@ import {
 import clack from "../lib/clack.js";
 import {
   selectFileFromDirectory,
+  selectAnalysisMode,
   sortIssuesBySeverity,
+  checkAuth,
 } from "../utils/helpers.js";
 import { withIssuePrinciple } from "../utils/issue-principles.js";
 import Database from "../lib/db.js";
@@ -23,6 +25,7 @@ import generalTreeAnalyzer from "../analyzer/generalTreeAnalyzer.js";
 import oopTreeAnalyzer from "../analyzer/oopTreeAnalyzer.js";
 import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
+import displayAnalysisResult from "../renderer/render_analysis_result.js";
 
 export default async () => {
   const providedInputPath = process.argv[3] || null;
@@ -51,7 +54,7 @@ export default async () => {
     process.exit(0);
   }
 
-  const stat = fs.lstatSync(completeFilePath);
+  const stat = await fs.lstatSync(completeFilePath);
 
   if (stat.isDirectory()) {
     completeFilePath = await selectFileFromDirectory(completeFilePath);
@@ -77,33 +80,15 @@ export default async () => {
   }
 
   const shouldPromptForMode = !providedInputPath && !hasModeFlag;
-  if (shouldPromptForMode) {
-    const selectedMode = await clack.select({
-      message: "Choose analysis mode",
-      options: [
-        {
-          value: "general",
-          label: "General",
-          hint: "General code issues (functions, variables, complexity, etc.)",
-        },
-        {
-          value: "oop",
-          label: "OOP",
-          hint: "OOP smells (constructor, dependencies, responsibilities, etc.)",
-        },
-        {
-          value: "complexity",
-          label: "Complexity",
-          hint: "Code complexity (time complexity and space complexity)",
-        },
-      ],
-    });
 
-    if (clack.isCancel(selectedMode)) {
+  if (shouldPromptForMode) {
+    const selectedMode = await selectAnalysisMode();
+
+    if (!selectedMode) {
       process.exit(0);
     }
 
-    mode = String(selectedMode).toLowerCase();
+    mode = selectedMode;
   }
 
   if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
@@ -153,32 +138,31 @@ export default async () => {
   result.issues = sortedIssues;
   result.mode = mode;
 
-  console.log(result.mode);
-
   const code = fs.readFileSync(
     path.join(process.cwd(), fileToAnalyze),
     "utf-8",
   );
 
-  box(
-    formatAnalysisResult(fileToAnalyze, result),
-    `${fileToAnalyze} Analysis Result`,
-    null,
-    null,
-    true,
-  );
+  let noteText = "Click on a finding to view the code snippet and details.";
 
-  if (mode !== "complexity") {
-    box(
-      "Use archone explain <issue_id> for more information about the specific issue.",
-      "Tips",
-    );
+  if (await checkAuth()) {
+    await saveToDatabase(fileToAnalyze, fileExtension, code, result);
+  } else {
+    noteText =
+      "You are not logged in. Log in to save your analysis results and access personalized insights.";
   }
 
-  setLatestAnalysis(fileToAnalyze, result);
+  await setLatestAnalysis(fileToAnalyze, result);
 
-  await checkAuth();
-  await saveToDatabase(fileToAnalyze, fileExtension, code, result);
+  if (result.mode === "complexity") {
+    console.log("meh complexity mode");
+  } else {
+    await displayAnalysisResult({
+      fileToAnalyze,
+      result,
+      noteText,
+    });
+  }
 };
 
 // HELPERS //////////////////////////////////////////////////////////
@@ -248,21 +232,7 @@ const hasMinimumCodeSignal = (sourceCode, fileExtension) => {
   return identifierMatches >= 2 || keywordMatches >= 1;
 };
 
-async function checkAuth() {
-  const { userId } = await getSession();
-
-  if (!userId) {
-    box(
-      "You are not logged in. Log in to save your analysis results and access personalized insights.",
-      "Login Required",
-    );
-    process.exit(0);
-  }
-}
-
 async function saveToDatabase(fileToAnalyze, fileExtension, code, result) {
-  const spinner = clack.spinner();
-  spinner.start("Saving Analysis Result...");
   try {
     await Database.saveAnalysisResult(
       fileToAnalyze,
@@ -272,14 +242,12 @@ async function saveToDatabase(fileToAnalyze, fileExtension, code, result) {
     );
   } catch (error) {
     if (code.length < 100) {
-      spinner.stop("Analysis Finished.\n");
       boxError(
         "The code on the selected file is short, so the analysis result will not be saved.",
       );
       process.exit(0);
     }
   }
-  spinner.stop("Analysis Result Saved!\n");
 }
 
 function getAnalyzerMode(mode) {
