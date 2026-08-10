@@ -25,7 +25,7 @@ import generalTreeAnalyzer from "../analyzer/generalTreeAnalyzer.js";
 import oopTreeAnalyzer from "../analyzer/oopTreeAnalyzer.js";
 import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
-import displayAnalysisResult from "../renderer/render_analysis_result.js";
+import displayAnalysisResult from "../results/renderResult.js";
 
 export default async () => {
   const providedInputPath = process.argv[3] || null;
@@ -135,33 +135,35 @@ export default async () => {
 
   const issuesWithPrinciples = (result.issues || []).map(withIssuePrinciple);
   const sortedIssues = sortIssuesBySeverity(issuesWithPrinciples);
-  result.issues = sortedIssues;
-  result.mode = mode;
-
   const code = fs.readFileSync(
     path.join(process.cwd(), fileToAnalyze),
     "utf-8",
   );
 
-  let noteText = "Click on a finding to view the code snippet and details.";
+  result.issues = sortedIssues;
+  result.mode = mode;
+  result.language = fileExtension;
+  result.code = code;
 
-  if (await checkAuth()) {
-    await saveToDatabase(fileToAnalyze, fileExtension, code, result);
-  } else {
-    noteText =
-      "You are not logged in. Log in to save your analysis results and access personalized insights.";
-  }
-
-  await setLatestAnalysis(fileToAnalyze, result);
+  const userId = await checkAuth();
 
   if (result.mode === "complexity") {
     console.log("meh complexity mode");
+    // TODO: Implement complexity mode rendering
   } else {
     await displayAnalysisResult({
       fileToAnalyze,
       result,
-      noteText,
+      noteText: userId
+        ? "Click on a finding to view the code snippet and details."
+        : "Log in to save your analysis results and access personalized insights.",
     });
+
+    if (userId) {
+      await saveToDatabase(fileToAnalyze, fileExtension, code, result);
+    }
+
+    await setLatestAnalysis(fileToAnalyze, result);
   }
 };
 

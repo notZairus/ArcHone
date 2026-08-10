@@ -10,3 +10,4 @@ scripts
 detectable-issues.json
 properties.json
 test
+*.log

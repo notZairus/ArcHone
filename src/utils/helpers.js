@@ -14,6 +14,8 @@ import { getSession } from "./session.js";
 import { box } from "../ui/box.js";
 import blessed from "blessed";
 import figlet from "figlet";
+import { execSync } from "child_process";
+import { platform } from "os";
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -152,6 +154,12 @@ export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // };
 
 export async function selectFileFromDirectory(directory) {
+  const sizes = {
+    header: 35,
+    fileManager: 60,
+    footer: 20,
+  };
+
   return new Promise((resolve) => {
     const screen = blessed.screen({
       smartCSR: true,
@@ -171,11 +179,11 @@ export async function selectFileFromDirectory(directory) {
       top: 0,
       left: "center",
       width: "100%",
-      height: 6,
+      height: `${sizes.header}%`,
       valign: "middle",
       border: "line",
       content: figlet.textSync("ArcHone", {
-        font: "Small Slant",
+        font: "Small",
         horizontalLayout: "default",
         verticalLayout: "default",
       }),
@@ -186,7 +194,8 @@ export async function selectFileFromDirectory(directory) {
       cwd: directory,
       width: "100%",
 
-      top: 7,
+      top: `${sizes.header}%`,
+      height: `${sizes.fileManager}%`,
       left: "center",
 
       border: "line",
@@ -240,11 +249,28 @@ export async function selectFileFromDirectory(directory) {
       screen.destroy();
     }
 
+    const footer = blessed.box({
+      parent: container,
+      top: `${sizes.header + sizes.fileManager}%`,
+      left: "center",
+      width: "100%",
+      height: `${sizes.footer}%`,
+      valign: "middle",
+      border: "line",
+      content: `Press ${chalk.bold("ESC/Ctrl+C/q")} to cancel.`,
+    });
+
     screen.render();
   });
 }
 
 export function selectAnalysisMode() {
+  const sizes = {
+    header: 35,
+    selector: 60,
+    footer: 20,
+  };
+
   return new Promise((resolve) => {
     const screen = blessed.screen({
       smartCSR: true,
@@ -264,11 +290,11 @@ export function selectAnalysisMode() {
       top: 0,
       left: "center",
       width: "100%",
-      height: 6,
+      height: `${sizes.header}%`,
       valign: "middle",
       border: "line",
       content: figlet.textSync("ArcHone", {
-        font: "Small Slant",
+        font: "Small",
         horizontalLayout: "default",
         verticalLayout: "default",
       }),
@@ -295,9 +321,10 @@ export function selectAnalysisMode() {
     const list = blessed.list({
       parent: container,
 
-      top: 7,
+      top: `${sizes.header}%`,
       left: "center",
       width: "100%",
+      height: `${sizes.selector}%`,
       padding: {
         top: 1,
         left: 1,
@@ -335,6 +362,17 @@ export function selectAnalysisMode() {
 
       cleanup();
       resolve(selectedMode.value);
+    });
+
+    const footer = blessed.box({
+      parent: container,
+      top: `${sizes.header + sizes.selector}%`,
+      left: "center",
+      width: "100%",
+      height: `${sizes.footer}%`,
+      valign: "middle",
+      border: "line",
+      content: `Press ${chalk.bold("ESC/Ctrl+C/q")} to cancel.`,
     });
 
     screen.key(["escape", "C-c", "q"], () => {
@@ -436,4 +474,55 @@ export async function validateApiKey(provider, apiKey) {
 export async function checkAuth() {
   const { userId } = await getSession();
   return userId;
+}
+
+export function log(data, title = "Debug Alert") {
+  const logFilePath =
+    "/home/zairus-bermillo/Desktop/Ongoing Projects/Archone/student system (cli)/main.log";
+
+  const entry = {
+    date: `${new Date().toISOString()}`,
+    title: title,
+    data: data,
+  };
+
+  try {
+    fs.appendFileSync(logFilePath, JSON.stringify(entry) + "\n", "utf8");
+  } catch (error) {
+    console.error("Failed to write to log file:", error);
+  }
+}
+
+export function stripCodeFences(codeString) {
+  const trimmed = codeString.trim();
+
+  // Check if string starts and ends with ```
+  if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
+    return trimmed
+      .replace(/^```[^\n]*\n?/, "") // Removes starting ``` plus any language identifier and newline
+      .replace(/\n?```$/, ""); // Removes trailing ``` and optional preceding newline
+  }
+
+  return codeString; // Return as-is if no code fences are found
+}
+
+export function readClipboard() {
+  switch (process.platform) {
+    case "darwin":
+      // macOS uses pbpaste
+      return execSync("pbpaste", { encoding: "utf8" });
+
+    case "win32":
+      // Windows uses PowerShell Get-Clipboard
+      return execSync('powershell -command "Get-Clipboard"', {
+        encoding: "utf8",
+      }).trim();
+
+    case "linux":
+      // Linux requires xclip or xsel installed on the system
+      return execSync("xclip -selection clipboard -o", { encoding: "utf8" });
+
+    default:
+      throw new Error(`Unsupported platform: ${process.platform}`);
+  }
 }
