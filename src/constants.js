@@ -77,6 +77,7 @@ export const APPWRITE_DATABASE_ID = "69b86a1600132cab3e71";
 
 export const ARCHONE_DIR = path.join(os.homedir(), ".archone");
 export const SESSION_PATH = path.join(ARCHONE_DIR, "session.json");
+export const CONFIG_PATH = path.join(ARCHONE_DIR, "config.json");
 export const LATEST_ANALYSIS_PATH = path.join(
   ARCHONE_DIR,
   "latest_analysis.json",

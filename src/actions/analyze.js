@@ -27,7 +27,7 @@ import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
 import displayAnalysisResult from "../results/renderResult.js";
 
-export default async () => {
+export default async ({ screen }) => {
   const providedInputPath = process.argv[3] || null;
 
   const hasModeFlag =
@@ -41,7 +41,7 @@ export default async () => {
 
   let completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)
-    : await selectFileFromDirectory(process.cwd());
+    : await selectFileFromDirectory({ directory: process.cwd(), screen });
 
   if (!completeFilePath) {
     process.exit(0);
@@ -57,7 +57,10 @@ export default async () => {
   const stat = await fs.lstatSync(completeFilePath);
 
   if (stat.isDirectory()) {
-    completeFilePath = await selectFileFromDirectory(completeFilePath);
+    completeFilePath = await selectFileFromDirectory({
+      directory: completeFilePath,
+      screen,
+    });
   }
 
   if (stat.isSymbolicLink()) {
@@ -82,7 +85,7 @@ export default async () => {
   const shouldPromptForMode = !providedInputPath && !hasModeFlag;
 
   if (shouldPromptForMode) {
-    const selectedMode = await selectAnalysisMode();
+    const selectedMode = await selectAnalysisMode({ screen });
 
     if (!selectedMode) {
       process.exit(0);
@@ -152,6 +155,7 @@ export default async () => {
     // TODO: Implement complexity mode rendering
   } else {
     await displayAnalysisResult({
+      screen,
       fileToAnalyze,
       result,
       noteText: userId

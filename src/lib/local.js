@@ -1,11 +1,11 @@
 import fs from "fs";
-import { SESSION_PATH, LATEST_ANALYSIS_PATH } from "../constants.js";
+import { CONFIG_PATH, LATEST_ANALYSIS_PATH } from "../constants.js";
 
 export const getConfig = () => {
-  if (!fs.existsSync(SESSION_PATH)) {
+  if (!fs.existsSync(CONFIG_PATH)) {
     return {};
   }
-  const content = fs.readFileSync(SESSION_PATH, "utf-8");
+  const content = fs.readFileSync(CONFIG_PATH, "utf-8");
   const parsed = JSON.parse(content);
   return parsed;
 };

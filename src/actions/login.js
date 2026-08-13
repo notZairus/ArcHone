@@ -1,32 +1,16 @@
+import blessed from "blessed";
+import { refreshScreen, wait, showNotification } from "../utils/helpers.js";
+
 import chalk from "chalk";
 import fs from "fs";
 import path from "path";
 
 import { account } from "../lib/appwrite.js";
 import { mainBanner } from "../ui/banner.js";
-import clack from "../lib/clack.js";
 import { ARCHONE_DIR, CONSOLE_MAX_WIDTH, SESSION_PATH } from "../constants.js";
 import { TablesDB } from "appwrite";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
-import { box } from "../ui/box.js";
-
-function isInitialized() {
-  if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(SESSION_PATH)) {
-    box(
-      `Cannot log you in yet because ArcHone is not initialized.\n\nRun ${chalk.cyan("archone init")} first, then come back and run ${chalk.cyan("archone login")}.`,
-      "Initialization Required",
-      "left",
-      "round",
-      false,
-    );
-
-    clack.outro(chalk.yellow("Login skipped until setup is complete."));
-    return false;
-  }
-
-  return true;
-}
 
 function isLoggedIn() {
   const session = getSession();
@@ -35,91 +19,156 @@ function isLoggedIn() {
     return false;
   }
 
-  box(
-    `${chalk.green("You are already logged in.")}\n\nWelcome back, ${chalk.bold(
-      session.name,
-    )}! Your ArcHone CLI is connected to your account on this machine.`,
-    "Already Logged In",
-    "left",
-    "round",
-    false,
-  );
-
   return true;
 }
 
-export default async function login() {
+export default async function login({ screen }) {
+  refreshScreen(screen);
+
   if (isLoggedIn()) {
-    return;
+    const session = getSession();
+    const message = `${chalk.green("You are already logged in.")}\n\nWelcome back, ${chalk.bold(
+      session.name,
+    )}! Your ArcHone CLI is connected to your account on this machine.`;
+
+    await showNotification({ screen, message });
+    process.exit(0);
   }
 
-  const loginGuide = [
-    `${chalk.bold("Welcome to ArcHone!")}`,
-    "Let's get you logged in to your ArcHone account on this machine.",
-    "",
-    `${chalk.bold("What this login does")}`,
-    "- Connects your local ArcHone CLI to your ArcHone account",
-    "- Allows you to run analyses and access your data securely",
-    "- Saves a local session for seamless future access",
-    ``,
-    `${chalk.bold("What happens next")}`,
-    "- Enter your ArcHone account email and password",
-    "- ArcHone securely verifies your account",
-    "- Your local session is saved automatically",
-  ].join("\n");
-
-  box(loginGuide, "Login", null, null, true);
-
-  const { email, password } = await clack.group(
-    {
-      email: () =>
-        clack.text({
-          message: "Enter your email:",
-          placeholder: "Email",
-        }),
-      password: () =>
-        clack.password({
-          message: "Enter your password:",
-          placeholder: "Password",
-        }),
+  const form = blessed.form({
+    parent: screen,
+    width: "50%",
+    height: 18,
+    top: "center",
+    left: "center",
+    keys: true,
+    border: {
+      type: "line",
     },
-    {
-      onCancel: () => {
-        clack.outro(chalk.yellow("Login cancelled."));
-        process.exit(0);
+    label: " Archone Login ",
+  });
+
+  const closeButton = blessed.button({
+    parent: form,
+    mouse: true,
+    keys: true,
+    shrink: true,
+    padding: {
+      left: 1,
+      right: 1,
+      top: 0,
+      bottom: 0,
+    },
+    right: 1,
+    top: 0,
+    name: "close",
+    content: "X",
+  });
+
+  closeButton.on("press", () => {
+    process.exit(0);
+  });
+
+  const emailLabel = blessed.text({
+    parent: form,
+    top: 2,
+    left: 2,
+    content: "Email:",
+  });
+
+  const emailInput = blessed.textbox({
+    parent: form,
+    name: "email",
+    top: 3,
+    left: 2,
+    width: "90%",
+    height: 3,
+    inputOnFocus: true,
+    border: {
+      type: "line",
+    },
+  });
+
+  const passwordLabel = blessed.text({
+    parent: form,
+    top: 7,
+    left: 2,
+    content: "Password:",
+  });
+
+  const passwordInput = blessed.textbox({
+    parent: form,
+    name: "password",
+    top: 8,
+    left: 2,
+    width: "90%",
+    height: 3,
+    inputOnFocus: true,
+    censor: true,
+    border: {
+      type: "line",
+    },
+  });
+
+  const submitButton = blessed.button({
+    parent: form,
+    mouse: true,
+    keys: true,
+    shrink: true,
+    padding: {
+      left: 4,
+      right: 4,
+      top: 1,
+      bottom: 1,
+    },
+    left: "center",
+    top: 12,
+    name: "submit",
+    content: "Submit",
+    style: {
+      bg: "blue",
+      focus: {
+        bg: "red",
+      },
+      hover: {
+        bg: "green",
       },
     },
-  );
+  });
 
+  submitButton.on("press", () => {
+    form.submit();
+  });
+
+  form.on("submit", (data) => {
+    handleSubmit({ screen, data });
+  });
+
+  emailInput.focus();
+
+  screen.render();
+}
+
+async function handleSubmit({ screen, data }) {
   try {
     const { userId, expire } = await account.createEmailPasswordSession(
-      email,
-      password,
+      data.email,
+      data.password,
     );
 
     const user = await Database.getUserById(userId);
 
     if (user.role === "instructor") {
-      box(
-        chalk.red(
-          "Instructor accounts cannot log in to the ArcHone CLI. Please use a student account to access the CLI features.",
-        ),
-        "Access Denied",
-        "left",
-        "double",
-        false,
-      );
+      const message = `${chalk.red("Login failed.")}\n\n${chalk.bold("Access Denied: Instructor accounts cannot log in to the ArcHone CLI.")}\n\nPlease use a student account to access the CLI features.`;
+
+      await showNotification({ screen, message });
       return;
     }
 
     if (user.status !== "verified") {
-      box(
-        "Your email address is not verified. Please check your email's inbox for a verification email and verify your account before logging in.",
-        "Verification Required",
-        "left",
-        "round",
-        false,
-      );
+      const message = `${chalk.red("Login failed.")}\n\n${chalk.bold("Verification Required: Your email address is not verified.")}\n\nPlease check your email's inbox for a verification email and verify your account before logging in.`;
+
+      await showNotification({ screen, message });
       return;
     }
 
@@ -133,20 +182,14 @@ export default async function login() {
       ),
     );
 
-    box(
-      `Hello, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.`,
-      "Login Successful",
-      "left",
-      "round",
-      false,
-    );
+    const message = `${chalk.green("Login successful!")}\n\nWelcome, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.`;
+
+    refreshScreen(screen);
+    await showNotification({ screen, message });
+    process.exit(0);
   } catch (error) {
-    box(
-      `Login failed: ${error.message}`,
-      "Authentication Error",
-      "left",
-      "round",
-      false,
-    );
+    const message = `${chalk.red("Login failed.")}\n\n${chalk.bold(error.message.toUpperCase())}\n\nPlease check your credentials and try again.`;
+
+    await showNotification({ screen, message });
   }
 }

@@ -9,6 +9,7 @@ import {
   CONSOLE_MAX_WIDTH,
   ARCHONE_DIR,
   SESSION_PATH,
+  CONFIG_PATH,
 } from "../constants.js";
 import { getSession } from "./session.js";
 import { box } from "../ui/box.js";
@@ -19,159 +20,28 @@ import { platform } from "os";
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// export const selectFileFromDirectory = async (
-//   startDirectory = process.cwd(),
-// ) => {
-//   let currentDirectory = path.resolve(startDirectory);
-//   let didRenderHeader = false;
+export function refreshScreen(screen) {
+  for (const child of [...screen.children]) {
+    child.detach();
+    child.destroy();
+  }
+}
 
-//   while (true) {
-//     let directoryEntries = [];
-
-//     try {
-//       directoryEntries = fs
-//         .readdirSync(currentDirectory, { withFileTypes: true })
-//         .filter((entry) => {
-//           return (
-//             !entry.isSymbolicLink() && !IGNORED_FILE_NAMES.includes(entry.name)
-//           );
-//         })
-//         .sort((a, b) => {
-//           if (a.isDirectory() && !b.isDirectory()) return -1;
-//           if (!a.isDirectory() && b.isDirectory()) return 1;
-//           return a.name.localeCompare(b.name);
-//         });
-//     } catch {
-//       clack.note(
-//         `Unable to read: ${currentDirectory}`,
-//         "Directory access issue",
-//       );
-//       const parentDirectory = path.dirname(currentDirectory);
-
-//       if (parentDirectory === currentDirectory) {
-//         return null;
-//       }
-
-//       currentDirectory = parentDirectory;
-//       continue;
-//     }
-
-//     if (!didRenderHeader) {
-//       const startPath = path.relative(process.cwd(), currentDirectory) || ".";
-//       const intro = [
-//         `Choose a file for analysis.`,
-//         "",
-//         `${chalk.bold("Picker Overview")}`,
-//         `- Start directory: ${chalk.cyan(startPath)}`,
-//         `- Supported files: ${VALID_FILE_EXTENSIONS.join(", ")}`,
-//         "",
-//         `${chalk.bold("How to use")}`,
-//         "- Select a [DIR] item to navigate",
-//         "- Select a [FILE] item to analyze",
-//         "- Use Cancel to exit the picker",
-//       ].join("\n");
-
-//       // box(intro, "Archone Analyze", null, null, true);
-
-//       didRenderHeader = true;
-//     }
-
-//     const options = [];
-//     const fileCount = directoryEntries.filter(
-//       (entry) => !entry.isDirectory(),
-//     ).length;
-//     const directoryCount = directoryEntries.length - fileCount;
-
-//     if (path.dirname(currentDirectory) !== currentDirectory) {
-//       options.push({
-//         value: "__parent__",
-//         label: "[DIR] ../",
-//         hint: "Go to parent directory",
-//       });
-//     }
-
-//     for (const entry of directoryEntries) {
-//       const extension = path.extname(entry.name).slice(1).toLowerCase();
-//       const isSupportedFile =
-//         entry.isDirectory() || VALID_FILE_EXTENSIONS.includes(extension);
-
-//       options.push({
-//         value: `${entry.isDirectory() ? "dir" : "file"}:${entry.name}`,
-//         label: entry.isDirectory()
-//           ? `[DIR] ${entry.name}/`
-//           : `[FILE] ${entry.name}`,
-//         hint: entry.isDirectory()
-//           ? "Open"
-//           : isSupportedFile
-//             ? "Ready to analyze"
-//             : `Unsupported (${VALID_FILE_EXTENSIONS.join(", ")})`,
-//       });
-//     }
-
-//     options.push({
-//       value: "__cancel__",
-//       label: "Cancel",
-//       hint: "Exit picker",
-//     });
-
-//     const visibleDirectory =
-//       path.relative(process.cwd(), currentDirectory) || ".";
-
-//     const selection = await clack.select({
-//       message: `Location: ${visibleDirectory} (${directoryCount} dirs, ${fileCount} files)`,
-//       options,
-//     });
-
-//     if (clack.isCancel(selection) || selection === "__cancel__") {
-//       return null;
-//     }
-
-//     if (selection === "__parent__") {
-//       currentDirectory = path.dirname(currentDirectory);
-//       continue;
-//     }
-
-//     const [entryType, ...nameParts] = selection.split(":");
-//     const selectedName = nameParts.join(":");
-//     const selectedPath = path.join(currentDirectory, selectedName);
-
-//     if (entryType === "dir") {
-//       currentDirectory = selectedPath;
-//       continue;
-//     }
-
-//     const selectedExtension = path.extname(selectedPath).slice(1).toLowerCase();
-//     if (!VALID_FILE_EXTENSIONS.includes(selectedExtension)) {
-//       clack.note(
-//         `Select a supported file type: ${VALID_FILE_EXTENSIONS.join(", ")}`,
-//         "Unsupported file",
-//       );
-//       continue;
-//     }
-
-//     return selectedPath;
-//   }
-// };
-
-export async function selectFileFromDirectory(directory) {
+export async function selectFileFromDirectory({ directory, screen }) {
+  refreshScreen(screen);
   const sizes = {
-    header: 35,
-    fileManager: 60,
-    footer: 20,
+    header: 20,
+    footer: 10,
+    fileManager: 100 - 20 - 10,
   };
 
   return new Promise((resolve) => {
-    const screen = blessed.screen({
-      smartCSR: true,
-      title: "Select File",
-    });
-
     const container = blessed.box({
       parent: screen,
       top: "center",
       left: "center",
       width: "50%",
-      height: "50%",
+      height: "80%",
     });
 
     const header = blessed.box({
@@ -182,11 +52,13 @@ export async function selectFileFromDirectory(directory) {
       height: `${sizes.header}%`,
       valign: "middle",
       border: "line",
-      content: figlet.textSync("ArcHone", {
-        font: "Small",
-        horizontalLayout: "default",
-        verticalLayout: "default",
-      }),
+      content: chalk.bold(
+        figlet.textSync("ArcHone", {
+          font: "Small",
+          horizontalLayout: "default",
+          verticalLayout: "default",
+        }),
+      ),
     });
 
     const fileManager = blessed.filemanager({
@@ -203,7 +75,7 @@ export async function selectFileFromDirectory(directory) {
       keys: true,
       vi: true,
       mouse: true,
-      label: " Select a File ",
+      label: chalk.bold(" Select a File "),
 
       padding: {
         top: 1,
@@ -225,18 +97,18 @@ export async function selectFileFromDirectory(directory) {
 
     // User selected a file
     fileManager.on("file", (filePath) => {
-      cleanup();
+      refreshScreen(screen);
       resolve(filePath);
     });
 
     // ESC / cancel
     fileManager.on("cancel", () => {
-      cleanup();
+      refreshScreen(screen);
       resolve(null);
     });
 
     screen.key(["escape", "C-c", "q"], () => {
-      cleanup();
+      refreshScreen(screen);
       resolve(null);
     });
 
@@ -244,10 +116,6 @@ export async function selectFileFromDirectory(directory) {
       fileManager.focus();
       screen.render();
     });
-
-    function cleanup() {
-      screen.destroy();
-    }
 
     const footer = blessed.box({
       parent: container,
@@ -264,7 +132,9 @@ export async function selectFileFromDirectory(directory) {
   });
 }
 
-export function selectAnalysisMode() {
+export function selectAnalysisMode({ screen }) {
+  refreshScreen(screen);
+
   const sizes = {
     header: 35,
     selector: 60,
@@ -272,11 +142,6 @@ export function selectAnalysisMode() {
   };
 
   return new Promise((resolve) => {
-    const screen = blessed.screen({
-      smartCSR: true,
-      title: "Analysis Mode",
-    });
-
     const container = blessed.box({
       parent: screen,
       top: "center",
@@ -359,8 +224,7 @@ export function selectAnalysisMode() {
 
     list.on("select", (_, index) => {
       const selectedMode = modes[index];
-
-      cleanup();
+      refreshScreen(screen);
       resolve(selectedMode.value);
     });
 
@@ -376,13 +240,9 @@ export function selectAnalysisMode() {
     });
 
     screen.key(["escape", "C-c", "q"], () => {
-      cleanup();
+      refreshScreen(screen);
       resolve(null);
     });
-
-    function cleanup() {
-      screen.destroy();
-    }
 
     screen.render();
   });
@@ -408,9 +268,9 @@ export function sortIssuesBySeverity(issues) {
 }
 
 export function isInitialized() {
-  return !fs.existsSync(ARCHONE_DIR) || !fs.existsSync(SESSION_PATH)
-    ? false
-    : true;
+  return fs.existsSync(ARCHONE_DIR) && fs.existsSync(CONFIG_PATH)
+    ? true
+    : false;
 }
 
 export function isLoggedIn() {
@@ -525,4 +385,30 @@ export function readClipboard() {
     default:
       throw new Error(`Unsupported platform: ${process.platform}`);
   }
+}
+
+export async function showNotification({ screen, message, duration = 2000 }) {
+  const box = blessed.box({
+    parent: screen,
+    top: "center",
+    left: "center",
+    height: "shrink",
+    width: "60%",
+    border: {
+      type: "line",
+    },
+    padding: {
+      top: 1,
+      bottom: 1,
+      left: 2,
+      right: 2,
+    },
+    content: message,
+    tags: true,
+  });
+
+  screen.render();
+  await wait(duration);
+  box.destroy();
+  screen.render();
 }

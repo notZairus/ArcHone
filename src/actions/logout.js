@@ -1,40 +1,32 @@
-import boxen from "boxen";
 import chalk from "chalk";
 import fs from "fs";
 import path from "path";
+import blessed from "blessed";
+import { showNotification, refreshScreen } from "../utils/helpers.js";
 
-import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
-import { mainBanner } from "../ui/banner.js";
+import { ARCHONE_DIR } from "../constants.js";
 
-export default async function logout() {
-  console.clear();
-  mainBanner();
+export default async function logout({ screen }) {
+  refreshScreen(screen);
 
   const sessionPath = path.join(ARCHONE_DIR, "session.json");
+
+  let isSuccess = false;
+  let title = "Signed Out";
+  let message = "";
 
   try {
     fs.mkdirSync(ARCHONE_DIR, { recursive: true });
     fs.writeFileSync(sessionPath, JSON.stringify({}, null, 2));
 
-    console.log(
-      boxen(
-        `${chalk.green("Logout successful.")}\n\nYour local ArcHone session at ${chalk.cyan("~/.archone/session.json")} has been cleared.`,
-        {
-          padding: 1,
-          width: CONSOLE_MAX_WIDTH,
-          borderStyle: "round",
-          title: "Signed Out",
-        },
-      ),
-    );
+    isSuccess = true;
+    message = `${chalk.green("Logout successful.")}\n\nYour local ArcHone session at ${chalk.cyan(sessionPath)} has been cleared.`;
   } catch (error) {
-    console.log(
-      boxen(chalk.red(`Logout failed: ${error.message}`), {
-        padding: 1,
-        width: CONSOLE_MAX_WIDTH,
-        borderStyle: "round",
-        title: "Logout Error",
-      }),
-    );
+    isSuccess = false;
+    title = "Logout Error";
+    message = chalk.red(`Logout failed: ${error.message}`);
   }
+
+  await showNotification({ screen, message, title });
+  process.exit(0);
 }

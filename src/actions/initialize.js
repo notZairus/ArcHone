@@ -3,25 +3,15 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import clipboardy from "clipboardy";
-import { ARCHONE_DIR } from "../constants.js";
-import { validateApiKey } from "../utils/helpers.js";
+import {
+  ARCHONE_DIR,
+  CONFIG_PATH,
+  LATEST_ANALYSIS_PATH,
+} from "../constants.js";
+import { validateApiKey, wait } from "../utils/helpers.js";
 import { log, readClipboard } from "../utils/helpers.js";
 
-export default async () => {
-  const sessionPath = path.join(ARCHONE_DIR, "session.json");
-  const lastAnalysisPath = path.join(ARCHONE_DIR, "last_analysis.json");
-
-  // Setup Screen with mouse and key support enabled
-  const screen = blessed.screen({
-    smartCSR: true,
-    title: "ArcHone Setup",
-    mouse: true, // IMPORTANT: Enables mouse clicks on buttons
-    cursor: {
-      synthetic: true,
-      hidden: false,
-    },
-  });
-
+export default async ({ screen }) => {
   // Global exit ONLY on Ctrl+C
   screen.key(["C-c"], () => {
     screen.destroy();
@@ -85,7 +75,7 @@ export default async () => {
       "",
       `${chalk.bold("What this setup does:")}`,
       "- Creates ~/.archone in your home directory",
-      "- Creates session.json for login session data",
+      "- Creates config.json for configuration data",
       "- Creates last_analysis.json for results",
       "",
       `Install Location: ${chalk.yellow(ARCHONE_DIR)}`,
@@ -330,13 +320,14 @@ export default async () => {
   // --- Flow Execution ---
 
   if (fs.existsSync(ARCHONE_DIR)) {
-    const box = createBox("Already Initialized", 8);
+    const box = createBox("Already Initialized", 7);
     blessed.text({
       parent: box,
       content: `${chalk.yellow("ArcHone is already initialized.")}\n\nYou can continue using the CLI normally.`,
       top: 1,
       left: 2,
     });
+
     screen.render();
     setTimeout(() => {
       screen.destroy();
@@ -346,9 +337,9 @@ export default async () => {
   }
 
   const allowed = await promptProceed();
+
   if (!allowed) {
-    screen.destroy();
-    console.log(chalk.red("Setup cancelled. Run 'archone init' anytime."));
+    console.clear();
     process.exit(0);
   }
 
@@ -391,21 +382,26 @@ export default async () => {
   // Save Files
   try {
     fs.mkdirSync(ARCHONE_DIR, { recursive: true });
-    fs.writeFileSync(sessionPath, JSON.stringify({ ai: aiConfig }, null, 2));
-    fs.writeFileSync(lastAnalysisPath, JSON.stringify({}, null, 2));
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify({ ai: aiConfig }, null, 2));
+    fs.writeFileSync(LATEST_ANALYSIS_PATH, JSON.stringify({}, null, 2));
 
-    const successBox = createBox("Setup Successful", 8);
+    const successBox = createBox("Setup Successful", 7);
     blessed.text({
       parent: successBox,
       content: `${chalk.green("Initialization complete.")}\n\nArcHone is ready on this machine.`,
       top: 1,
       left: 2,
     });
+    // setTimeout(() => {
+    //   screen.destroy();
+    //   process.exit(0);
+    // }, 3000);
+
     screen.render();
-    screen.destroy();
+    await wait(3000);
+    process.exit(0);
   } catch (error) {
     screen.destroy();
-    console.log(chalk.red(`Error initializing project: ${error.message}`));
-    process.exit(1);
+    process.exit(0);
   }
 };
