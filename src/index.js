@@ -145,6 +145,17 @@ async function main() {
     action = await getUserAction();
   }
 
+  const commandsStringArray = commands.map((cmd) => cmd.triggers).flat();
+
+  if (action && !commandsStringArray.includes(action)) {
+    refreshScreen(screen);
+    const message = `${chalk.red(
+      `Invalid command: ${action}\n\nPlease select a valid command from the list.`,
+    )}\n\n Type "archone" to see the list of available commands.`;
+    await showNotification({ screen, message, title: "Invalid Command" });
+    process.exit(1);
+  }
+
   for (const command of commands) {
     if (command.triggers.includes(action)) {
       refreshScreen(screen);
