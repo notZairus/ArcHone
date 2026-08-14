@@ -13,7 +13,11 @@ import {
   selectAnalysisMode,
   sortIssuesBySeverity,
   checkAuth,
+  showNotification,
+  refreshScreen,
+  log,
 } from "../utils/helpers.js";
+
 import { withIssuePrinciple } from "../utils/issue-principles.js";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
@@ -27,17 +31,27 @@ import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
 import displayAnalysisResult from "../results/renderResult.js";
 
-export default async ({ screen }) => {
-  const providedInputPath = process.argv[3] || null;
+export default async ({
+  screen,
+  currentFilePath = null,
+  currentMode = null,
+}) => {
+  const providedInputPath = currentFilePath || process.argv[3];
 
   const hasModeFlag =
     process.argv[4] && process.argv[4].toLowerCase() === "--mode";
 
-  let mode = hasModeFlag
-    ? process.argv[5]
-      ? process.argv[5].toLowerCase()
-      : "general"
-    : "general";
+  log("current mode: " + currentMode);
+
+  let mode = currentMode
+    ? currentMode
+    : hasModeFlag
+      ? process.argv[5]
+        ? process.argv[5].toLowerCase()
+        : "general"
+      : "general";
+
+  log("mode: " + mode);
 
   let completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)
@@ -47,10 +61,16 @@ export default async ({ screen }) => {
     process.exit(0);
   }
 
+  log("current mode: " + currentMode);
+
   if (!fs.existsSync(completeFilePath)) {
-    boxError(
-      "Oops! The file you provided does not exist. Please check the file path and try again.",
-    );
+    refreshScreen(screen);
+    await showNotification({
+      screen,
+      message:
+        "The file you provided does not exist. Please provide a valid file path.",
+      duration: 3000,
+    });
     process.exit(0);
   }
 
@@ -64,9 +84,13 @@ export default async ({ screen }) => {
   }
 
   if (stat.isSymbolicLink()) {
-    boxError(
-      "Oops! The path you provided is a symbolic link. Please provide a valid file path to analyze.",
-    );
+    refreshScreen(screen);
+    await showNotification({
+      screen,
+      message:
+        "Oops! The path you provided is a symbolic link. Please provide a valid file path to analyze.",
+      duration: 3000,
+    });
 
     process.exit(0);
   }
@@ -74,11 +98,15 @@ export default async ({ screen }) => {
   const fileExtension = path.extname(completeFilePath).slice(1).toLowerCase();
 
   if (!VALID_FILE_EXTENSIONS.includes(fileExtension)) {
-    boxError(
-      "Oops! The file you provided is not supported for analysis. Please provide a valid file with one of the following extensions: " +
+    refreshScreen(screen);
+    await showNotification({
+      screen,
+      message:
+        "Oops! The file you provided is not supported for analysis. Please provide a valid file with one of the following extensions: " +
         VALID_FILE_EXTENSIONS.join(", ") +
         ".",
-    );
+      duration: 3000,
+    });
     process.exit(0);
   }
 
@@ -95,11 +123,13 @@ export default async ({ screen }) => {
   }
 
   if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
-    boxError(
-      `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
+    await showNotification({
+      screen,
+      message: `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
         ", ",
       )}. Please provide a valid mode using the --mode flag.`,
-    );
+      duration: 3000,
+    });
     process.exit(0);
   }
 
@@ -115,11 +145,14 @@ export default async ({ screen }) => {
   const isValid = !isEmptyFile && !isCommentOnlyFile;
 
   if (!isValid) {
-    boxError(
-      isEmptyFile
+    refreshScreen(screen);
+    await showNotification({
+      screen,
+      message: isEmptyFile
         ? "This file is empty and cannot be analyzed. Add code to the file and run analysis again."
         : "This file is full of comments. Add a valid code block (for example, declarations, functions, or executable statements) and run analysis again.",
-    );
+      duration: 3000,
+    });
     process.exit(0);
   }
 
@@ -147,6 +180,7 @@ export default async ({ screen }) => {
   result.mode = mode;
   result.language = fileExtension;
   result.code = code;
+  result.fileToAnalyze = fileToAnalyze;
 
   const userId = await checkAuth();
 
@@ -156,7 +190,6 @@ export default async ({ screen }) => {
   } else {
     await displayAnalysisResult({
       screen,
-      fileToAnalyze,
       result,
       noteText: userId
         ? "Click on a finding to view the code snippet and details."

@@ -169,15 +169,12 @@ export const OOP_ISSUE_PENALTIES = [
 ];
 
 export const DEFAULT_PENALTY_BY_TYPE = {
-  critical: 2.5,
-  error: 2.0,
-  warning: 1.0,
-
-  improvement: 0.75,
-  info: 0.25,
+  warning: 10,
+  improvement: 5,
+  info: 2.5,
 };
 
-export const DEFAULT_FALLBACK_PENALTY = 0.75;
+export const DEFAULT_FALLBACK_PENALTY = 5;
 
 export const SEVERITY_RANK = {
   critical: 0,

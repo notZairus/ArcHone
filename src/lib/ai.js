@@ -186,7 +186,7 @@ export async function explainIssueWithGemini(issue) {
           suggestedFixedCode: {
             type: "STRING",
             description:
-              "The suggested fixed code snippet without any comments in it. make sure that the whole code is ready to be rendered using markdown.",
+              "The suggested fixed code snippet without any comments in it. only change the necessary parts to fix the issue. never add unneccessary comments, prints, logs. only change the language native syntax. make sure that the whole code is ready to be rendered using markdown.",
           },
           whatChanged: {
             type: "ARRAY",

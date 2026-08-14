@@ -17,8 +17,24 @@ import blessed from "blessed";
 import figlet from "figlet";
 import { execSync } from "child_process";
 import { platform } from "os";
+import {
+  DEFAULT_PENALTY_BY_TYPE,
+  DEFAULT_FALLBACK_PENALTY,
+} from "../constants.js";
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const getIssuesScore = (issues) => {
+  let score = 100;
+
+  for (const issue of issues) {
+    const penalty =
+      DEFAULT_PENALTY_BY_TYPE[issue.type] || DEFAULT_FALLBACK_PENALTY;
+    score -= penalty;
+  }
+
+  return score;
+};
 
 export function refreshScreen(screen) {
   for (const child of [...screen.children]) {
