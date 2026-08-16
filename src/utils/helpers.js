@@ -409,7 +409,7 @@ export async function showNotification({ screen, message, duration = 2000 }) {
     top: "center",
     left: "center",
     height: "shrink",
-    width: "75%",
+    width: "35%",
     border: {
       type: "line",
     },

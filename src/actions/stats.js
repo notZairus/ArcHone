@@ -5,28 +5,84 @@ import { CONSOLE_MAX_WIDTH } from "../constants.js";
 import chalk from "chalk";
 import { getSession } from "../utils/session.js";
 import { box } from "../ui/box.js";
+import { refreshScreen, showNotification } from "../utils/helpers.js";
+import blessed from "blessed";
 
-export default async function stats() {
+export default async function stats({ screen }) {
+  refreshScreen(screen);
   console.clear();
 
   const { userId } = await getSession();
   if (!userId) {
-    boxError(
-      "You need to be logged in to view your stats. Please run 'archone login' first.",
-    );
-    return;
+    await showNotification({
+      screen,
+      message:
+        "You need to be logged in to view your stats. Please run 'archone login' first.",
+    });
+
+    process.exit(0);
   }
 
   const analyses = await Database.getUserAnalyses(userId);
 
   if (!analyses || analyses.length === 0) {
     boxError("No analyses found yet. Run 'archone analyze <file>' first.");
-    return;
+    await showNotification({
+      screen,
+      message: "No analyses found yet. Run 'archone analyze <file>' first.",
+    });
+
+    process.exit(0);
   }
 
   const analytics = buildAnalytics(analyses);
 
-  box(formatAnalytics(analytics), "Your Developer Stats", null, null, true);
+  const container = blessed.box({
+    parent: screen,
+    top: "center",
+    left: "center",
+    width: "shrink",
+    height: "75%",
+    mouse: true,
+    vi: true,
+    keys: true,
+    scrollable: true,
+    alwaysScroll: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "gray",
+      },
+      style: {
+        inverse: true,
+      },
+    },
+    padding: {
+      top: 1,
+      bottom: 1,
+      left: 2,
+      right: 1,
+    },
+    border: {
+      type: "line",
+    },
+    content: formatAnalytics(analytics),
+  });
+
+  const closeBtn = blessed.button({
+    parent: container,
+    top: 0,
+    right: 5,
+    shrink: true,
+    mouse: true,
+    content: "X",
+  });
+
+  closeBtn.on("press", () => {
+    process.exit(0);
+  });
+
+  screen.render();
 }
 
 function buildAnalytics(analyses) {

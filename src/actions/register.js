@@ -9,11 +9,15 @@ import { mainBanner } from "../ui/banner.js";
 import Database from "../lib/db.js";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
 import { box } from "../ui/box.js";
+import blessed from "blessed";
+import { showNotification, wait, refreshScreen } from "../utils/helpers.js";
 
-export default async function register() {
+export default async function register({ screen }) {
+  refreshScreen(screen);
   const registerGuide = [
     `${chalk.bold("Welcome to ArcHone!")}`,
     `Let's create your ArcHone account so you can start analyzing code and tracking your progress!`,
+    `Press ${chalk.cyan("Enter")} to open the registration page in your browser.`,
     ``,
     `${chalk.bold("What you will provide")}`,
     "- Email address",
@@ -25,21 +29,47 @@ export default async function register() {
     `- Run ${chalk.cyan("archone login")} to start your authenticated session`,
   ].join("\n");
 
-  box(registerGuide, "Registration", null, null, true);
+  const box = blessed.box({
+    parent: screen,
+    top: "center",
+    left: "center",
+    width: "50%",
+    height: "shrink",
+    content: registerGuide,
+    padding: {
+      left: 2,
+      right: 2,
+      top: 1,
+      bottom: 1,
+    },
+    border: {
+      type: "line",
+    },
+    label: " Registration ",
+  });
 
-  clack.outro(
-    chalk.green(
-      "ArcHone: Registration initiated. Please complete the process in your browser.",
-    ),
-  );
+  box.key("enter", async () => {
+    const registrationUrl = "http://localhost:5173" + "/register-student";
+    await showNotification({
+      screen,
+      message: "Opening the registration URL on your browser.",
+    });
+    await open(registrationUrl);
+  });
 
-  const registrationUrl = "http://localhost:5173" + "/register-student";
+  const closeBtn = blessed.button({
+    parent: box,
+    content: "X",
+    mouse: true,
+    width: 1,
+    height: 1,
+    top: -1,
+    right: -1,
+  });
 
-  box(registrationUrl, "Registration URL");
+  closeBtn.on("press", () => {
+    process.exit(0);
+  });
 
-  console.log(
-    chalk.yellow(
-      "\Please copy and paste the URL above into your browser to complete registration.\n",
-    ),
-  );
+  screen.render();
 }

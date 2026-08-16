@@ -3,8 +3,11 @@ import boxen from "boxen";
 import chalk from "chalk";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
 import { box } from "../ui/box.js";
+import { refreshScreen } from "../utils/helpers.js";
+import blessed from "blessed";
 
-export default async function about() {
+export default async function about({ screen }) {
+  refreshScreen(screen);
   const aboutText = [
     `${chalk.bold("What ArcHone does")}`,
     "ArcHone analyzes your source files and explains bad coding practices in plain language.",
@@ -24,5 +27,37 @@ export default async function about() {
     `Run ${chalk.cyan("archone init")}, then ${chalk.cyan("archone login")}, and finally ${chalk.cyan("archone analyze <file>")}.`,
   ].join("\n");
 
-  box(aboutText, "About", null, null, true);
+  const box = blessed.box({
+    parent: screen,
+    left: "center",
+    top: "center",
+    border: {
+      type: "line",
+    },
+    width: "50%",
+    height: "shrink",
+    content: aboutText,
+    padding: {
+      left: 2,
+      right: 2,
+      top: 1,
+      bottom: 1,
+    },
+  });
+
+  const closeBtn = blessed.button({
+    parent: box,
+    width: 1,
+    height: 1,
+    top: -1,
+    right: -1,
+    content: "X",
+    mouse: true,
+  });
+
+  closeBtn.on("press", () => {
+    process.exit(0);
+  });
+
+  screen.render();
 }

@@ -7,48 +7,27 @@ import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
 import { mainBanner } from "../ui/banner.js";
 import { getSession } from "../utils/session.js";
 import { box } from "../ui/box.js";
+import { refreshScreen, showNotification } from "../utils/helpers.js";
 
-export default async function whoami() {
-  const sessionPath = path.join(ARCHONE_DIR, "session.json");
-  if (!fs.existsSync(ARCHONE_DIR) || !fs.existsSync(sessionPath)) {
-    console.log(
-      boxen(
-        `ArcHone is not initialized yet.\n\nRun ${chalk.cyan("archone init")} first, then ${chalk.cyan("archone login")}.`,
-        {
-          padding: 1,
-          width: CONSOLE_MAX_WIDTH,
-          borderStyle: "round",
-          title: "Initialization Required",
-        },
-      ),
-    );
-
-    console.log("\n");
-    return;
-  }
+export default async function whoami({ screen }) {
+  refreshScreen(screen);
 
   const { name, role } = getSession();
   if (!name) {
-    console.log(
-      boxen(
-        `I could not find an authenticated user in your session.\n\nRun ${chalk.cyan("archone login")} to refresh your local session.`,
-        {
-          padding: 1,
-          width: CONSOLE_MAX_WIDTH,
-          borderStyle: "round",
-          title: "Session Not Found",
-        },
-      ),
-    );
-    console.log("\n");
-    return;
+    await showNotification({
+      screen,
+      message: `I could not find an authenticated user in your session.\n\nRun ${chalk.cyan("archone login")} to refresh your local session.`,
+      duration: 3000,
+    });
+
+    process.exit(0);
   }
 
-  box(
-    `${chalk.green("Authenticated user:")} ${chalk.cyan(name)}`,
-    "Authenticated user",
-    null,
-    null,
-    true,
-  );
+  await showNotification({
+    screen,
+    message: `${chalk.green("Authenticated user:")} ${chalk.cyan(name)}`,
+    duration: 3000,
+  });
+
+  process.exit(0);
 }

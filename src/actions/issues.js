@@ -4,6 +4,8 @@ import { createRequire } from "module";
 import { CONSOLE_MAX_WIDTH } from "../constants.js";
 import { mainBanner } from "../ui/banner.js";
 import { box } from "../ui/box.js";
+import { refreshScreen, log } from "../utils/helpers.js";
+import blessed from "blessed";
 
 const require = createRequire(import.meta.url);
 
@@ -429,51 +431,212 @@ function findIssue(issues, query) {
   return issues.find((issue) => issue.title.toLowerCase() === normalized);
 }
 
-export default async function issues(issueTitle = null) {
-  try {
-    const issuesCatalog = detectableIssues.issues || [];
-    const query = issueTitle || process.argv.slice(3).join(" ").trim();
+// export default async function issues({ screen, issueTitle }) {
+//   refreshScreen(screen);
+//   try {
+//     const issuesCatalog = detectableIssues.issues || [];
+//     const query = issueTitle || process.argv.slice(3).join(" ").trim();
 
-    if (!query) {
-      box(
-        formatIssueList(issuesCatalog),
-        "Detectable Issues",
-        null,
-        null,
-        true,
-      );
-      return;
-    }
+//     if (!query) {
+//       box(
+//         formatIssueList(issuesCatalog),
+//         "Detectable Issues",
+//         null,
+//         null,
+//         true,
+//       );
+//       return;
+//     }
 
-    const selectedIssue = findIssue(issuesCatalog, query);
-    if (!selectedIssue) {
-      box(
-        `Could not find that issue lesson.\n\nTry ${chalk.cyan("archone issues")} to list available lessons.`,
-        "Issue Not Found",
-        "left",
-        "round",
-        false,
-      );
-      return;
-    }
+//     const selectedIssue = findIssue(issuesCatalog, query);
+//     if (!selectedIssue) {
+//       box(
+//         `Could not find that issue lesson.\n\nTry ${chalk.cyan("archone issues")} to list available lessons.`,
+//         "Issue Not Found",
+//         "left",
+//         "round",
+//         false,
+//       );
+//       return;
+//     }
+
+//     const markdownLesson = formatIssueLessonMarkdown(selectedIssue);
+//     const renderedLesson = renderWithTerminalMarkdown(markdownLesson);
+
+//     box("", "ISSUE EXPLANATION STARTS HERE!", "center", "double", false, 0);
+
+//     box(selectedIssue.title.toUpperCase(), "Name of the Issue");
+
+//     console.log("\n");
+//     console.log(renderedLesson);
+//     console.log("\n");
+//   } catch (error) {
+//     box(
+//       chalk.red(`Failed to load issue lessons: ${error.message}`),
+//       "Issues Error",
+//       "left",
+//       "round",
+//       false,
+//     );
+//   }
+// }
+
+export default async function issues({ screen, issueTitle }) {
+  refreshScreen(screen);
+
+  const issuesCatalog = detectableIssues.issues || [];
+  const query = issueTitle || process.argv.slice(3).join(" ").trim();
+
+  const container = blessed.box({
+    parent: screen,
+    left: "center",
+    top: "center",
+    width: "50%",
+    height: "75%",
+  });
+
+  const header = blessed.box({
+    parent: container,
+    top: 0,
+    left: "center",
+    width: "100%",
+    border: "line",
+    height: 3,
+    padding: {
+      left: 1,
+      right: 1,
+    },
+    content: chalk.bold("Detectable Issues"),
+  });
+
+  const closeBtn = blessed.button({
+    parent: header,
+    right: 0,
+    top: 0,
+    width: 1,
+    height: 1,
+    mouse: true,
+    content: "X",
+  });
+
+  closeBtn.on("press", () => {
+    process.exit(0);
+  });
+
+  const issueDetails = blessed.box({
+    parent: screen,
+    top: "center",
+    left: "center",
+    width: "50%",
+    height: "75%",
+    border: "line",
+    padding: {
+      left: 2,
+      right: 2,
+      top: 1,
+      bottom: 1,
+    },
+    scrollable: true,
+    alwaysScroll: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "grey",
+      },
+      style: {
+        inverse: true,
+      },
+    },
+    mouse: true,
+    padding: {
+      left: 1,
+      right: 1,
+    },
+    content: query
+      ? `Selected Issue: ${query}`
+      : "No issue selected. Use the list below to select an issue.",
+  });
+
+  const backBtn = blessed.box({
+    parent: issueDetails,
+    top: 0,
+    right: 2,
+    border: "line",
+    width: 7,
+    height: 3,
+    mouse: true,
+    content: "Back",
+  });
+
+  backBtn.on("click", () => {
+    showIssueContainer();
+  });
+
+  const issueContainer = blessed.box({
+    parent: container,
+    top: 3,
+    left: 0,
+    width: "100%",
+    height: "100%-3",
+    border: "line",
+    mouse: true,
+    scrollable: true,
+    alwaysScroll: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "grey",
+      },
+      style: {
+        inverse: true,
+      },
+    },
+  });
+
+  function showIssueContainer() {
+    issueDetails.hide();
+    container.show();
+    screen.render();
+  }
+
+  function showIssueDetails(issueIndex) {
+    const selectedIssue = issuesCatalog[issueIndex];
 
     const markdownLesson = formatIssueLessonMarkdown(selectedIssue);
+    log(markdownLesson);
+
     const renderedLesson = renderWithTerminalMarkdown(markdownLesson);
+    log(renderedLesson);
 
-    box("", "ISSUE EXPLANATION STARTS HERE!", "center", "double", false, 0);
-
-    box(selectedIssue.title.toUpperCase(), "Name of the Issue");
-
-    console.log("\n");
-    console.log(renderedLesson);
-    console.log("\n");
-  } catch (error) {
-    box(
-      chalk.red(`Failed to load issue lessons: ${error.message}`),
-      "Issues Error",
-      "left",
-      "round",
-      false,
+    issueDetails.setContent(
+      `Selected Issue: ${selectedIssue.title}\n\n${renderedLesson}`,
     );
+
+    issueDetails.show();
+    container.hide();
+    screen.render();
   }
+
+  for (const [index, issue] of issuesCatalog.entries()) {
+    const issueBox = blessed.box({
+      parent: issueContainer,
+      top: index * 3,
+      left: 1,
+      width: "94%",
+      height: 3,
+      border: "line",
+      mouse: true,
+      padding: {
+        left: 1,
+        right: 1,
+      },
+      content: `${index + 1}. ${issue.title}`,
+    });
+
+    issueBox.on("click", () => {
+      showIssueDetails(index);
+    });
+  }
+
+  showIssueContainer();
 }

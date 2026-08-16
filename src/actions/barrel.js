@@ -15,6 +15,12 @@ import join from "./join.js";
 
 const commands = [
   {
+    triggers: ["analyze"],
+    description:
+      "Run ArcHone analysis on a specific source file and return insights about code quality, structure, and issues.",
+    function: analyze,
+  },
+  {
     triggers: ["init"],
     description:
       "Set up ArcHone in the current project by creating the required local configuration and startup files.",
@@ -66,12 +72,6 @@ const commands = [
     description:
       "Open Archone assistant mode to see command explanations, practical hints, and quick-start guidance.",
     function: help,
-  },
-  {
-    triggers: ["analyze"],
-    description:
-      "Run ArcHone analysis on a specific source file and return insights about code quality, structure, and issues.",
-    function: analyze,
   },
   {
     triggers: ["scan"],
