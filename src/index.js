@@ -13,8 +13,21 @@ import {
 import { box, boxError, boxSuccess } from "./ui/box.js";
 import initialize from "./actions/initialize.js";
 import blessed from "blessed";
+import tty from "tty";
 
 import commands from "./actions/barrel.js";
+
+
+if (process.platform === 'win32') {
+  const { setFdMode, VTINPUT } = tty;
+  
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+  }
+
+  process.stdout.write("\x1b[?1000h\x1b[?1006h");
+}
+
 
 const screen = blessed.screen({
   width: "100%",

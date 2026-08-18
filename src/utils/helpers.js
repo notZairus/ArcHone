@@ -353,8 +353,7 @@ export async function checkAuth() {
 }
 
 export function log(data, title = "Debug Alert") {
-  const logFilePath =
-    "/home/zairus-bermillo/Desktop/Ongoing Projects/Archone/student system (cli)/main.log";
+  const logFilePath = path.join(process.cwd(), "main.log");
 
   const entry = {
     date: `${new Date().toISOString()}`,
@@ -364,9 +363,7 @@ export function log(data, title = "Debug Alert") {
 
   try {
     fs.appendFileSync(logFilePath, JSON.stringify(entry) + "\n", "utf8");
-  } catch (error) {
-    console.error("Failed to write to log file:", error);
-  }
+  } catch (error) { }
 }
 
 export function stripCodeFences(codeString) {
