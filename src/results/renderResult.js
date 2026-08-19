@@ -17,6 +17,7 @@ import {
 import { explainIssueWithGemini } from "../lib/ai.js";
 import clipboard from "clipboardy";
 import analyzeFile from "../actions/analyze.js";
+import scanDirectory from "../actions/scan.js";
 
 const SIDE_WIDTH = 20;
 const MAIN_WIDTH = 100 - SIDE_WIDTH;
@@ -42,6 +43,7 @@ export default async function displayAnalysisResult({
   screen,
   result,
   noteText = "Click on a finding to view the code snippet and details.",
+  fromScan = false,
 }) {
   refreshScreen(screen);
 
@@ -92,21 +94,43 @@ export default async function displayAnalysisResult({
       content: `${chalk.bold("File Analyzed")}: ${chalk.cyan(result.fileToAnalyze.split("/").pop())} \t\t ${chalk.bold("Mode")}: ${chalk.cyan(result.mode)} \t\t ${chalk.bold("Language")}: ${chalk.cyan(result.language)}`,
     });
 
-    const closeBtn = blessed.button({
-      parent: header,
-      content: "X",
-      top: 0,
-      right: 1,
-      width: 3,
-      height: 3,
-      align: "center",
-      valign: "middle",
-      mouse: true,
-    });
+    if (!fromScan) {
+      const closeBtn = blessed.button({
+        parent: header,
+        content: "X",
+        top: 0,
+        right: 1,
+        width: 3,
+        height: 3,
+        align: "center",
+        valign: "middle",
+        mouse: true,
+      });
 
-    closeBtn.on("press", () => {
-      process.exit(0);
-    });
+      closeBtn.on("press", () => {
+        process.exit(0);
+      });
+    } else {
+      const backToScanBtn = blessed.button({
+        parent: header,
+        content: "Back",
+        top: 0,
+        right: 1,
+        width: 8,
+        height: 3,
+        border: "line",
+        align: "center",
+        valign: "middle",
+        mouse: true,
+      });
+
+      backToScanBtn.on("press", async () => {
+        await scanDirectory({
+          screen,
+          currentMode: result.mode,
+        })
+      });
+    }
 
     return header;
   }

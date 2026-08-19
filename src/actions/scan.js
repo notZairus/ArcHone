@@ -10,6 +10,10 @@ import analyzeGeneralCS from "../analyzer/general/csharp.js";
 import analyzeOopJS from "../analyzer/oop/javascript.js";
 import analyzeOopPy from "../analyzer/oop/python.js";
 import analyzeOopCS from "../analyzer/oop/csharp.js";
+import { refreshScreen, showNotification, log, colorSeverity } from "../utils/helpers.js"
+import blessed from "blessed";
+
+import analyzeFile from "./analyze.js";
 
 import treeParser from "../parser/analysis-parser.js";
 
@@ -41,8 +45,8 @@ const severityRank = {
   unknown: 5,
 };
 
-export default async () => {
-  console.clear();
+export default async ({ screen, currentMode = null }) => {
+  refreshScreen(screen);
   const args = process.argv.slice(3);
   const showAll = args.includes("--all");
 
@@ -51,23 +55,30 @@ export default async () => {
   );
 
   const hasModeFlag = modeFlagIndex !== -1;
-  const mode = hasModeFlag
+  let mode = hasModeFlag
     ? args[modeFlagIndex + 1]
       ? String(args[modeFlagIndex + 1]).toLowerCase()
       : "general"
     : "general";
 
+  if (currentMode) {
+    mode = currentMode;
+  }
+
   if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
-    box(
-      `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
-        ", ",
-      )}. Please provide a valid mode using the --mode flag.`,
-      "ArcHone Scan Result",
-      null,
-      null,
-      true,
-    );
-    return;
+
+    const message = `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
+      ", ",
+    )}. Please provide a valid mode using the --mode flag.`;
+
+
+    await showNotification({
+      screen,
+      message,
+      duration: 3000,
+    })
+
+    process.exit(0);
   }
 
   const analyzersByExtension = analyzersByMode[mode] || analyzersByMode.general;
@@ -89,14 +100,15 @@ export default async () => {
   const targetArg = positionalArgs[0] || ".";
   const targetPath = path.resolve(process.cwd(), targetArg);
   const scanStartedAt = Date.now();
-  const spinner = clack.spinner();
 
   if (!fs.existsSync(targetPath) || !fs.lstatSync(targetPath).isDirectory()) {
-    clack.outro("Invalid directory. Please provide a valid folder path.");
-    return;
-  }
+    await showNotification({
+      screen,
+      message: "Invalid directory. Please provide a valid folder path."
+    })
 
-  spinner.start("Scanning and analyzing directory...");
+    process.exit(0)
+  }
 
   let sourceFiles = [];
 
@@ -107,7 +119,7 @@ export default async () => {
       analyzersByExtension,
     );
   } catch (error) {
-    if (handleFolderTooLargeError(error, spinner)) {
+    if (await handleFolderTooLargeError(error)) {
       return;
     }
 
@@ -115,15 +127,18 @@ export default async () => {
   }
 
   if (!sourceFiles.length) {
-    spinner.stop("Scan complete!");
-    box("No supported files found (.js, .py, .cs).", "ArcHone Scan Result");
-    return;
+    await showNotification({
+      screen,
+      message: "No supported files found (.js, .py, .cs).",
+    })
+    process.exit(0);
   }
 
   const issueSummary = new Map();
   const fileSummary = new Map();
   let totalFindings = 0;
   const languageCounts = { js: 0, py: 0, cs: 0 };
+
 
   try {
     for (const filePath of sourceFiles) {
@@ -190,7 +205,7 @@ export default async () => {
       }
     }
   } catch (error) {
-    if (handleFolderTooLargeError(error, spinner)) {
+    if (await handleFolderTooLargeError(error, spinner)) {
       return;
     }
 
@@ -213,36 +228,192 @@ export default async () => {
     return b.total - a.total || a.file.localeCompare(b.file);
   });
 
-  const lines = [
-    chalk.bold("What ArcHone checked"),
-    `- Directory: ${path.relative(process.cwd(), targetPath) || "."}`,
-    `- Total files checked: ${sourceFiles.length}`,
-    `- File types checked: JavaScript (${languageCounts.js}), Python (${languageCounts.py}), C# (${languageCounts.cs})`,
-    "",
-    chalk.bold("Overall result"),
-    `- ArcHone found ${totalFindings} issue(s) across ${sortedFilesWithIssues.length} file(s).`,
-    `- ArcHone detected ${sortedIssues.length} different issue type(s).`,
-    `- Severity summary: ${severityBreakdown}`,
-    "",
-    chalk.bold("Files that need attention"),
-    showAll
-      ? "- Showing all files with issues."
-      : "- Showing top 10 files with the most issues. Use `archone scan <path> --all` to show everything.",
-    "",
-    ...formatFilesWithIssues(sortedFilesWithIssues, showAll),
-    "",
-    chalk.bold("Most common issue types"),
-    showAll
-      ? "- Showing all issue types found."
-      : "- Showing top 8 issue types. Use `archone scan <path> --all` to show everything.",
-    "",
-    ...formatTopIssues(sortedIssues, showAll),
-  ];
+  const container = blessed.box({
+    parent: screen,
+    left: "center",
+    top: "center",
+    width: "90%",
+    height: "90%",
+  })
 
-  spinner.stop("Scan complete!");
 
-  box(lines.join("\n"), "Scan Result", null, null, true);
+  const header = blessed.box({
+    parent: container,
+    width: "100%",
+    height: 3,
+    border: "line",
+    align: "center",
+    valign: "middle",
+    padding: {
+      left: 1
+    },
+    content: chalk.bold("ArcHone Scan")
+  })
+
+
+  const exitBtn = blessed.button({
+    parent: header,
+    content: "X",
+    width: 1,
+    height: 1,
+    top: 0,
+    right: 1,
+    mouse: true,
+  })
+
+  exitBtn.on("press", () => {
+    process.exit(0)
+  })
+
+  const mainContainer = blessed.box({
+    parent: container,
+    top: 3,
+    width: "100%",
+    height: "100%-3",
+  })
+
+  const scanDetailsContainer = blessed.box({
+    parent: mainContainer,
+    height: 7,
+    width: "50%",
+    label: chalk.bold(" Scan Details "),
+    border: "line",
+    padding: {
+      top: 1,
+      left: 1,
+      bottom: 1,
+      right: 1
+    },
+    content: [
+      `${chalk.bold("Directory:")} ${path.relative(process.cwd(), targetPath) || "."}`,
+      `${chalk.bold("Total files scanned:")} ${sourceFiles.length}`,
+      `${chalk.bold("File types scanned:")} JavaScript (${languageCounts.js}), Python (${languageCounts.py}), C# (${languageCounts.cs})`
+    ].join("\n"),
+  })
+
+  const overallResultContainer = blessed.box({
+    parent: mainContainer,
+    left: "50%",
+    height: 7,
+    width: "50%",
+    label: chalk.bold(" Overall Result "),
+    padding: {
+      top: 1,
+      left: 1,
+      bottom: 1,
+      right: 1
+    },
+    border: "line",
+    content: [
+      `Found ${totalFindings} issue(s) across ${sortedFilesWithIssues.length} file(s).`,
+      `Detected ${sortedIssues.length} different issue type(s).`,
+      `Severity summary: ${severityBreakdown}`
+    ].join("\n")
+  })
+
+  const filesContainer = blessed.box({
+    parent: mainContainer,
+    top: 7,
+    height: "100%-8",
+    width: "50%",
+    border: "line",
+    vi: true,
+    keys: true,
+    mouse: true,
+    scrollable: true,
+    alwaysScroll: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "gray",
+      },
+      inverse: true,
+    },
+    label: chalk.bold(" Files to Refactor "),
+  })
+
+  sortedFilesWithIssues.forEach((file, index) => {
+    const fileIssueBox = blessed.box({
+      parent: filesContainer,
+      top: 5 * index,
+      height: 5,
+      width: "95%",
+      border: "line",
+      padding: {
+        left: 1,
+      },
+      mouse: true,
+      content: [
+        chalk.bold(`${index + 1}. ${file.file}`),
+        `- Total issues: ${file.total}`,
+        `- Breakdown: ${chalk.red(`Warning: ${file.warning}`)} | ${chalk.yellow(`Improvement: ${file.improvement}`)} | ${chalk.blue(`Info: ${file.info}`)}`,
+      ].join("\n")
+    })
+
+    fileIssueBox.on("click", async () => {
+      await analyzeFile({
+        screen,
+        currentFilePath: file.file,
+        currentMode: mode,
+        fromScan: true
+      })
+    })
+  })
+
+  const issueRankingsContainer = blessed.box({
+    parent: mainContainer,
+    top: 7,
+    left: "50%",
+    height: "100%-8",
+    width: "50%",
+    border: "line",
+    vi: true,
+    keys: true,
+    mouse: true,
+    scrollable: true,
+    alwaysScroll: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "gray",
+      },
+      inverse: true,
+    },
+    label: chalk.bold(" Issue Rankings ")
+  })
+
+  sortedIssues.forEach((issue, index) => {
+    const issueBox = blessed.box({
+      parent: issueRankingsContainer,
+      top: 4 * index,
+      height: 4,
+      width: "95%",
+      border: "line",
+      padding: {
+        left: 1,
+      },
+      content: [
+        chalk.bold(`${index + 1}. ${issue.title}[${colorSeverity(issue.type)}]`),
+        `- ${issue.count} finding(s) in ${issue.files.size} file(s)`
+      ].join("\n")
+    })
+  });
+
+  screen.render();
 };
+
+
+
+
+
+
+
+
+
+
+// HELPERS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// HELPERS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// HELPERS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function collectSourceFiles(rootDir, scanStartedAt, analyzersByExtension) {
   const ignored = new Set([
@@ -318,25 +489,21 @@ function ensureScanWithinDuration(scanStartedAt) {
   }
 }
 
-function handleFolderTooLargeError(error, spinner) {
+async function handleFolderTooLargeError(error) {
   if (error?.code !== "FOLDER_TOO_LARGE") {
     return false;
   }
 
-  spinner.stop("Scan stopped.");
-
-  box(
-    [
+  await showNotification({
+    screen,
+    message: [
       "Folder is too large to scan.",
       "",
       `- ${error.message}`,
       "- Try scanning a smaller subfolder.",
     ].join("\n"),
-    "ArcHone Scan Result",
-    null,
-    null,
-    true,
-  );
+    duration: 3000
+  })
 
   return true;
 }
@@ -356,8 +523,20 @@ function buildSeverityBreakdown(issues) {
 
   for (const type of ordered) {
     const count = counts.get(type);
+
+
+    let toPush;
+
+    if (type === `warning`) {
+      toPush = chalk.red(`Warning: ${count}`)
+    } else if (type === `improvement`) {
+      toPush = chalk.yellow(`Improvement: ${count}`)
+    } else if (type === `info`) {
+      toPush = chalk.blue(`Info: ${count}`)
+    }
+
     if (count) {
-      parts.push(`${type}: ${count}`);
+      parts.push(toPush);
     }
   }
 

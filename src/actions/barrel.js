@@ -5,13 +5,11 @@ import login from "./login.js";
 import logout from "./logout.js";
 import about from "./about.js";
 import analyze from "./analyze.js";
-import explain from "./explain.js";
 import stats from "./stats.js";
 import scan from "./scan.js";
 import whoami from "./whoami.js";
 import issues from "./issues.js";
 import classrooms from "./classrooms.js";
-import join from "./join.js";
 
 const commands = [
   {
@@ -80,21 +78,11 @@ const commands = [
     function: scan,
   },
   {
-    triggers: ["explain"],
-    description:
-      "Get a detailed explanation of a specific good practices issue of the latest analysis, including why it matters and how to fix it.",
-    function: explain,
-  },
-  {
     triggers: ["classrooms"],
     description: "View classrooms you are a member of.",
     function: classrooms,
   },
-  {
-    triggers: ["join"],
-    description: "Join a classroom using a classroom code.",
-    function: join,
-  },
+
 ];
 
 export default commands;

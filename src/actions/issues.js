@@ -603,10 +603,8 @@ export default async function issues({ screen, issueTitle }) {
     const selectedIssue = issuesCatalog[issueIndex];
 
     const markdownLesson = formatIssueLessonMarkdown(selectedIssue);
-    log(markdownLesson);
-
     const renderedLesson = renderWithTerminalMarkdown(markdownLesson);
-    log(renderedLesson);
+
 
     issueDetails.setContent(
       `Selected Issue: ${selectedIssue.title}\n\n${renderedLesson}`,

@@ -31,17 +31,17 @@ import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
 import displayAnalysisResult from "../results/renderResult.js";
 
+
 export default async ({
   screen,
   currentFilePath = null,
   currentMode = null,
+  fromScan = false
 }) => {
   const providedInputPath = currentFilePath || process.argv[3];
 
   const hasModeFlag =
     process.argv[4] && process.argv[4].toLowerCase() === "--mode";
-
-  log("current mode: " + currentMode);
 
   let mode = currentMode
     ? currentMode
@@ -51,8 +51,6 @@ export default async ({
         : "general"
       : "general";
 
-  log("mode: " + mode);
-
   let completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)
     : await selectFileFromDirectory({ directory: process.cwd(), screen });
@@ -60,8 +58,6 @@ export default async ({
   if (!completeFilePath) {
     process.exit(0);
   }
-
-  log("current mode: " + currentMode);
 
   if (!fs.existsSync(completeFilePath)) {
     refreshScreen(screen);
@@ -161,13 +157,13 @@ export default async ({
   const result = isValid
     ? analyzer(tree, sourceCode, fileExtension)
     : {
-        functions: [],
-        variables: [],
-        comments: [],
-        issues: [],
-        isEmptyFile: true,
-        isCommentOnlyFile,
-      };
+      functions: [],
+      variables: [],
+      comments: [],
+      issues: [],
+      isEmptyFile: true,
+      isCommentOnlyFile,
+    };
 
   const issuesWithPrinciples = (result.issues || []).map(withIssuePrinciple);
   const sortedIssues = sortIssuesBySeverity(issuesWithPrinciples);
@@ -185,8 +181,9 @@ export default async ({
   const userId = await checkAuth();
 
   if (result.mode === "complexity") {
-    console.log("meh complexity mode");
+    log("meh complexity mode");
     // TODO: Implement complexity mode rendering
+    process.exit(0)
   } else {
     await displayAnalysisResult({
       screen,
@@ -194,6 +191,7 @@ export default async ({
       noteText: userId
         ? "Click on a finding to view the code snippet and details."
         : "Log in to save your analysis results and access personalized insights.",
+      fromScan
     });
 
     if (userId) {

@@ -425,3 +425,22 @@ export async function showNotification({ screen, message, duration = 2000 }) {
   box.destroy();
   screen.render();
 }
+
+
+
+export function colorSeverity(type) {
+  const lowerType = type.toLowerCase() 
+  if (lowerType === "warning") {
+    return chalk.red("Warning")
+  } 
+
+  if (lowerType === "improvement") {
+    return chalk.yellow("Improvement")
+  }
+
+  if (lowerType === "info") {
+    return chalk.blue("Info")
+  }
+
+  return chalk.yellow("Unknown")
+}
