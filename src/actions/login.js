@@ -45,7 +45,7 @@ export default async function login({ screen }) {
     border: {
       type: "line",
     },
-    label: " Archone Login ",
+    label: chalk.bold(" Archone Login "),
   });
 
   const closeButton = blessed.button({
@@ -72,7 +72,7 @@ export default async function login({ screen }) {
   const emailLabel = blessed.text({
     parent: form,
     top: 2,
-    left: 2,
+    left: 5,
     content: "Email:",
   });
 
@@ -80,9 +80,10 @@ export default async function login({ screen }) {
     parent: form,
     name: "email",
     top: 3,
-    left: 2,
+    left: "center",
     width: "90%",
     height: 3,
+    moust: true,
     inputOnFocus: true,
     border: {
       type: "line",
@@ -92,7 +93,7 @@ export default async function login({ screen }) {
   const passwordLabel = blessed.text({
     parent: form,
     top: 7,
-    left: 2,
+    left: 5,
     content: "Password:",
   });
 
@@ -100,11 +101,12 @@ export default async function login({ screen }) {
     parent: form,
     name: "password",
     top: 8,
-    left: 2,
+    left: "center",
     width: "90%",
     height: 3,
     inputOnFocus: true,
     censor: true,
+    mouse: true,
     border: {
       type: "line",
     },
@@ -118,22 +120,12 @@ export default async function login({ screen }) {
     padding: {
       left: 4,
       right: 4,
-      top: 1,
-      bottom: 1,
     },
     left: "center",
     top: 12,
     name: "submit",
     content: "Submit",
-    style: {
-      bg: "blue",
-      focus: {
-        bg: "red",
-      },
-      hover: {
-        bg: "green",
-      },
-    },
+    border: "line"
   });
 
   submitButton.on("press", () => {
@@ -150,7 +142,20 @@ export default async function login({ screen }) {
 }
 
 async function handleSubmit({ screen, data }) {
+  const loader = blessed.loading({
+    parent: screen,
+    top: "center",
+    left: "center",
+    width: "20%",
+    height: "shrink",
+    border: "line",
+    align: "center",
+    valign: "middle",
+  });
+
   try {
+    loader.load("Logging in...");
+
     const { userId, expire } = await account.createEmailPasswordSession(
       data.email,
       data.password,
@@ -182,14 +187,18 @@ async function handleSubmit({ screen, data }) {
       ),
     );
 
-    const message = `${chalk.green("Login successful!")}\n\nWelcome, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.`;
+    loader.stop();
+    loader.hide();
 
     refreshScreen(screen);
-    await showNotification({ screen, message });
+    await showNotification({ screen, message: `${chalk.green("Login successful!")}\n\nWelcome, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.` });
     process.exit(0);
-  } catch (error) {
-    const message = `${chalk.red("Login failed.")}\n\n${chalk.bold(error.message.toUpperCase())}\n\nPlease check your credentials and try again.`;
 
-    await showNotification({ screen, message });
+  } catch (error) {
+
+    loader.stop();
+    loader.hide();
+
+    await showNotification({ screen, message: `${chalk.red("Login failed.")}\n\n${chalk.bold(error.message.toUpperCase())}\n\nPlease check your credentials and try again.` });
   }
 }

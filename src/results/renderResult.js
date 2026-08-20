@@ -25,7 +25,7 @@ const MAIN_WIDTH = 100 - SIDE_WIDTH;
 let globalSelectedIssue = null;
 let globalResult = null;
 
-async function reAnalyzeFile({ screen, currentFilePath, currentMode }) {
+async function reAnalyzeFile({ screen, currentFilePath, currentMode, fromScan = false }) {
   await showNotification({
     screen,
     message: "Re-analyzing the file...",
@@ -36,6 +36,7 @@ async function reAnalyzeFile({ screen, currentFilePath, currentMode }) {
     screen,
     currentFilePath,
     currentMode,
+    fromScan
   });
 }
 
@@ -56,6 +57,7 @@ export default async function displayAnalysisResult({
       screen,
       currentFilePath: result.fileToAnalyze,
       currentMode: result.mode,
+      fromScan
     });
   });
 
@@ -71,39 +73,92 @@ export default async function displayAnalysisResult({
     };
   });
 
+  // async function getHeader() {
+  //   const header = blessed.box({
+  //     top: 0,
+  //     left: 0,
+  //     smartCSR: true,
+  //     width: "100%",
+  //     height: 5,
+  //     padding: {
+  //       left: 1,
+  //       right: 1,
+  //     },
+  //     border: "line",
+  //     valign: "middle",
+  //   });
+
+  //   const fileAnalyzed = blessed.box({
+  //     parent: header,
+  //     align: "left",
+  //     height: 2,
+  //     valign: "middle",
+  //     content: `${chalk.bold("File Analyzed")}: ${chalk.cyan(result.fileToAnalyze.split("/").pop())} \t\t ${chalk.bold("Mode")}: ${chalk.cyan(result.mode)} \t\t ${chalk.bold("Language")}: ${chalk.cyan(result.language)}`,
+  //   });
+
+  //   if (!fromScan) {
+  //     const closeBtn = blessed.button({
+  //       parent: header,
+  //       content: "X",
+  //       top: 0,
+  //       right: 1,
+  //       width: 3,
+  //       height: 3,
+  //       align: "center",
+  //       valign: "middle",
+  //       mouse: true,
+  //     });
+
+  //     closeBtn.on("press", () => {
+  //       process.exit(0);
+  //     });
+  //   } else {
+  //     const backToScanBtn = blessed.button({
+  //       parent: header,
+  //       content: "Back",
+  //       top: 0,
+  //       right: 1,
+  //       width: 8,
+  //       height: 3,
+  //       border: "line",
+  //       align: "center",
+  //       valign: "middle",
+  //       mouse: true,
+  //     });
+
+  //     backToScanBtn.on("press", async () => {
+  //       await scanDirectory({
+  //         screen,
+  //         currentMode: result.mode,
+  //       })
+  //     });
+  //   }
+
+  //   return header;
+  // }
+
+
   async function getHeader() {
     const header = blessed.box({
-      top: 0,
-      left: 0,
-      smartCSR: true,
       width: "100%",
-      height: 5,
-      padding: {
-        left: 1,
-        right: 1,
-      },
+      height: 3,
       border: "line",
+      align: "center",
       valign: "middle",
-    });
-
-    const fileAnalyzed = blessed.box({
-      parent: header,
-      align: "left",
-      height: 2,
-      valign: "middle",
-      content: `${chalk.bold("File Analyzed")}: ${chalk.cyan(result.fileToAnalyze.split("/").pop())} \t\t ${chalk.bold("Mode")}: ${chalk.cyan(result.mode)} \t\t ${chalk.bold("Language")}: ${chalk.cyan(result.language)}`,
+      padding: {
+        left: 1
+      },
+      content: chalk.bold(" ArcHone Analyze ")
     });
 
     if (!fromScan) {
       const closeBtn = blessed.button({
         parent: header,
         content: "X",
+        width: 1,
+        height: 1,
         top: 0,
         right: 1,
-        width: 3,
-        height: 3,
-        align: "center",
-        valign: "middle",
         mouse: true,
       });
 
@@ -135,13 +190,14 @@ export default async function displayAnalysisResult({
     return header;
   }
 
+
   async function getSide(
     noteText = "Click on a finding to view the code snippet and details.",
   ) {
     const side = blessed.box({
       width: `${SIDE_WIDTH}%`,
       height: "85%",
-      top: 5,
+      top: 3,
       smartCSR: true,
       left: 0,
       align: "center",
@@ -173,7 +229,7 @@ export default async function displayAnalysisResult({
       },
       width: "100%",
       border: "line",
-      height: "shrink",
+      height: "100%-14",
       scrollable: true,
       content: `${chalk.bold("Note")}\n\n${noteText}`,
     });
@@ -211,6 +267,7 @@ export default async function displayAnalysisResult({
         screen,
         currentFilePath: result.fileToAnalyze,
         currentMode: result.mode,
+        fromScan
       });
     });
 
@@ -224,7 +281,7 @@ export default async function displayAnalysisResult({
     const main = blessed.box({
       width: `${MAIN_WIDTH}%`,
       height: "85%",
-      top: 5,
+      top: 3,
       smartCSR: true,
       left: `${SIDE_WIDTH + 0.5}%`,
       padding: {
@@ -241,7 +298,7 @@ export default async function displayAnalysisResult({
       top: 0,
       left: 0,
       smartCSR: true,
-      width: "97%",
+      width: "98%",
       height: "90%",
       scrollable: true,
       keys: true,
@@ -272,7 +329,7 @@ export default async function displayAnalysisResult({
           parent: findingsView,
 
           top: index * 7,
-          width: "97%",
+          width: "99%",
           height: 7,
 
           mouse: true,

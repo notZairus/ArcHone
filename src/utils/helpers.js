@@ -33,7 +33,7 @@ export const getIssuesScore = (issues) => {
     score -= penalty;
   }
 
-  return score;
+  return Math.max(score, 0);
 };
 
 export function refreshScreen(screen) {
@@ -429,10 +429,10 @@ export async function showNotification({ screen, message, duration = 2000 }) {
 
 
 export function colorSeverity(type) {
-  const lowerType = type.toLowerCase() 
+  const lowerType = type.toLowerCase()
   if (lowerType === "warning") {
     return chalk.red("Warning")
-  } 
+  }
 
   if (lowerType === "improvement") {
     return chalk.yellow("Improvement")

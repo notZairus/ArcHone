@@ -120,7 +120,7 @@ export default async ({ screen, currentMode = null }) => {
     );
   } catch (error) {
     if (await handleFolderTooLargeError(error)) {
-      return;
+      process.exit(1)
     }
 
     throw error;
@@ -139,6 +139,18 @@ export default async ({ screen, currentMode = null }) => {
   let totalFindings = 0;
   const languageCounts = { js: 0, py: 0, cs: 0 };
 
+  const loader = blessed.loading({
+    parent: screen,
+    top: "center",
+    left: "center",
+    width: "20%",
+    height: "shrink",
+    border: "line",
+    align: "center",
+    valign: "middle",
+  });
+
+  loader.load("Scanning Files...")
 
   try {
     for (const filePath of sourceFiles) {
@@ -206,7 +218,7 @@ export default async ({ screen, currentMode = null }) => {
     }
   } catch (error) {
     if (await handleFolderTooLargeError(error, spinner)) {
-      return;
+      process.exit(1)
     }
 
     throw error;
@@ -227,6 +239,9 @@ export default async ({ screen, currentMode = null }) => {
   const sortedFilesWithIssues = [...fileSummary.values()].sort((a, b) => {
     return b.total - a.total || a.file.localeCompare(b.file);
   });
+
+  loader.stop();
+  loader.hide();
 
   const container = blessed.box({
     parent: screen,
