@@ -2,25 +2,16 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import boxen from "boxen";
-import clack from "../lib/clack.js";
-import {
-  VALID_FILE_EXTENSIONS,
-  IGNORED_FILE_NAMES,
-  CONSOLE_MAX_WIDTH,
-  ARCHONE_DIR,
-  SESSION_PATH,
-  CONFIG_PATH,
-} from "../constants.js";
+import { CONSOLE_MAX_WIDTH, ARCHONE_DIR, CONFIG_PATH } from "../constants.js";
 import { getSession } from "./session.js";
-import { box } from "../ui/box.js";
 import blessed from "blessed";
 import figlet from "figlet";
 import { execSync } from "child_process";
-import { platform } from "os";
 import {
   DEFAULT_PENALTY_BY_TYPE,
   DEFAULT_FALLBACK_PENALTY,
 } from "../constants.js";
+import { putHeader } from "../ui/components.js";
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -43,14 +34,15 @@ export function refreshScreen(screen) {
   }
 }
 
+export function refreshBox(box) {
+  for (const child of [...box.children]) {
+    child.detach();
+    child.destroy();
+  }
+}
+
 export async function selectFileFromDirectory({ directory, screen }) {
   refreshScreen(screen);
-  const sizes = {
-    header: 20,
-    footer: 10,
-    fileManager: 100 - 20 - 10,
-  };
-
   return new Promise((resolve) => {
     const container = blessed.box({
       parent: screen,
@@ -60,30 +52,15 @@ export async function selectFileFromDirectory({ directory, screen }) {
       height: "80%",
     });
 
-    const header = blessed.box({
-      parent: container,
-      top: 0,
-      left: "center",
-      width: "100%",
-      height: `${sizes.header}%`,
-      valign: "middle",
-      border: "line",
-      content: chalk.bold(
-        figlet.textSync("ArcHone", {
-          font: "Small",
-          horizontalLayout: "default",
-          verticalLayout: "default",
-        }),
-      ),
-    });
+    putHeader(container, "ArcHne Analyze");
 
     const fileManager = blessed.filemanager({
       parent: container,
       cwd: directory,
       width: "100%",
 
-      top: `${sizes.header}%`,
-      height: `${sizes.fileManager}%`,
+      top: 3,
+      height: `100%-3`,
       left: "center",
 
       border: "line",
@@ -133,29 +110,12 @@ export async function selectFileFromDirectory({ directory, screen }) {
       screen.render();
     });
 
-    const footer = blessed.box({
-      parent: container,
-      top: `${sizes.header + sizes.fileManager}%`,
-      left: "center",
-      width: "100%",
-      height: `${sizes.footer}%`,
-      valign: "middle",
-      border: "line",
-      content: `Press ${chalk.bold("ESC/Ctrl+C/q")} to cancel.`,
-    });
-
     screen.render();
   });
 }
 
 export function selectAnalysisMode({ screen }) {
   refreshScreen(screen);
-
-  const sizes = {
-    header: 35,
-    selector: 60,
-    footer: 20,
-  };
 
   return new Promise((resolve) => {
     const container = blessed.box({
@@ -166,20 +126,7 @@ export function selectAnalysisMode({ screen }) {
       height: "50%",
     });
 
-    const header = blessed.box({
-      parent: container,
-      top: 0,
-      left: "center",
-      width: "100%",
-      height: `${sizes.header}%`,
-      valign: "middle",
-      border: "line",
-      content: figlet.textSync("ArcHone", {
-        font: "Small",
-        horizontalLayout: "default",
-        verticalLayout: "default",
-      }),
-    });
+    putHeader(container, "ArcHone Analyze");
 
     const modes = [
       {
@@ -202,10 +149,10 @@ export function selectAnalysisMode({ screen }) {
     const list = blessed.list({
       parent: container,
 
-      top: `${sizes.header}%`,
+      top: 3,
       left: "center",
       width: "100%",
-      height: `${sizes.selector}%`,
+      height: `100%-3`,
       padding: {
         top: 1,
         left: 1,
@@ -242,17 +189,6 @@ export function selectAnalysisMode({ screen }) {
       const selectedMode = modes[index];
       refreshScreen(screen);
       resolve(selectedMode.value);
-    });
-
-    const footer = blessed.box({
-      parent: container,
-      top: `${sizes.header + sizes.selector}%`,
-      left: "center",
-      width: "100%",
-      height: `${sizes.footer}%`,
-      valign: "middle",
-      border: "line",
-      content: `Press ${chalk.bold("ESC/Ctrl+C/q")} to cancel.`,
     });
 
     screen.key(["escape", "C-c", "q"], () => {
@@ -363,7 +299,7 @@ export function log(data, title = "Debug Alert") {
 
   try {
     fs.appendFileSync(logFilePath, JSON.stringify(entry) + "\n", "utf8");
-  } catch (error) { }
+  } catch (error) {}
 }
 
 export function stripCodeFences(codeString) {
@@ -426,21 +362,24 @@ export async function showNotification({ screen, message, duration = 2000 }) {
   screen.render();
 }
 
-
-
 export function colorSeverity(type) {
-  const lowerType = type.toLowerCase()
+  const lowerType = type.toLowerCase();
   if (lowerType === "warning") {
-    return chalk.red("Warning")
+    return chalk.red("Warning");
   }
 
   if (lowerType === "improvement") {
-    return chalk.yellow("Improvement")
+    return chalk.yellow("Improvement");
   }
 
   if (lowerType === "info") {
-    return chalk.blue("Info")
+    return chalk.blue("Info");
   }
 
-  return chalk.yellow("Unknown")
+  return chalk.yellow("Unknown");
+}
+
+export function cleanFileName(fileName) {
+  const splitted = fileName.replace("\\", "/").split("/");
+  return splitted[splitted.length - 1];
 }

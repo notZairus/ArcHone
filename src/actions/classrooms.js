@@ -6,7 +6,7 @@ import {
 } from "../utils/helpers.js";
 import { getSession } from "../utils/session.js";
 import blessed from "blessed";
-import clipboardy from "clipboardy";
+import { putHeader } from "../ui/components.js";
 import Database from "../lib/db.js";
 import chalk from "chalk";
 
@@ -36,35 +36,7 @@ export default async function classroomsAction({ screen }) {
     content: "",
   });
 
-  const header = blessed.box({
-    parent: box,
-    top: 0,
-    border: "line",
-    left: "center",
-    width: "100%",
-    height: 3,
-    valign: "middle",
-    content: `{bold}My Classrooms{/bold}`,
-    tags: true,
-    padding: {
-      left: 2,
-      right: 2,
-    },
-  });
-
-  const closeBtn = blessed.button({
-    parent: header,
-    top: 0,
-    right: 0,
-    width: 1,
-    height: 1,
-    content: "X",
-    mouse: true,
-  });
-
-  closeBtn.on("press", () => {
-    process.exit(0);
-  });
+  putHeader(box, "ArcHone Classrooms");
 
   const joinForm = blessed.form({
     parent: box,

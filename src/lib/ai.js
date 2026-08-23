@@ -14,7 +14,7 @@ export async function explainIssue(issue) {
       {
         role: "user",
         content:
-          "Analyze this issue and return structured output. Keep code indentation and line breaks intact. In fixed_code, use the same indentation style as current_code (spaces/tabs and nesting).\n make sure that the code output has the right indentation." +
+          "Analyze this issue and return structured output. Keep code indentation and line breaks intact. In fixed_code, use the same indentation style as current_code (spaces/tabs and nesting).\n make sure that the code output has the right indentation. NOTE: DON`T FORGET THE INDENTATION!" +
           JSON.stringify(issue),
       },
     ],

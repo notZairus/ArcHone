@@ -36,6 +36,7 @@ export default async function register({ screen }) {
     width: "50%",
     height: "shrink",
     content: registerGuide,
+    keys: true,
     padding: {
       left: 2,
       right: 2,
@@ -47,6 +48,8 @@ export default async function register({ screen }) {
     },
     label: " Registration ",
   });
+
+  box.focus();
 
   box.key("enter", async () => {
     const registrationUrl = "http://localhost:5173" + "/register-student";

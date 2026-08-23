@@ -10,6 +10,7 @@ import scan from "./scan.js";
 import whoami from "./whoami.js";
 import issues from "./issues.js";
 import classrooms from "./classrooms.js";
+import archive from "./archive.js";
 
 const commands = [
   {
@@ -41,6 +42,11 @@ const commands = [
     description:
       "Create a new ArcHone account and connect it to this CLI so you can start analyzing files right away.",
     function: register,
+  },
+  {
+    triggers: ["archive"],
+    description: "View past code analysis results.",
+    function: archive,
   },
   {
     triggers: ["about"],
@@ -82,7 +88,6 @@ const commands = [
     description: "View classrooms you are a member of.",
     function: classrooms,
   },
-
 ];
 
 export default commands;

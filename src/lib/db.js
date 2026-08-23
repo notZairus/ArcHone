@@ -57,11 +57,16 @@ export default class Database {
   //////////////////////////////
   // FETCH AUTHENTICATED USER ANALYSES
   //////////////////////////////
-  static async getUserAnalyses(userId) {
+  static async getUserAnalyses(userId, order = "asc") {
     const analyses = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "analyses",
-      queries: [Query.equal("userId", userId)],
+      queries: [
+        Query.equal("userId", userId),
+        order === "asc"
+          ? Query.orderAsc("$createdAt")
+          : Query.orderDesc("$createdAt"),
+      ],
     });
 
     const formattedAnalyses = analyses.rows.map((analysis) => ({

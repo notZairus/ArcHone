@@ -83,7 +83,7 @@ export default async function login({ screen }) {
     left: "center",
     width: "90%",
     height: 3,
-    moust: true,
+    mouse: true,
     inputOnFocus: true,
     border: {
       type: "line",
@@ -125,7 +125,7 @@ export default async function login({ screen }) {
     top: 12,
     name: "submit",
     content: "Submit",
-    border: "line"
+    border: "line",
   });
 
   submitButton.on("press", () => {
@@ -191,14 +191,18 @@ async function handleSubmit({ screen, data }) {
     loader.hide();
 
     refreshScreen(screen);
-    await showNotification({ screen, message: `${chalk.green("Login successful!")}\n\nWelcome, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.` });
+    await showNotification({
+      screen,
+      message: `${chalk.green("Login successful!")}\n\nWelcome, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.`,
+    });
     process.exit(0);
-
   } catch (error) {
-
     loader.stop();
     loader.hide();
 
-    await showNotification({ screen, message: `${chalk.red("Login failed.")}\n\n${chalk.bold(error.message.toUpperCase())}\n\nPlease check your credentials and try again.` });
+    await showNotification({
+      screen,
+      message: `${chalk.red("Login failed.")}\n\n${chalk.bold(error.message.toUpperCase())}\n\nPlease check your credentials and try again.`,
+    });
   }
 }

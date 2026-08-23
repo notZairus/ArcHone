@@ -10,7 +10,12 @@ import analyzeGeneralCS from "../analyzer/general/csharp.js";
 import analyzeOopJS from "../analyzer/oop/javascript.js";
 import analyzeOopPy from "../analyzer/oop/python.js";
 import analyzeOopCS from "../analyzer/oop/csharp.js";
-import { refreshScreen, showNotification, log, colorSeverity } from "../utils/helpers.js"
+import {
+  refreshScreen,
+  showNotification,
+  colorSeverity,
+} from "../utils/helpers.js";
+import { putHeader } from "../ui/components.js";
 import blessed from "blessed";
 
 import analyzeFile from "./analyze.js";
@@ -48,7 +53,6 @@ const severityRank = {
 export default async ({ screen, currentMode = null }) => {
   refreshScreen(screen);
   const args = process.argv.slice(3);
-  const showAll = args.includes("--all");
 
   const modeFlagIndex = args.findIndex(
     (arg) => String(arg).toLowerCase() === "--mode",
@@ -66,17 +70,15 @@ export default async ({ screen, currentMode = null }) => {
   }
 
   if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
-
     const message = `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
       ", ",
     )}. Please provide a valid mode using the --mode flag.`;
-
 
     await showNotification({
       screen,
       message,
       duration: 3000,
-    })
+    });
 
     process.exit(0);
   }
@@ -104,10 +106,10 @@ export default async ({ screen, currentMode = null }) => {
   if (!fs.existsSync(targetPath) || !fs.lstatSync(targetPath).isDirectory()) {
     await showNotification({
       screen,
-      message: "Invalid directory. Please provide a valid folder path."
-    })
+      message: "Invalid directory. Please provide a valid folder path.",
+    });
 
-    process.exit(0)
+    process.exit(0);
   }
 
   let sourceFiles = [];
@@ -120,7 +122,7 @@ export default async ({ screen, currentMode = null }) => {
     );
   } catch (error) {
     if (await handleFolderTooLargeError(error)) {
-      process.exit(1)
+      process.exit(1);
     }
 
     throw error;
@@ -130,7 +132,7 @@ export default async ({ screen, currentMode = null }) => {
     await showNotification({
       screen,
       message: "No supported files found (.js, .py, .cs).",
-    })
+    });
     process.exit(0);
   }
 
@@ -150,7 +152,7 @@ export default async ({ screen, currentMode = null }) => {
     valign: "middle",
   });
 
-  loader.load("Scanning Files...")
+  loader.load("Scanning Files...");
 
   try {
     for (const filePath of sourceFiles) {
@@ -218,7 +220,7 @@ export default async ({ screen, currentMode = null }) => {
     }
   } catch (error) {
     if (await handleFolderTooLargeError(error, spinner)) {
-      process.exit(1)
+      process.exit(1);
     }
 
     throw error;
@@ -249,43 +251,16 @@ export default async ({ screen, currentMode = null }) => {
     top: "center",
     width: "90%",
     height: "90%",
-  })
+  });
 
-
-  const header = blessed.box({
-    parent: container,
-    width: "100%",
-    height: 3,
-    border: "line",
-    align: "center",
-    valign: "middle",
-    padding: {
-      left: 1
-    },
-    content: chalk.bold("ArcHone Scan")
-  })
-
-
-  const exitBtn = blessed.button({
-    parent: header,
-    content: "X",
-    width: 1,
-    height: 1,
-    top: 0,
-    right: 1,
-    mouse: true,
-  })
-
-  exitBtn.on("press", () => {
-    process.exit(0)
-  })
+  putHeader(container, "ArcHone Scan");
 
   const mainContainer = blessed.box({
     parent: container,
     top: 3,
     width: "100%",
     height: "100%-3",
-  })
+  });
 
   const scanDetailsContainer = blessed.box({
     parent: mainContainer,
@@ -297,14 +272,14 @@ export default async ({ screen, currentMode = null }) => {
       top: 1,
       left: 1,
       bottom: 1,
-      right: 1
+      right: 1,
     },
     content: [
       `${chalk.bold("Directory:")} ${path.relative(process.cwd(), targetPath) || "."}`,
       `${chalk.bold("Total files scanned:")} ${sourceFiles.length}`,
-      `${chalk.bold("File types scanned:")} JavaScript (${languageCounts.js}), Python (${languageCounts.py}), C# (${languageCounts.cs})`
+      `${chalk.bold("File types scanned:")} JavaScript (${languageCounts.js}), Python (${languageCounts.py}), C# (${languageCounts.cs})`,
     ].join("\n"),
-  })
+  });
 
   const overallResultContainer = blessed.box({
     parent: mainContainer,
@@ -316,15 +291,15 @@ export default async ({ screen, currentMode = null }) => {
       top: 1,
       left: 1,
       bottom: 1,
-      right: 1
+      right: 1,
     },
     border: "line",
     content: [
       `Found ${totalFindings} issue(s) across ${sortedFilesWithIssues.length} file(s).`,
       `Detected ${sortedIssues.length} different issue type(s).`,
-      `Severity summary: ${severityBreakdown}`
-    ].join("\n")
-  })
+      `Severity summary: ${severityBreakdown}`,
+    ].join("\n"),
+  });
 
   const filesContainer = blessed.box({
     parent: mainContainer,
@@ -345,7 +320,7 @@ export default async ({ screen, currentMode = null }) => {
       inverse: true,
     },
     label: chalk.bold(" Files to Refactor "),
-  })
+  });
 
   sortedFilesWithIssues.forEach((file, index) => {
     const fileIssueBox = blessed.box({
@@ -362,18 +337,24 @@ export default async ({ screen, currentMode = null }) => {
         chalk.bold(`${index + 1}. ${file.file}`),
         `- Total issues: ${file.total}`,
         `- Breakdown: ${chalk.red(`Warning: ${file.warning}`)} | ${chalk.yellow(`Improvement: ${file.improvement}`)} | ${chalk.blue(`Info: ${file.info}`)}`,
-      ].join("\n")
-    })
+      ].join("\n"),
+    });
 
     fileIssueBox.on("click", async () => {
+      await showNotification({
+        screen,
+        message: `Analyzing ${file.file}...`,
+        duration: 1000,
+      });
+
       await analyzeFile({
         screen,
         currentFilePath: file.file,
         currentMode: mode,
-        fromScan: true
-      })
-    })
-  })
+        fromScan: true,
+      });
+    });
+  });
 
   const issueRankingsContainer = blessed.box({
     parent: mainContainer,
@@ -394,8 +375,8 @@ export default async ({ screen, currentMode = null }) => {
       },
       inverse: true,
     },
-    label: chalk.bold(" Issue Rankings ")
-  })
+    label: chalk.bold(" Issue Rankings "),
+  });
 
   sortedIssues.forEach((issue, index) => {
     const issueBox = blessed.box({
@@ -408,23 +389,16 @@ export default async ({ screen, currentMode = null }) => {
         left: 1,
       },
       content: [
-        chalk.bold(`${index + 1}. ${issue.title}[${colorSeverity(issue.type)}]`),
-        `- ${issue.count} finding(s) in ${issue.files.size} file(s)`
-      ].join("\n")
-    })
+        chalk.bold(
+          `${index + 1}. ${issue.title}[${colorSeverity(issue.type)}]`,
+        ),
+        `- ${issue.count} finding(s) in ${issue.files.size} file(s)`,
+      ].join("\n"),
+    });
   });
 
   screen.render();
 };
-
-
-
-
-
-
-
-
-
 
 // HELPERS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // HELPERS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -517,8 +491,8 @@ async function handleFolderTooLargeError(error) {
       `- ${error.message}`,
       "- Try scanning a smaller subfolder.",
     ].join("\n"),
-    duration: 3000
-  })
+    duration: 3000,
+  });
 
   return true;
 }
@@ -539,15 +513,14 @@ function buildSeverityBreakdown(issues) {
   for (const type of ordered) {
     const count = counts.get(type);
 
-
     let toPush;
 
     if (type === `warning`) {
-      toPush = chalk.red(`Warning: ${count}`)
+      toPush = chalk.red(`Warning: ${count}`);
     } else if (type === `improvement`) {
-      toPush = chalk.yellow(`Improvement: ${count}`)
+      toPush = chalk.yellow(`Improvement: ${count}`);
     } else if (type === `info`) {
-      toPush = chalk.blue(`Info: ${count}`)
+      toPush = chalk.blue(`Info: ${count}`);
     }
 
     if (count) {
@@ -560,60 +533,4 @@ function buildSeverityBreakdown(issues) {
   }
 
   return parts.join(" | ");
-}
-
-function formatTopIssues(issues, showAll = false) {
-  if (!issues.length) {
-    return ["- No issues found."];
-  }
-
-  const maxRows = showAll ? issues.length : 8;
-  const rows = issues.slice(0, maxRows).map((issue, index) => {
-    const typeLabel = String(issue.type || "unknown").toUpperCase();
-    return `${index + 1}. ${issue.title} [${typeLabel}] - ${issue.count} finding(s) in ${issue.files.size} file(s)`;
-  });
-
-  if (!showAll && issues.length > maxRows) {
-    rows.push(`- ...and ${issues.length - maxRows} more issue type(s).`);
-  }
-
-  return rows;
-}
-
-function formatFilesWithIssues(files, showAll = false) {
-  if (!files.length) {
-    return ["- Great news: ArcHone did not find issues in the scanned files."];
-  }
-
-  const maxRows = showAll ? files.length : 10;
-  const rows = files.slice(0, maxRows).flatMap((file, index) => {
-    const parts = [];
-
-    if (file.warning > 0) {
-      parts.push(`${file.warning} warning(s)`);
-    }
-    if (file.improvement > 0) {
-      parts.push(`${file.improvement} improvement(s)`);
-    }
-    if (file.info > 0) {
-      parts.push(`${file.info} info note(s)`);
-    }
-    if (file.unknown > 0) {
-      parts.push(`${file.unknown} uncategorized`);
-    }
-
-    const detail = parts.length ? parts.join(", ") : "no categorized issues";
-    return [
-      `${index + 1}. ${file.file}`,
-      `   - Total issues: ${file.total}`,
-      `   - Breakdown: ${detail}`,
-      "",
-    ];
-  });
-
-  if (!showAll && files.length > maxRows) {
-    rows.push(`- ...and ${files.length - maxRows} more file(s) with issues.`);
-  }
-
-  return rows;
 }

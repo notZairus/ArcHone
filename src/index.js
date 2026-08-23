@@ -1,33 +1,27 @@
 #!/usr/bin/env node
 
-import boxen from "boxen";
-import figlet from "figlet";
 import chalk from "chalk";
-import { CONSOLE_MAX_WIDTH } from "./constants.js";
 import {
   isInitialized,
   refreshScreen,
-  wait,
   showNotification,
 } from "./utils/helpers.js";
-import { box, boxError, boxSuccess } from "./ui/box.js";
 import initialize from "./actions/initialize.js";
 import blessed from "blessed";
 import tty from "tty";
+import { putHeader } from "./ui/components.js";
 
 import commands from "./actions/barrel.js";
 
-
-if (process.platform === 'win32') {
+if (process.platform === "win32") {
   const { setFdMode, VTINPUT } = tty;
-  
+
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(true);
   }
 
   process.stdout.write("\x1b[?1000h\x1b[?1006h");
 }
-
 
 const screen = blessed.screen({
   width: "100%",
@@ -43,12 +37,6 @@ const screen = blessed.screen({
 async function getUserAction() {
   refreshScreen(screen);
   return new Promise((resolve) => {
-    const sizes = {
-      titleBox: 21,
-      footerBox: 20,
-      commandBox: 100 - 21 - 20,
-    };
-
     const container = blessed.box({
       parent: screen,
       top: "center",
@@ -57,42 +45,14 @@ async function getUserAction() {
       height: "80%",
     });
 
-    const titleBox = blessed.box({
-      parent: container,
-      border: {
-        type: "line",
-      },
-      left: "center",
-      width: "100%",
-      height: `${sizes.titleBox}%`,
-      content: chalk.bold(
-        figlet.textSync("ArcHone", {
-          font: "Small",
-        }),
-      ),
-      tags: true,
-    });
-
-    const closeButton = blessed.button({
-      parent: container,
-      mouse: true,
-      keys: true,
-      shrink: true,
-      content: "X",
-      right: 2,
-      top: 1,
-    });
-
-    closeButton.on("press", () => {
-      process.exit(0);
-    });
+    putHeader(container, "ArchOne - CLI Code Analyzer");
 
     const commandBox = blessed.box({
       parent: container,
-      top: `${sizes.titleBox}%`,
+      top: 3,
       left: "center",
       width: "100%",
-      height: `${sizes.commandBox}%`,
+      height: `100%-3`,
       border: {
         type: "line",
       },

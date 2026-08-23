@@ -18,6 +18,7 @@ import { explainIssueWithGemini } from "../lib/ai.js";
 import clipboard from "clipboardy";
 import analyzeFile from "../actions/analyze.js";
 import scanDirectory from "../actions/scan.js";
+import userArchive from "../actions/archive.js";
 
 const SIDE_WIDTH = 20;
 const MAIN_WIDTH = 100 - SIDE_WIDTH;
@@ -25,7 +26,13 @@ const MAIN_WIDTH = 100 - SIDE_WIDTH;
 let globalSelectedIssue = null;
 let globalResult = null;
 
-async function reAnalyzeFile({ screen, currentFilePath, currentMode, fromScan = false }) {
+async function reAnalyzeFile({
+  screen,
+  currentFilePath,
+  currentMode,
+  fromScan = false,
+  fromArchive = false,
+}) {
   await showNotification({
     screen,
     message: "Re-analyzing the file...",
@@ -36,7 +43,8 @@ async function reAnalyzeFile({ screen, currentFilePath, currentMode, fromScan = 
     screen,
     currentFilePath,
     currentMode,
-    fromScan
+    fromScan,
+    fromArchive,
   });
 }
 
@@ -45,6 +53,9 @@ export default async function displayAnalysisResult({
   result,
   noteText = "Click on a finding to view the code snippet and details.",
   fromScan = false,
+  fromArchive = false,
+  selectedIndex,
+  selectedFileAnalyses,
 }) {
   refreshScreen(screen);
 
@@ -52,14 +63,17 @@ export default async function displayAnalysisResult({
     process.exit(0);
   });
 
-  screen.key(["r"], async function (ch, key) {
-    await reAnalyzeFile({
-      screen,
-      currentFilePath: result.fileToAnalyze,
-      currentMode: result.mode,
-      fromScan
+  if (!fromArchive) {
+    screen.key(["r"], async function (ch, key) {
+      await reAnalyzeFile({
+        screen,
+        currentFilePath: result.fileToAnalyze,
+        currentMode: result.mode,
+        fromScan,
+        fromArchive,
+      });
     });
-  });
+  }
 
   const issuesHolder = result.issues.map((issue) => {
     const { code, ...rest } = issue;
@@ -73,71 +87,6 @@ export default async function displayAnalysisResult({
     };
   });
 
-  // async function getHeader() {
-  //   const header = blessed.box({
-  //     top: 0,
-  //     left: 0,
-  //     smartCSR: true,
-  //     width: "100%",
-  //     height: 5,
-  //     padding: {
-  //       left: 1,
-  //       right: 1,
-  //     },
-  //     border: "line",
-  //     valign: "middle",
-  //   });
-
-  //   const fileAnalyzed = blessed.box({
-  //     parent: header,
-  //     align: "left",
-  //     height: 2,
-  //     valign: "middle",
-  //     content: `${chalk.bold("File Analyzed")}: ${chalk.cyan(result.fileToAnalyze.split("/").pop())} \t\t ${chalk.bold("Mode")}: ${chalk.cyan(result.mode)} \t\t ${chalk.bold("Language")}: ${chalk.cyan(result.language)}`,
-  //   });
-
-  //   if (!fromScan) {
-  //     const closeBtn = blessed.button({
-  //       parent: header,
-  //       content: "X",
-  //       top: 0,
-  //       right: 1,
-  //       width: 3,
-  //       height: 3,
-  //       align: "center",
-  //       valign: "middle",
-  //       mouse: true,
-  //     });
-
-  //     closeBtn.on("press", () => {
-  //       process.exit(0);
-  //     });
-  //   } else {
-  //     const backToScanBtn = blessed.button({
-  //       parent: header,
-  //       content: "Back",
-  //       top: 0,
-  //       right: 1,
-  //       width: 8,
-  //       height: 3,
-  //       border: "line",
-  //       align: "center",
-  //       valign: "middle",
-  //       mouse: true,
-  //     });
-
-  //     backToScanBtn.on("press", async () => {
-  //       await scanDirectory({
-  //         screen,
-  //         currentMode: result.mode,
-  //       })
-  //     });
-  //   }
-
-  //   return header;
-  // }
-
-
   async function getHeader() {
     const header = blessed.box({
       width: "100%",
@@ -146,12 +95,37 @@ export default async function displayAnalysisResult({
       align: "center",
       valign: "middle",
       padding: {
-        left: 1
+        left: 1,
       },
-      content: chalk.bold(" ArcHone Analyze ")
+      content: chalk.bold(" ArcHone Analyze "),
     });
 
-    if (!fromScan) {
+    if (fromScan || fromArchive) {
+      const backToScanBtn = blessed.button({
+        parent: header,
+        content: "<",
+        top: 0,
+        right: 1,
+        width: 1,
+        height: 1,
+        align: "center",
+        valign: "middle",
+        mouse: true,
+      });
+
+      backToScanBtn.on("press", async () => {
+        if (fromScan) {
+          await scanDirectory({
+            screen,
+            currentMode: result.mode,
+          });
+        } else if (fromArchive) {
+          await userArchive({
+            screen,
+          });
+        }
+      });
+    } else {
       const closeBtn = blessed.button({
         parent: header,
         content: "X",
@@ -165,31 +139,10 @@ export default async function displayAnalysisResult({
       closeBtn.on("press", () => {
         process.exit(0);
       });
-    } else {
-      const backToScanBtn = blessed.button({
-        parent: header,
-        content: "Back",
-        top: 0,
-        right: 1,
-        width: 8,
-        height: 3,
-        border: "line",
-        align: "center",
-        valign: "middle",
-        mouse: true,
-      });
-
-      backToScanBtn.on("press", async () => {
-        await scanDirectory({
-          screen,
-          currentMode: result.mode,
-        })
-      });
     }
 
     return header;
   }
-
 
   async function getSide(
     noteText = "Click on a finding to view the code snippet and details.",
@@ -229,7 +182,7 @@ export default async function displayAnalysisResult({
       },
       width: "100%",
       border: "line",
-      height: "100%-14",
+      height: `100%-${fromArchive ? 17 : 14}`,
       scrollable: true,
       content: `${chalk.bold("Note")}\n\n${noteText}`,
     });
@@ -243,33 +196,119 @@ export default async function displayAnalysisResult({
       align: "center",
       width: "100%",
       border: "line",
-      height: 5,
+      height: fromArchive ? 8 : 5,
     });
 
-    const analyzeButton = blessed.button({
-      parent: buttonsContainer,
-      bottom: 0,
-      left: "center",
-      valign: "middle",
-      width: "90%",
-      height: 3,
-      content: "Re-analyze",
-      style: {
-        hover: {
-          bg: "gray",
+    if (!fromArchive) {
+      const analyzeButton = blessed.button({
+        parent: buttonsContainer,
+        bottom: 0,
+        left: "center",
+        align: "center",
+        width: "90%",
+        height: 3,
+        content: "Re-analyze",
+        style: {
+          hover: {
+            bg: "gray",
+          },
         },
-      },
-      border: "line",
-    });
-
-    analyzeButton.on("click", async () => {
-      await reAnalyzeFile({
-        screen,
-        currentFilePath: result.fileToAnalyze,
-        currentMode: result.mode,
-        fromScan
+        border: "line",
       });
-    });
+
+      analyzeButton.on("click", async () => {
+        await reAnalyzeFile({
+          screen,
+          currentFilePath: result.fileToAnalyze,
+          currentMode: result.mode,
+          fromScan,
+        });
+      });
+    } else {
+      const rightAnalysis = blessed.button({
+        parent: buttonsContainer,
+        top: 0,
+        left: "center",
+        align: "center",
+        width: "90%",
+        height: 3,
+        content: "Previous Analysis",
+        mouse: true,
+        style: {
+          hover: {
+            bg: "gray",
+          },
+        },
+        border: "line",
+      });
+
+      rightAnalysis.on("press", async () => {
+        if (selectedIndex == selectedFileAnalyses.length - 1) {
+          await showNotification({
+            screen,
+            message: "This is the earliest analysis of this file.",
+            duration: 1000,
+          });
+          return;
+        }
+
+        await showNotification({
+          screen,
+          message: "Loading the previous analysis of this file...",
+          duration: 500,
+        });
+
+        const rightIndex = selectedIndex + 1;
+
+        await displayAnalysisResult({
+          screen,
+          result: selectedFileAnalyses[rightIndex],
+          fromArchive: true,
+          selectedIndex: rightIndex,
+          selectedFileAnalyses: selectedFileAnalyses,
+        });
+      });
+
+      const leftAnalysis = blessed.button({
+        parent: buttonsContainer,
+        top: 3,
+        left: "center",
+        align: "center",
+        width: "90%",
+        height: 3,
+        mouse: true,
+        content: "Next Analysis",
+        border: "line",
+      });
+
+      leftAnalysis.on("press", async () => {
+        if (selectedIndex == 0) {
+          await showNotification({
+            screen,
+            message: "This is the latest analysis of this file.",
+            duration: 1000,
+          });
+
+          return;
+        }
+
+        await showNotification({
+          screen,
+          message: "Loading the next analysis of this file...",
+          duration: 500,
+        });
+
+        const leftIndex = selectedIndex - 1;
+
+        await displayAnalysisResult({
+          screen,
+          result: selectedFileAnalyses[leftIndex],
+          fromArchive: true,
+          selectedIndex: leftIndex,
+          selectedFileAnalyses: selectedFileAnalyses,
+        });
+      });
+    }
 
     return side;
   }
@@ -319,7 +358,7 @@ export default async function displayAnalysisResult({
         left: 0,
         width: "100%",
         height: "100%",
-        content: `No issue found. The current state of file: ${chalk.bold(result.fileToAnalyze.split("/").pop())} on ${chalk.bold(result.mode)} mode is great!`,
+        content: `No issue found. The current state of file: ${chalk.bold(result.fileToAnalyze)} on ${chalk.bold(result.mode)} mode is great!`,
         align: "center",
         valign: "middle",
       });
@@ -554,7 +593,7 @@ export default async function displayAnalysisResult({
       left: 0,
       smartCSR: true,
       width: "100%",
-      height: 5,
+      height: 3,
       border: "line",
       align: "center",
       valign: "middle",
@@ -564,13 +603,10 @@ export default async function displayAnalysisResult({
     const closeCodeContainerButton = blessed.button({
       parent: codeContainerHeader,
       top: 0,
-      right: 0,
-      width: 8,
-      height: 3,
-      align: "center",
-      valign: "middle",
-      border: "line",
-      content: "Back",
+      right: 2,
+      width: 1,
+      height: 1,
+      content: "<",
     });
 
     closeCodeContainerButton.on("click", () => {
@@ -579,7 +615,7 @@ export default async function displayAnalysisResult({
 
     const codeContainerMain = blessed.box({
       parent: codeContainer,
-      top: 5,
+      top: 3,
       left: 0,
       smartCSR: true,
       width: "100%",
@@ -642,7 +678,7 @@ export default async function displayAnalysisResult({
         left: 1,
         right: 1,
       },
-      content: `${chalk.bold("Ideal Code")} \n\n${formatCode(idealCode, globalResult.language)}`,
+      content: `${chalk.bold("Ideal Code")} \n\n${formatCode(idealCode, language)}`,
     });
 
     const copyButton = blessed.button({

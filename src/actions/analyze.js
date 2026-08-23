@@ -31,12 +31,11 @@ import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
 import displayAnalysisResult from "../results/renderResult.js";
 
-
 export default async ({
   screen,
   currentFilePath = null,
   currentMode = null,
-  fromScan = false
+  fromScan = false,
 }) => {
   const providedInputPath = currentFilePath || process.argv[3];
 
@@ -157,13 +156,13 @@ export default async ({
   const result = isValid
     ? analyzer(tree, sourceCode, fileExtension)
     : {
-      functions: [],
-      variables: [],
-      comments: [],
-      issues: [],
-      isEmptyFile: true,
-      isCommentOnlyFile,
-    };
+        functions: [],
+        variables: [],
+        comments: [],
+        issues: [],
+        isEmptyFile: true,
+        isCommentOnlyFile,
+      };
 
   const issuesWithPrinciples = (result.issues || []).map(withIssuePrinciple);
   const sortedIssues = sortIssuesBySeverity(issuesWithPrinciples);
@@ -183,7 +182,7 @@ export default async ({
   if (result.mode === "complexity") {
     log("meh complexity mode");
     // TODO: Implement complexity mode rendering
-    process.exit(0)
+    process.exit(0);
   } else {
     await displayAnalysisResult({
       screen,
@@ -191,7 +190,7 @@ export default async ({
       noteText: userId
         ? "Click on a finding to view the code snippet and details."
         : "Log in to save your analysis results and access personalized insights.",
-      fromScan
+      fromScan,
     });
 
     if (userId) {

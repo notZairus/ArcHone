@@ -41,7 +41,7 @@ export default async function stats({ screen }) {
     parent: screen,
     top: "center",
     left: "center",
-    width: "shrink",
+    width: "60%",
     height: "75%",
     mouse: true,
     vi: true,
