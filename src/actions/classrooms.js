@@ -3,6 +3,8 @@ import {
   showNotification,
   log,
   readClipboard,
+  hideScreenChildren,
+  showScreenChildren,
 } from "../utils/helpers.js";
 import { getSession } from "../utils/session.js";
 import blessed from "blessed";
@@ -77,10 +79,14 @@ export default async function classroomsAction({ screen }) {
       codeInput.setValue(text.trim());
       screen.render();
     } else {
+      hideScreenChildren(screen);
+
       await showNotification({
         screen,
         message: "Clipboard is empty or does not contain valid text.",
       });
+
+      showScreenChildren(screen);
     }
   });
 
@@ -104,6 +110,8 @@ export default async function classroomsAction({ screen }) {
     const code = data.classroomCode?.trim();
 
     try {
+      hideScreenChildren(screen);
+
       await Database.joinClassroom(userId, code);
 
       await showNotification({
@@ -119,6 +127,8 @@ export default async function classroomsAction({ screen }) {
         message:
           "Failed to join classroom. Please check the code and try again.",
       });
+
+      showScreenChildren(screen);
     }
   });
 

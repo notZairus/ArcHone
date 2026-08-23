@@ -6,6 +6,8 @@ import {
   refreshScreen,
   showNotification,
   getIssuesScore,
+  hideScreenChildren,
+  showScreenChildren,
 } from "../utils/helpers.js";
 import { getAiConfig } from "../lib/local.js";
 import process from "process";
@@ -33,11 +35,15 @@ async function reAnalyzeFile({
   fromScan = false,
   fromArchive = false,
 }) {
+  hideScreenChildren(screen);
+
   await showNotification({
     screen,
     message: "Re-analyzing the file...",
     duration: 500,
   });
+
+  showScreenChildren(screen);
 
   await analyzeFile({
     screen,
@@ -409,6 +415,8 @@ export default async function displayAnalysisResult({
             align: "center",
             valign: "middle",
           });
+
+          hideScreenChildren(main);
 
           mainLoader.load("Asking AI about your code's issue...");
 

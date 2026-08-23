@@ -1,8 +1,6 @@
 import fs from "fs";
 import path from "path";
-import clack from "../lib/clack.js";
 import chalk from "chalk";
-import { box } from "../ui/box.js";
 import { AVAILABLE_ANALYSIS_MODES, CONSOLE_MAX_WIDTH } from "../constants.js";
 import analyzeGeneralJS from "../analyzer/general/javascript.js";
 import analyzeGeneralPy from "../analyzer/general/python.js";
@@ -14,6 +12,8 @@ import {
   refreshScreen,
   showNotification,
   colorSeverity,
+  hideScreenChildren,
+  showScreenChildren,
 } from "../utils/helpers.js";
 import { putHeader } from "../ui/components.js";
 import blessed from "blessed";
@@ -121,7 +121,7 @@ export default async ({ screen, currentMode = null }) => {
       analyzersByExtension,
     );
   } catch (error) {
-    if (await handleFolderTooLargeError(error)) {
+    if (await handleFolderTooLargeError(error, screen)) {
       process.exit(1);
     }
 
@@ -219,7 +219,7 @@ export default async ({ screen, currentMode = null }) => {
       }
     }
   } catch (error) {
-    if (await handleFolderTooLargeError(error, spinner)) {
+    if (await handleFolderTooLargeError(error, screen)) {
       process.exit(1);
     }
 
@@ -341,6 +341,8 @@ export default async ({ screen, currentMode = null }) => {
     });
 
     fileIssueBox.on("click", async () => {
+      hideScreenChildren(screen);
+
       await showNotification({
         screen,
         message: `Analyzing ${file.file}...`,
@@ -478,10 +480,12 @@ function ensureScanWithinDuration(scanStartedAt) {
   }
 }
 
-async function handleFolderTooLargeError(error) {
+async function handleFolderTooLargeError(error, screen) {
   if (error?.code !== "FOLDER_TOO_LARGE") {
     return false;
   }
+
+  hideScreenChildren(screen);
 
   await showNotification({
     screen,
@@ -493,6 +497,8 @@ async function handleFolderTooLargeError(error) {
     ].join("\n"),
     duration: 3000,
   });
+
+  showScreenChildren(screen);
 
   return true;
 }

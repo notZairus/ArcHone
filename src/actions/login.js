@@ -1,14 +1,14 @@
 import blessed from "blessed";
-import { refreshScreen, wait, showNotification } from "../utils/helpers.js";
-
+import {
+  refreshScreen,
+  showNotification,
+  hideScreenChildren,
+  showScreenChildren,
+} from "../utils/helpers.js";
 import chalk from "chalk";
 import fs from "fs";
-import path from "path";
-
 import { account } from "../lib/appwrite.js";
-import { mainBanner } from "../ui/banner.js";
-import { ARCHONE_DIR, CONSOLE_MAX_WIDTH, SESSION_PATH } from "../constants.js";
-import { TablesDB } from "appwrite";
+import { SESSION_PATH } from "../constants.js";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
 
@@ -154,6 +154,8 @@ async function handleSubmit({ screen, data }) {
   });
 
   try {
+    hideScreenChildren(screen);
+
     loader.load("Logging in...");
 
     const { userId, expire } = await account.createEmailPasswordSession(
@@ -190,7 +192,6 @@ async function handleSubmit({ screen, data }) {
     loader.stop();
     loader.hide();
 
-    refreshScreen(screen);
     await showNotification({
       screen,
       message: `${chalk.green("Login successful!")}\n\nWelcome, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.`,
@@ -204,5 +205,7 @@ async function handleSubmit({ screen, data }) {
       screen,
       message: `${chalk.red("Login failed.")}\n\n${chalk.bold(error.message.toUpperCase())}\n\nPlease check your credentials and try again.`,
     });
+
+    login({ screen });
   }
 }

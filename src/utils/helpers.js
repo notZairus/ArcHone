@@ -34,6 +34,22 @@ export function refreshScreen(screen) {
   }
 }
 
+export function hideScreenChildren(screen) {
+  for (const child of [...screen.children]) {
+    child.hide();
+  }
+
+  screen.render();
+}
+
+export function showScreenChildren(screen) {
+  for (const child of [...screen.children]) {
+    child.show();
+  }
+
+  screen.render();
+}
+
 export function refreshBox(box) {
   for (const child of [...box.children]) {
     child.detach();
