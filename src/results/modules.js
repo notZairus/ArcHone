@@ -4,10 +4,8 @@ import chalk from "chalk";
 import { log } from "../utils/helpers.js";
 import { detectableIssuesGenericExplanation } from "../constants.js";
 import { marked } from "marked";
-import { markedTerminal } from "marked-terminal";
 import { stripCodeFences } from "../utils/helpers.js";
-
-marked.use(markedTerminal());
+import { highlight } from "cli-highlight";
 
 export function getGenericExplanation(issue) {
   const explanation =
@@ -38,8 +36,12 @@ export function formatGenericExplanation(explanation) {
 
 export async function getAiGeneratedExplanationOfIssue(issue) {}
 
-export function formatCode(code, language = false) {
-  const strippedCode = stripCodeFences(code);
+export function formatCode(code, language = "javascript") {
+  // Clean off extra fences if Gemini returns them
+  const cleanedCode = code
+    .replace(/^```[^\n]*\n?/, "")
+    .replace(/\n?```$/, "")
+    .trim();
 
   const languageMap = {
     js: "javascript",
@@ -47,7 +49,15 @@ export function formatCode(code, language = false) {
     cs: "csharp",
   };
 
-  let _code = `\`\`\` ${languageMap[language] || language}\n${strippedCode}\n\`\`\``;
+  const targetLang = languageMap[language] || language;
 
-  return marked.parse(_code);
+  try {
+    return highlight(cleanedCode, {
+      language: targetLang,
+      ignoreIllegals: true,
+    });
+  } catch (err) {
+    // Fallback to basic chalk color if language fails
+    return chalk.cyan(cleanedCode);
+  }
 }

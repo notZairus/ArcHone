@@ -57,17 +57,12 @@ async function reAnalyzeFile({
 export default async function displayAnalysisResult({
   screen,
   result,
-  noteText = "Click on a finding to view the code snippet and details.",
   fromScan = false,
   fromArchive = false,
   selectedIndex,
   selectedFileAnalyses,
 }) {
   refreshScreen(screen);
-
-  screen.key(["escape", "q"], function (ch, key) {
-    process.exit(0);
-  });
 
   if (!fromArchive) {
     screen.key(["r"], async function (ch, key) {
@@ -150,9 +145,7 @@ export default async function displayAnalysisResult({
     return header;
   }
 
-  async function getSide(
-    noteText = "Click on a finding to view the code snippet and details.",
-  ) {
+  async function getSide() {
     const side = blessed.box({
       width: `${SIDE_WIDTH}%`,
       height: "85%",
@@ -174,23 +167,28 @@ export default async function displayAnalysisResult({
       width: "100%",
       border: "line",
       height: 9,
-      content: `${chalk.bold("Metrics")}\n\n ${chalk.red("Warnings: " + result.issues.filter((issue) => issue.type === "warning").length)}\n ${chalk.yellow("Improvements: " + result.issues.filter((issue) => issue.type === "improvement").length)}\n ${chalk.blue("Info: " + result.issues.filter((issue) => issue.type === "info").length)}\n\n ${chalk.bold("Score: " + getIssuesScore(result.issues)) + " / 100"}`,
+      label: chalk.bold(" Metrics "),
+      content: `${chalk.red("\n Warnings: " + result.issues.filter((issue) => issue.type === "warning").length)}\n ${chalk.yellow("Improvements: " + result.issues.filter((issue) => issue.type === "improvement").length)}\n ${chalk.blue("Info: " + result.issues.filter((issue) => issue.type === "info").length)}\n\n ${chalk.bold("Score: " + getIssuesScore(result.issues)) + " / 100"}`,
     });
 
-    const note = blessed.box({
+    const fileDetails = blessed.box({
       parent: side,
       top: 9,
       left: 0,
       smartCSR: true,
       padding: {
+        top: 1,
+        bottom: 1,
         left: 1,
         right: 1,
       },
+
+      label: chalk.bold(" File Details "),
       width: "100%",
       border: "line",
       height: `100%-${fromArchive ? 17 : 14}`,
       scrollable: true,
-      content: `${chalk.bold("Note")}\n\n${noteText}`,
+      content: `${chalk.bold("File Path:")} ${result.fileToAnalyze}\n${chalk.bold("Language:")} ${result.language}\n${chalk.bold("Mode:")} ${result.mode}\n\n${chalk.bold("Number Issues Found:")} ${result.issues.length}`,
     });
 
     const buttonsContainer = blessed.box({
@@ -708,15 +706,9 @@ export default async function displayAnalysisResult({
     screen.render();
   }
 
-  const header = await getHeader();
-  // const footer = await getFooter();
-  const side = await getSide(noteText);
-  const main = await getMain({ result, issuesHolder, screen });
-
-  resultContainer.append(header);
-  // resultContainer.append(footer);
-  resultContainer.append(side);
-  resultContainer.append(main);
+  resultContainer.append(await getHeader());
+  resultContainer.append(await getSide());
+  resultContainer.append(await getMain({ result, issuesHolder, screen }));
 
   showResultContainer();
 }

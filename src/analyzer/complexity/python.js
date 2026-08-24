@@ -170,7 +170,9 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
 
   const reasoning = [];
   if (loops.length) {
-    reasoning.push(`${loops.length} loop(s) detected, max nesting ${loopDepth}`);
+    reasoning.push(
+      `${loops.length} loop(s) detected, max nesting ${loopDepth}`,
+    );
   }
   if (methodCalls.size) {
     reasoning.push(
@@ -181,7 +183,7 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
     reasoning.push("Sort detected — treated as O(n log n)");
   }
   if (allocations.length) {
-    reasoning.push("Allocations detected (split/list/append) — space may grow with input");
+    reasoning.push("Allocations detected — space may grow with input");
   }
   if (recursionNote) {
     reasoning.push(
@@ -294,7 +296,8 @@ const rankSpace = (space) => {
   }
 };
 
-const getNodeText = (node, sourceCode) => sourceCode.slice(node.startIndex, node.endIndex);
+const getNodeText = (node, sourceCode) =>
+  sourceCode.slice(node.startIndex, node.endIndex);
 const getLine = (node) => node.startPosition.row + 1;
 const traverseTree = (node, callback, parent = null) => {
   if (!node) return;
@@ -303,3 +306,6 @@ const traverseTree = (node, callback, parent = null) => {
     traverseTree(node.child(i), callback, node);
   }
 };
+
+
+

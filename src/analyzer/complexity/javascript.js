@@ -91,7 +91,6 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
 
     if (n.type === "call_expression") {
       const callee = n.child(0);
-      const calleeText = callee ? getNodeText(callee, sourceCode) : "";
       // treat built-in array helpers as O(1) helpers for time complexity
       if (callee && callee.type === "member_expression") {
         const prop =
@@ -162,7 +161,6 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
   // recursion heuristics
   let recursionNote = null;
   if (recursionCalls > 0) {
-    // naive: single recursion -> O(n), multiple -> exponential (low confidence)
     if (recursionCalls === 1 && exponent === 0) {
       exponent = Math.max(exponent, 1);
       recursionNote = { type: "linear-recursion", confidence: "medium" };
@@ -171,30 +169,39 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
     }
   }
 
-  // estimate time
-  const time =
-    exponent === 0
-      ? { estimate: "O(1)", class: "constant", confidence: "high" }
-      : exponent === 1 && hasSort
-        ? { estimate: "O(n log n)", class: "linearithmic", confidence: "high" }
-        : {
-            estimate: exponent === 1 ? "O(n)" : `O(n^${exponent})`,
-            class: exponent === 1 ? "linear" : "polynomial",
-            exponent,
-            confidence: exponent === 1 ? "high" : "medium",
-          };
-
-  if (hasSort && exponent <= 1) {
-    // prefer n log n when sort detected and no nesting
-    time.estimate = "O(n log n)";
-    time.class = "linearithmic";
-    time.confidence = "high";
+  // --- Fixed Time Complexity Calculation ---
+  let time;
+  if (hasSort) {
+    if (exponent <= 1) {
+      time = {
+        estimate: "O(n log n)",
+        class: "linearithmic",
+        confidence: "high",
+      };
+    } else {
+      time = {
+        estimate: `O(n^${exponent} log n)`,
+        class: "polynomial",
+        exponent,
+        confidence: "medium",
+      };
+    }
+  } else if (exponent === 0) {
+    time = { estimate: "O(1)", class: "constant", confidence: "high" };
+  } else if (exponent === 1) {
+    time = { estimate: "O(n)", class: "linear", confidence: "high" };
+  } else {
+    time = {
+      estimate: `O(n^${exponent})`,
+      class: "polynomial",
+      exponent,
+      confidence: "medium",
+    };
   }
 
   // estimate space
   let space = { estimate: "O(1)", class: "constant", confidence: "high" };
   if (allocations.length > 0) {
-    // if allocation inside loop, assume O(n)
     space = {
       estimate: exponent >= 2 ? `O(n^${exponent})` : "O(n)",
       class: exponent >= 2 ? "polynomial" : "linear",
@@ -214,9 +221,7 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
     );
   if (hasSort) reasoning.push("Sort detected — treated as O(n log n)");
   if (allocations.length)
-    reasoning.push(
-      "Allocations detected (split/push/concat) — space may grow with input",
-    );
+    reasoning.push("Allocations detected — space may grow with input");
   if (recursionNote)
     reasoning.push(
       `Recursion detected (${recursionNote.type}) with confidence ${recursionNote.confidence}`,
@@ -247,7 +252,6 @@ const isLoopNode = (node) => {
 const detectIteratedIdentifier = (loopNode) => {
   try {
     if (loopNode.type === "for_statement") {
-      // detect condition with .length
       const cond =
         loopNode.childForFieldName && loopNode.childForFieldName("condition");
       if (cond) {
@@ -317,27 +321,43 @@ const inferFunctionName = (node, parent, source) => {
 
 const buildFileSummary = (functions) => {
   if (!functions || !functions.length) return {};
-  // worst time: highest exponent or linearithmic preferred over linear
-  let worst = null;
+  let worstTime = functions[0];
+  let worstSpace = functions[0];
+
   for (const f of functions) {
-    if (!worst) {
-      worst = f;
-      continue;
+    if (rankTimeClass(f.time) > rankTimeClass(worstTime.time)) {
+      worstTime = f;
     }
-    const score = rankTimeClass(f.time);
-    const worstScore = rankTimeClass(worst.time);
-    if (score > worstScore) worst = f;
+    if (rankSpaceClass(f.space) > rankSpaceClass(worstSpace.space)) {
+      worstSpace = f;
+    }
   }
+
   return {
-    worstTime: worst
-      ? {
-          estimate: worst.time.estimate,
-          confidence: worst.time.confidence,
-          functions: [worst.name],
-        }
-      : null,
-    worstSpace: null,
+    worstTime: {
+      estimate: worstTime.time.estimate,
+      confidence: worstTime.time.confidence,
+      functions: [worstTime.name],
+    },
+    worstSpace: {
+      estimate: worstSpace.space.estimate,
+      confidence: worstSpace.space.confidence,
+      functions: [worstSpace.name],
+    },
   };
+};
+
+const rankSpaceClass = (space) => {
+  switch (space?.class) {
+    case "constant":
+      return 1;
+    case "linear":
+      return 2;
+    case "polynomial":
+      return 3;
+    default:
+      return 0;
+  }
 };
 
 const rankTimeClass = (time) => {
@@ -359,7 +379,6 @@ const rankTimeClass = (time) => {
   }
 };
 
-// small tree helpers copied from other analyzers
 const getNodeText = (node, source) => {
   if (!node || !source) return "";
   return source.slice(node.startIndex, node.endIndex);

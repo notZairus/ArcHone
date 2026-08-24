@@ -155,11 +155,11 @@ export function selectAnalysisMode({ screen }) {
         label: "OOP",
         hint: "OOP smells (constructor, dependencies, responsibilities, etc.)",
       },
-      {
-        value: "complexity",
-        label: "Complexity",
-        hint: "Code complexity (time complexity and space complexity)",
-      },
+      // {
+      //   value: "complexity",
+      //   label: "Complexity",
+      //   hint: "Code complexity (time complexity and space complexity)",
+      // },
     ];
 
     const list = blessed.list({
@@ -319,16 +319,11 @@ export function log(data, title = "Debug Alert") {
 }
 
 export function stripCodeFences(codeString) {
-  const trimmed = codeString.trim();
-
-  // Check if string starts and ends with ```
-  if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-    return trimmed
-      .replace(/^```[^\n]*\n?/, "") // Removes starting ``` plus any language identifier and newline
-      .replace(/\n?```$/, ""); // Removes trailing ``` and optional preceding newline
-  }
-
-  return codeString; // Return as-is if no code fences are found
+  if (!codeString) return "";
+  return codeString
+    .trim()
+    .replace(/^```[^\n]*\n?/, "")
+    .replace(/\n?```$/, "");
 }
 
 export function readClipboard() {

@@ -11,6 +11,6 @@ detectable-issues.json
 properties.json
 test
 *.log
-
+__test
 
 testing.*

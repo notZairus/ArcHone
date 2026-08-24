@@ -172,7 +172,9 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
 
   const reasoning = [];
   if (loops.length) {
-    reasoning.push(`${loops.length} loop(s) detected, max nesting ${loopDepth}`);
+    reasoning.push(
+      `${loops.length} loop(s) detected, max nesting ${loopDepth}`,
+    );
   }
   if (methodCalls.size) {
     reasoning.push(
@@ -183,7 +185,7 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
     reasoning.push("OrderBy detected — treated as O(n log n)");
   }
   if (allocations.length) {
-    reasoning.push("Allocations detected (ToList/ToArray/Split) — space may grow with input");
+    reasoning.push("Allocations detected — space may grow with input");
   }
   if (recursionNote) {
     reasoning.push(
@@ -203,9 +205,12 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
 
 const isLoopNode = (node) => {
   if (!node) return false;
-  return ["for_statement", "while_statement", "for_each_statement", "foreach_statement"].includes(
-    node.type,
-  );
+  return [
+    "for_statement",
+    "while_statement",
+    "for_each_statement",
+    "foreach_statement",
+  ].includes(node.type);
 };
 
 const computeLoopNestingDepth = (loopNode) => {
@@ -298,7 +303,8 @@ const rankSpace = (space) => {
   }
 };
 
-const getNodeText = (node, sourceCode) => sourceCode.slice(node.startIndex, node.endIndex);
+const getNodeText = (node, sourceCode) =>
+  sourceCode.slice(node.startIndex, node.endIndex);
 const getLine = (node) => node.startPosition.row + 1;
 const traverseTree = (node, callback, parent = null) => {
   if (!node) return;

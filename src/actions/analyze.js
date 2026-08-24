@@ -30,6 +30,7 @@ import oopTreeAnalyzer from "../analyzer/oopTreeAnalyzer.js";
 import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
 import displayAnalysisResult from "../results/renderResult.js";
+import displayComplexityResult from "../results/complexityResult.js";
 
 export default async ({
   screen,
@@ -180,16 +181,21 @@ export default async ({
   const userId = await checkAuth();
 
   if (result.mode === "complexity") {
-    log("meh complexity mode");
-    // TODO: Implement complexity mode rendering
-    process.exit(0);
+    await displayComplexityResult({
+      screen,
+      result,
+      fromScan,
+    });
+
+    if (userId) {
+      log("TODO: save complexity result to database");
+    }
+
+    // TODO: set latest analysis for complexity mode
   } else {
     await displayAnalysisResult({
       screen,
       result,
-      noteText: userId
-        ? "Click on a finding to view the code snippet and details."
-        : "Log in to save your analysis results and access personalized insights.",
       fromScan,
     });
 
@@ -291,9 +297,9 @@ function getAnalyzerMode(mode) {
     case "general":
       return generalTreeAnalyzer;
       break;
-    case "complexity":
-      return complexityTreeAnalyzer;
-      break;
+    // case "complexity":
+    //   return complexityTreeAnalyzer;
+    //   break;
     case "oop":
       return oopTreeAnalyzer;
       break;
