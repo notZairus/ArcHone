@@ -34,7 +34,7 @@ export default class Database {
       rowId: "unique()",
       data: {
         userId: userId,
-        fileName: fileName.split("/").pop(),
+        fileName: fileName,
         fileType: fileType,
         code: code,
         mode: analysisResult.mode || "general",
@@ -52,6 +52,71 @@ export default class Database {
       saveFunctions(analysisId, functions),
       saveIssues(analysisId, issues),
     ]);
+  }
+
+  //////////////////////////////
+  // SAVE COMPLEXITY ANALYSIS RESULT
+  //////////////////////////////
+  static async saveComplexityAnalysisResult({
+    fileName,
+    fileType,
+    code,
+    complexityResult,
+  }) {
+    const { userId } = await getSession();
+    if (!userId) return;
+
+    const { $id: analysisId } = await tablesDB.createRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "analyses",
+      rowId: "unique()",
+      data: {
+        userId: userId,
+        fileName: fileName,
+        fileType: fileType,
+        code: code,
+        mode: complexityResult.mode || "complexity",
+      },
+    });
+
+    for (const func of complexityResult.complexitySummary.functions) {
+      const { $id: complexityId } = await tablesDB.createRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: "complexities",
+        rowId: "unique()",
+        data: {
+          analysisId: analysisId,
+          name: func.name,
+          line: func.line,
+          code: func.code,
+        },
+      });
+
+      await tablesDB.createRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: "tcomplexities",
+        rowId: "unique()",
+        data: {
+          complexityId: complexityId,
+          estimate: func.time.estimate,
+          exponent: func.time.exponent,
+          class: func.time.class,
+          confidence: func.time.confidence,
+        },
+      });
+
+      await tablesDB.createRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: "scomplexities",
+        rowId: "unique()",
+        data: {
+          complexityId: complexityId,
+          estimate: func.space.estimate,
+          class: func.space.class,
+          confidence: func.space.confidence,
+        },
+      });
+    }
   }
 
   //////////////////////////////

@@ -6,7 +6,7 @@ import { getAiConfig } from "./local.js";
 export async function explainIssueWithGemini(issue) {
   const aiConfig = getAiConfig();
   if (!aiConfig.enabled) {
-    console.log("AI is not enabled in the configuration.");
+    log("AI is not enabled in the configuration.");
     process.exit(1);
   }
 
@@ -89,7 +89,7 @@ export async function explainComplexityWithGemini({
 }) {
   const aiConfig = getAiConfig();
   if (!aiConfig.enabled) {
-    console.log("AI is not enabled in the configuration.");
+    log("AI is not enabled in the configuration.");
     process.exit(1);
   }
 

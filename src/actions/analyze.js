@@ -178,7 +178,7 @@ export default async ({
   result.code = code;
   result.fileToAnalyze = fileToAnalyze;
 
-  const userId = await checkAuth();
+  const { userId } = await getSession();
 
   if (result.mode === "complexity") {
     await displayComplexityResult({
@@ -186,25 +186,25 @@ export default async ({
       result,
       fromScan,
     });
-
-    if (userId) {
-      log("TODO: save complexity result to database");
-    }
-
-    // TODO: set latest analysis for complexity mode
   } else {
     await displayAnalysisResult({
       screen,
       result,
       fromScan,
     });
-
-    if (userId) {
-      await saveToDatabase(fileToAnalyze, fileExtension, code, result);
-    }
-
-    await setLatestAnalysis(fileToAnalyze, result);
   }
+
+  if (userId) {
+    await saveToDatabase({
+      fileToAnalyze,
+      fileExtension,
+      code,
+      result,
+      mode,
+    });
+  }
+
+  await setLatestAnalysis(fileToAnalyze, result);
 };
 
 // HELPERS //////////////////////////////////////////////////////////
@@ -274,22 +274,30 @@ const hasMinimumCodeSignal = (sourceCode, fileExtension) => {
   return identifierMatches >= 2 || keywordMatches >= 1;
 };
 
-async function saveToDatabase(fileToAnalyze, fileExtension, code, result) {
+async function saveToDatabase({
+  fileToAnalyze,
+  fileExtension,
+  code,
+  result,
+  mode,
+}) {
   try {
-    await Database.saveAnalysisResult(
-      fileToAnalyze,
-      fileExtension,
-      code,
-      result,
-    );
-  } catch (error) {
-    if (code.length < 100) {
-      boxError(
-        "The code on the selected file is short, so the analysis result will not be saved.",
+    if (mode === "complexity") {
+      await Database.saveComplexityAnalysisResult({
+        fileName: fileToAnalyze,
+        fileType: fileExtension,
+        code,
+        complexityResult: result,
+      });
+    } else {
+      await Database.saveAnalysisResult(
+        fileToAnalyze,
+        fileExtension,
+        code,
+        result,
       );
-      process.exit(0);
     }
-  }
+  } catch (error) {}
 }
 
 function getAnalyzerMode(mode) {
