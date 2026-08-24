@@ -155,11 +155,11 @@ export function selectAnalysisMode({ screen }) {
         label: "OOP",
         hint: "OOP smells (constructor, dependencies, responsibilities, etc.)",
       },
-      // {
-      //   value: "complexity",
-      //   label: "Complexity",
-      //   hint: "Code complexity (time complexity and space complexity)",
-      // },
+      {
+        value: "complexity",
+        label: "Complexity",
+        hint: "Code complexity (time complexity and space complexity)",
+      },
     ];
 
     const list = blessed.list({

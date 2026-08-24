@@ -297,9 +297,9 @@ function getAnalyzerMode(mode) {
     case "general":
       return generalTreeAnalyzer;
       break;
-    // case "complexity":
-    //   return complexityTreeAnalyzer;
-    //   break;
+    case "complexity":
+      return complexityTreeAnalyzer;
+      break;
     case "oop":
       return oopTreeAnalyzer;
       break;

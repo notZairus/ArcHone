@@ -462,6 +462,7 @@ export default async function displayAnalysisResult({
 
           mainLoader.stop();
           mainLoader.hide();
+          mainLoader.destroy();
 
           showDetails(detailsContent);
         });
@@ -527,13 +528,13 @@ export default async function displayAnalysisResult({
     const backButton = blessed.button({
       parent: detailsView,
       top: 0,
-      right: 4,
-      width: 10,
+      right: 2,
+      width: 5,
       height: 3,
       align: "center",
       valign: "middle",
       border: "line",
-      content: "Back",
+      content: "<",
     });
 
     backButton.on("click", () => {

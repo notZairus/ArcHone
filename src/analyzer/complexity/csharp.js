@@ -42,6 +42,19 @@ export default function analyzeComplexityCS(tree, sourceCode) {
       });
     }
 
+    if (fn.time.class === "exponential") {
+      issues.push({
+        title: "Exponential Time Complexity",
+        type: "warning",
+        line: fn.line,
+        message: `Estimated time complexity ${fn.time.estimate}`,
+        suggestion:
+          "Consider memoization, dynamic programming, or an iterative approach.",
+        code: fn.code,
+        penalty: 3.0,
+      });
+    }
+
     if (fn.space && fn.space.class === "polynomial" && fn.space.exponent >= 2) {
       issues.push({
         title: "High Space Complexity",
@@ -56,7 +69,7 @@ export default function analyzeComplexityCS(tree, sourceCode) {
   }
 
   return {
-    functions: [],
+    functions,
     variables: [],
     comments,
     issues,
@@ -133,17 +146,45 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
   const builtinDepth = iterationCalls.length ? Math.max(...iterationCalls) : 0;
   let exponent = Math.max(loopDepth, builtinDepth);
 
+  // recursion heuristics
   let recursionNote = null;
+  let recursionOverride = null; // { estimate, class, confidence } — set for multi-recursion cases
+
   if (recursionCalls > 0) {
     if (recursionCalls === 1 && exponent === 0) {
       exponent = 1;
       recursionNote = { type: "linear-recursion", confidence: "medium" };
+    } else if (recursionCalls >= 2) {
+      // Two or more recursive calls: either divide-and-conquer (merge sort,
+      // quicksort-ish) or naive exponential branching (fibonacci, etc).
+      // Heuristic: if there's linear work outside the recursion itself
+      // (a loop or a LINQ builtin doing a merge/combine step), assume the
+      // classic T(n) = 2T(n/2) + O(n) shape -> O(n log n).
+      // Otherwise assume unchecked branching -> exponential.
+      const hasLinearWorkOutsideRecursion =
+        loops.length > 0 || methodCalls.size > 0;
+
+      if (hasLinearWorkOutsideRecursion) {
+        recursionNote = { type: "divide-and-conquer", confidence: "low" };
+        recursionOverride = {
+          estimate: "O(n log n)",
+          class: "linearithmic",
+          confidence: "low",
+        };
+      } else {
+        recursionNote = { type: "multi-recursion", confidence: "low" };
+        recursionOverride = {
+          estimate: "O(2^n)",
+          class: "exponential",
+          confidence: "low",
+        };
+      }
     } else {
       recursionNote = { type: "multi-recursion", confidence: "low" };
     }
   }
 
-  const time =
+  let time =
     exponent === 0
       ? { estimate: "O(1)", class: "constant", confidence: "high" }
       : hasSort && exponent <= 1
@@ -156,8 +197,17 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
           };
 
   if (hasSort && exponent <= 1) {
-    time.estimate = "O(n log n)";
-    time.class = "linearithmic";
+    time = {
+      estimate: "O(n log n)",
+      class: "linearithmic",
+      confidence: "high",
+    };
+  }
+
+  // recursion-based override takes priority over the loop-based guess,
+  // but never overrides an explicit OrderBy/OrderByDescending detection
+  if (recursionOverride && !hasSort) {
+    time = recursionOverride;
   }
 
   let space = { estimate: "O(1)", class: "constant", confidence: "high" };
@@ -168,6 +218,16 @@ const analyzeFunctionNode = (node, name, sourceCode) => {
       exponent: exponent >= 2 ? exponent : 1,
       confidence: "medium",
     };
+  }
+  if (recursionOverride && recursionOverride.class === "linearithmic") {
+    if (space.class === "constant") {
+      space = {
+        estimate: "O(n)",
+        class: "linear",
+        exponent: 1,
+        confidence: "low",
+      };
+    }
   }
 
   const reasoning = [];
@@ -285,6 +345,8 @@ const rankTime = (time) => {
       return 3;
     case "polynomial":
       return 4;
+    case "exponential":
+      return 5;
     default:
       return 0;
   }
