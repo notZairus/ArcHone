@@ -9,6 +9,7 @@ import {
 import { putHeader } from "../ui/components.js";
 import Database from "../lib/db.js";
 import displayAnalysisResult from "../results/renderResult.js";
+import displayComplexityResult from "../results/complexityResult.js";
 
 export default async function archive({ screen }) {
   refreshScreen(screen);
@@ -145,13 +146,23 @@ export default async function archive({ screen }) {
       });
 
       analysisBox.on("click", async () => {
-        await displayAnalysisResult({
-          screen,
-          result: analysis,
-          fromArchive: true,
-          selectedIndex: index,
-          selectedFileAnalyses: selectedFileAnalyses,
-        });
+        if (analysis.mode !== "complexity") {
+          await displayAnalysisResult({
+            screen,
+            result: analysis,
+            fromArchive: true,
+            selectedIndex: index,
+            selectedFileAnalyses: selectedFileAnalyses,
+          });
+        } else {
+          await displayComplexityResult({
+            screen,
+            result: analysis,
+            fromArchive: true,
+            selectedIndex: index,
+            selectedFileAnalyses: selectedFileAnalyses,
+          });
+        }
       });
     });
 

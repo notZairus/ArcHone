@@ -3,6 +3,7 @@ import { Query } from "appwrite";
 import { tablesDB } from "./appwrite.js";
 import { APPWRITE_DATABASE_ID } from "../constants.js";
 import { getSession } from "../utils/session.js";
+import { log } from "../utils/helpers.js";
 
 export default class Database {
   //////////////////////////////
@@ -136,6 +137,8 @@ export default class Database {
 
     const formattedAnalyses = analyses.rows.map((analysis) => ({
       id: analysis.$id,
+      mode: analysis.mode,
+      code: analysis.code,
       fileName: analysis.fileName,
       fileType: analysis.fileType,
       createdAt: analysis.$createdAt,
@@ -146,20 +149,65 @@ export default class Database {
 
     const formattedAnalysesWithProperties = await Promise.all(
       formattedAnalyses.map(async (analysis) => {
-        const analysisId = analysis.id;
-        const propertiesData = {};
+        if (analysis.mode !== "complexity") {
+          const analysisId = analysis.id;
+          const propertiesData = {};
 
-        for (const property of properties) {
-          propertiesData[property] = await getAnalysisProperty(
-            property,
-            analysisId,
+          for (const property of properties) {
+            propertiesData[property] = await getAnalysisProperty(
+              property,
+              analysisId,
+            );
+          }
+
+          return {
+            ...analysis,
+            ...propertiesData,
+          };
+        } else {
+          const analysisId = analysis.id;
+
+          const functions = await tablesDB.listRows({
+            databaseId: APPWRITE_DATABASE_ID,
+            tableId: "complexities",
+            queries: [Query.equal("analysisId", analysisId)],
+          });
+
+          const fnWithTimeSpaceComplexity = await Promise.all(
+            functions.rows.map(async (func) => {
+              const functionId = func.$id;
+
+              const timeComp = await tablesDB.listRows({
+                databaseId: APPWRITE_DATABASE_ID,
+                tableId: "tcomplexities",
+                queries: [Query.equal("complexityId", functionId)],
+              });
+
+              const spaceComp = await tablesDB.listRows({
+                databaseId: APPWRITE_DATABASE_ID,
+                tableId: "scomplexities",
+                queries: [Query.equal("complexityId", functionId)],
+              });
+
+              return {
+                ...func,
+                space: spaceComp.rows[0],
+                time: timeComp.rows[0],
+              };
+            }),
           );
-        }
 
-        return {
-          ...analysis,
-          ...propertiesData,
-        };
+          const toReturn = {
+            ...analysis,
+            complexitySummary: {
+              functions: fnWithTimeSpaceComplexity,
+            },
+          };
+
+          log(toReturn);
+
+          return toReturn;
+        }
       }),
     );
 

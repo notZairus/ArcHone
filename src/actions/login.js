@@ -22,7 +22,12 @@ function isLoggedIn() {
   return true;
 }
 
-export default async function login({ screen }) {
+export default async function login({
+  screen,
+  email,
+  password,
+  focusOn = "email",
+}) {
   refreshScreen(screen);
 
   if (isLoggedIn()) {
@@ -90,6 +95,10 @@ export default async function login({ screen }) {
     },
   });
 
+  if (email) {
+    emailInput.setValue(email);
+  }
+
   const passwordLabel = blessed.text({
     parent: form,
     top: 7,
@@ -110,6 +119,28 @@ export default async function login({ screen }) {
     border: {
       type: "line",
     },
+  });
+
+  if (password) {
+    passwordInput.setValue(password);
+  }
+
+  emailInput.on("click", () => {
+    login({
+      screen,
+      email: emailInput.value,
+      password: passwordInput.value,
+      focusOn: "email",
+    });
+  });
+
+  passwordInput.on("click", () => {
+    login({
+      screen,
+      email: emailInput.value,
+      password: passwordInput.value,
+      focusOn: "password",
+    });
   });
 
   const submitButton = blessed.button({
@@ -136,7 +167,11 @@ export default async function login({ screen }) {
     handleSubmit({ screen, data });
   });
 
-  emailInput.focus();
+  if (focusOn == "email") {
+    emailInput.focus();
+  } else {
+    passwordInput.focus();
+  }
 
   screen.render();
 }

@@ -18,6 +18,7 @@ import userArchive from "../actions/archive.js";
 import { stripCodeFences } from "../utils/helpers.js";
 
 import analyzeFile from "../actions/analyze.js";
+import displayAnalysisResult from "./renderResult.js";
 
 const SIDE_WIDTH = 20;
 const MAIN_WIDTH = 100 - SIDE_WIDTH;
@@ -163,14 +164,14 @@ export default async function displayComplexityResult({
       label: chalk.bold(" File Details "),
       width: "100%",
       border: "line",
-      height: 11,
+      height: 10,
       scrollable: true,
-      content: `${chalk.bold("File Path:")} ${result.fileToAnalyze}\n${chalk.bold("Language:")} ${result.language}\n${chalk.bold("Mode:")} ${result.mode}\n\n${chalk.bold("Space Complexity:")} ${result.complexitySummary.fileSummary.worstSpace.estimate}\n${chalk.bold("Time Complexity:")} ${result.complexitySummary.fileSummary.worstTime.estimate}`,
+      content: `${chalk.bold("File Path:")} ${result.fileToAnalyze || result.fileName}\n${chalk.bold("Language:")} ${result.language || result.fileType}\n${chalk.bold("Mode:")} ${result.mode}\n\n${chalk.bold("Function Count:")} ${result.complexitySummary.functions.length}`,
     });
 
     const buttonsContainer = blessed.box({
       parent: side,
-      top: 11,
+      top: 10,
       left: 0,
       smartCSR: true,
       valign: "middle",
@@ -242,13 +243,23 @@ export default async function displayComplexityResult({
 
         const rightIndex = selectedIndex + 1;
 
-        await displayComplexityResult({
-          screen,
-          result: selectedFileAnalyses[rightIndex],
-          fromArchive: true,
-          selectedIndex: rightIndex,
-          selectedFileAnalyses: selectedFileAnalyses,
-        });
+        if (selectedFileAnalyses[rightIndex].mode === "complexity") {
+          await displayComplexityResult({
+            screen,
+            result: selectedFileAnalyses[rightIndex],
+            fromArchive: true,
+            selectedIndex: rightIndex,
+            selectedFileAnalyses: selectedFileAnalyses,
+          });
+        } else {
+          await displayAnalysisResult({
+            screen,
+            result: selectedFileAnalyses[rightIndex],
+            fromArchive: true,
+            selectedIndex: rightIndex,
+            selectedFileAnalyses: selectedFileAnalyses,
+          });
+        }
       });
 
       const leftAnalysis = blessed.button({
@@ -282,13 +293,23 @@ export default async function displayComplexityResult({
 
         const leftIndex = selectedIndex - 1;
 
-        await displayComplexityResult({
-          screen,
-          result: selectedFileAnalyses[leftIndex],
-          fromArchive: true,
-          selectedIndex: leftIndex,
-          selectedFileAnalyses: selectedFileAnalyses,
-        });
+        if (selectedFileAnalyses[leftIndex].mode === "complexity") {
+          await displayComplexityResult({
+            screen,
+            result: selectedFileAnalyses[leftIndex],
+            fromArchive: true,
+            selectedIndex: leftIndex,
+            selectedFileAnalyses: selectedFileAnalyses,
+          });
+        } else {
+          await displayAnalysisResult({
+            screen,
+            result: selectedFileAnalyses[leftIndex],
+            fromArchive: true,
+            selectedIndex: leftIndex,
+            selectedFileAnalyses: selectedFileAnalyses,
+          });
+        }
       });
     }
 
@@ -434,10 +455,10 @@ export default async function displayComplexityResult({
           `- Complexity: ${fn.space.estimate}`,
           `- Class: ${fn.space.class}`,
           ``,
-          `${chalk.bold("Reasoning:\n")}${fn.reasoning
-            .filter((reason) => !reason.startsWith("Built-in"))
-            .map((reason) => ` - ${reason}`)
-            .join("\n")}`,
+          // `${chalk.bold("Reasoning:\n")}${fn.reasoning
+          //   .filter((reason) => !reason.startsWith("Built-in"))
+          //   .map((reason) => ` - ${reason}`)
+          //   .join("\n")}`,
         ].join("\n"),
       });
 

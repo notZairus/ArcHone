@@ -188,7 +188,7 @@ export default async function displayAnalysisResult({
       border: "line",
       height: `100%-${fromArchive ? 17 : 14}`,
       scrollable: true,
-      content: `${chalk.bold("File Path:")} ${result.fileToAnalyze}\n${chalk.bold("Language:")} ${result.language}\n${chalk.bold("Mode:")} ${result.mode}\n\n${chalk.bold("Number Issues Found:")} ${result.issues.length}`,
+      content: `${chalk.bold("File Path:")} ${result.fileToAnalyze || result.fileName}\n${chalk.bold("Language:")} ${result.language || result.fileType}\n${chalk.bold("Mode:")} ${result.mode}\n\n${chalk.bold("Number Issues Found:")} ${result.issues.length}`,
     });
 
     const buttonsContainer = blessed.box({
@@ -362,7 +362,7 @@ export default async function displayAnalysisResult({
         left: 0,
         width: "100%",
         height: "100%",
-        content: `No issue found. The current state of file: ${chalk.bold(result.fileToAnalyze)} on ${chalk.bold(result.mode)} mode is great!`,
+        content: `No issue found. The current state of file: ${chalk.bold(result.fileToAnalyze || result.fileName)} on ${chalk.bold(result.mode)} mode is great!`,
         align: "center",
         valign: "middle",
       });
