@@ -23,7 +23,6 @@ import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
 
 import treeParser from "../parser/analysis-parser.js";
-import formatAnalysisResult from "../formatter/analysisFormatter.js";
 
 import generalTreeAnalyzer from "../analyzer/generalTreeAnalyzer.js";
 import oopTreeAnalyzer from "../analyzer/oopTreeAnalyzer.js";

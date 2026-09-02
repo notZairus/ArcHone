@@ -24,7 +24,7 @@ export const getIssuesScore = (issues) => {
     score -= penalty;
   }
 
-  return Math.max(score, 0);
+  return Math.max(score, 1);
 };
 
 export function refreshScreen(screen) {
