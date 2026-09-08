@@ -18,7 +18,7 @@ import userArchive from "../actions/archive.js";
 import { stripCodeFences } from "../utils/helpers.js";
 
 import analyzeFile from "../actions/analyze.js";
-import displayAnalysisResult from "./renderResult.js";
+import displayAnalysisResult from "./generalOopResult.js";
 
 const SIDE_WIDTH = 20;
 const MAIN_WIDTH = 100 - SIDE_WIDTH;

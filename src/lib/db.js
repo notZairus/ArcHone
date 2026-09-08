@@ -5,6 +5,8 @@ import { APPWRITE_DATABASE_ID } from "../constants.js";
 import { getSession } from "../utils/session.js";
 import { log } from "../utils/helpers.js";
 
+const MAX_ROWS_LIMIT = 500;
+
 export default class Database {
   //////////////////////////////
   // SAVE NEW USER TO THE USERS TABLE
@@ -132,6 +134,7 @@ export default class Database {
         order === "asc"
           ? Query.orderAsc("$createdAt")
           : Query.orderDesc("$createdAt"),
+        Query.limit(MAX_ROWS_LIMIT),
       ],
     });
 
@@ -170,8 +173,13 @@ export default class Database {
           const functions = await tablesDB.listRows({
             databaseId: APPWRITE_DATABASE_ID,
             tableId: "complexities",
-            queries: [Query.equal("analysisId", analysisId)],
+            queries: [
+              Query.equal("analysisId", analysisId),
+              Query.limit(MAX_ROWS_LIMIT),
+            ],
           });
+
+          console.log("functions done");
 
           const fnWithTimeSpaceComplexity = await Promise.all(
             functions.rows.map(async (func) => {
@@ -180,13 +188,19 @@ export default class Database {
               const timeComp = await tablesDB.listRows({
                 databaseId: APPWRITE_DATABASE_ID,
                 tableId: "tcomplexities",
-                queries: [Query.equal("complexityId", functionId)],
+                queries: [
+                  Query.equal("complexityId", functionId),
+                  Query.limit(MAX_ROWS_LIMIT),
+                ],
               });
 
               const spaceComp = await tablesDB.listRows({
                 databaseId: APPWRITE_DATABASE_ID,
                 tableId: "scomplexities",
-                queries: [Query.equal("complexityId", functionId)],
+                queries: [
+                  Query.equal("complexityId", functionId),
+                  Query.limit(MAX_ROWS_LIMIT),
+                ],
               });
 
               return {
@@ -203,8 +217,6 @@ export default class Database {
               functions: fnWithTimeSpaceComplexity,
             },
           };
-
-          log(toReturn);
 
           return toReturn;
         }
@@ -238,13 +250,21 @@ export default class Database {
     const resultAccepted = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "classroom_user",
-      queries: [Query.equal("userId", userId), Query.equal("accepted", true)],
+      queries: [
+        Query.equal("userId", userId),
+        Query.equal("accepted", true),
+        Query.limit(MAX_ROWS_LIMIT),
+      ],
     });
 
     const resultPending = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "classroom_user",
-      queries: [Query.equal("userId", userId), Query.equal("accepted", false)],
+      queries: [
+        Query.equal("userId", userId),
+        Query.equal("accepted", false),
+        Query.limit(MAX_ROWS_LIMIT),
+      ],
     });
 
     const classroomIdsAccepted = resultAccepted.rows.map(
@@ -293,7 +313,10 @@ export default class Database {
     const classrooms = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "classrooms",
-      queries: [Query.equal("code", classroomCode)],
+      queries: [
+        Query.equal("code", classroomCode),
+        Query.limit(MAX_ROWS_LIMIT),
+      ],
     });
 
     if (classrooms.total === 0) {
@@ -317,14 +340,16 @@ export default class Database {
   }
 
   //////////////////////////////
-  // GET CLASSROOM_USER
+  // GET CLASSROOM USING CLASSROOM CODE
   //////////////////////////////
-
   static async getClassroomByCode(classroomCode) {
     const result = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "classrooms",
-      queries: [Query.equal("code", classroomCode)],
+      queries: [
+        Query.equal("code", classroomCode),
+        Query.limit(MAX_ROWS_LIMIT),
+      ],
     });
 
     if (result.total === 0) {
@@ -334,6 +359,9 @@ export default class Database {
     return result.rows[0];
   }
 
+  //////////////////////////////
+  // GET CLASSROOM_USER
+  //////////////////////////////
   static async getClassroomUser(userId, classroomId) {
     const row = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
@@ -341,10 +369,34 @@ export default class Database {
       queries: [
         Query.equal("userId", userId),
         Query.equal("classroomId", classroomId),
+        Query.limit(MAX_ROWS_LIMIT),
       ],
     });
 
     return row.rows[0];
+  }
+
+  static async getFeedbacks(analysisId) {
+    const row = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "6a994862001659d9de4d",
+      queries: [
+        Query.equal("analysisId", analysisId),
+        Query.limit(MAX_ROWS_LIMIT),
+      ],
+    });
+
+    return row.rows;
+  }
+
+  static async getFeedbacksByFileName(fileName) {
+    const row = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "6a994862001659d9de4d",
+      queries: [Query.equal("fileName", fileName), Query.limit(MAX_ROWS_LIMIT)],
+    });
+
+    return row.rows;
   }
 }
 
@@ -429,21 +481,14 @@ async function saveIssues(analysisId, issues) {
     });
   }
 }
-
-function sanitizeDataForTable(tableId, data) {
-  if (tableId !== "issues") {
-    return data;
-  }
-
-  const { principle, ...dbCompatibleIssue } = data;
-  return dbCompatibleIssue;
-}
-
 async function getAnalysisProperty(tableId, analysisId) {
   const properties = await tablesDB.listRows({
     databaseId: APPWRITE_DATABASE_ID,
     tableId,
-    queries: [Query.equal("analysisId", analysisId)],
+    queries: [
+      Query.equal("analysisId", analysisId),
+      Query.limit(MAX_ROWS_LIMIT),
+    ],
   });
 
   return properties.rows.map((property) => ({

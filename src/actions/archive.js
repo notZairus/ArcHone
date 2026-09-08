@@ -8,8 +8,8 @@ import {
 } from "../utils/helpers.js";
 import { putHeader } from "../ui/components.js";
 import Database from "../lib/db.js";
-import displayAnalysisResult from "../results/renderResult.js";
-import displayComplexityResult from "../results/complexityResult.js";
+import displayAnalysisResult from "../renders/generalOopResult.js";
+import displayComplexityResult from "../renders/complexityResult.js";
 
 export default async function archive({ screen }) {
   refreshScreen(screen);
@@ -25,7 +25,21 @@ export default async function archive({ screen }) {
     process.exit(0);
   }
 
+  const loader = blessed.loading({
+    parent: screen,
+    top: "center",
+    left: "center",
+    width: "shrink",
+    height: "shrink",
+    border: "line",
+  });
+
+  loader.load("Fetching analyses...");
+
   const analyses = await Database.getUserAnalyses(userId, "desc");
+
+  loader.stop();
+  loader.destroy();
 
   if (!analyses || analyses.length === 0) {
     await showNotification({

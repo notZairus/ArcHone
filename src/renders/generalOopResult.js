@@ -8,6 +8,7 @@ import {
   getIssuesScore,
   hideScreenChildren,
   showScreenChildren,
+  wait,
 } from "../utils/helpers.js";
 import { getAiConfig } from "../lib/local.js";
 import process from "process";
@@ -21,6 +22,9 @@ import clipboard from "clipboardy";
 import analyzeFile from "../actions/analyze.js";
 import scanDirectory from "../actions/scan.js";
 import userArchive from "../actions/archive.js";
+import Database from "../lib/db.js";
+import displayAnalysisFeedbacks from "./analysisFeedbacks.js";
+import { putHeader } from "../ui/components.js";
 
 const SIDE_WIDTH = 20;
 const MAIN_WIDTH = 100 - SIDE_WIDTH;
@@ -186,7 +190,7 @@ export default async function displayAnalysisResult({
       label: chalk.bold(" File Details "),
       width: "100%",
       border: "line",
-      height: `100%-${fromArchive ? 17 : 14}`,
+      height: `100%-${fromArchive ? 20 : 14}`,
       scrollable: true,
       content: `${chalk.bold("File Path:")} ${result.fileToAnalyze || result.fileName}\n${chalk.bold("Language:")} ${result.language || result.fileType}\n${chalk.bold("Mode:")} ${result.mode}\n\n${chalk.bold("Number Issues Found:")} ${result.issues.length}`,
     });
@@ -200,7 +204,7 @@ export default async function displayAnalysisResult({
       align: "center",
       width: "100%",
       border: "line",
-      height: fromArchive ? 8 : 5,
+      height: fromArchive ? 11 : 5,
     });
 
     if (!fromArchive) {
@@ -229,9 +233,49 @@ export default async function displayAnalysisResult({
         });
       });
     } else {
-      const rightAnalysis = blessed.button({
+      const leftAnalysis = blessed.button({
         parent: buttonsContainer,
         top: 0,
+        left: "center",
+        align: "center",
+        width: "90%",
+        height: 3,
+        mouse: true,
+        content: "Next Analysis",
+        border: "line",
+      });
+
+      leftAnalysis.on("press", async () => {
+        if (selectedIndex == 0) {
+          await showNotification({
+            screen,
+            message: "This is the latest analysis of this file.",
+            duration: 1000,
+          });
+
+          return;
+        }
+
+        await showNotification({
+          screen,
+          message: "Loading the next analysis of this file...",
+          duration: 500,
+        });
+
+        const leftIndex = selectedIndex - 1;
+
+        await displayAnalysisResult({
+          screen,
+          result: selectedFileAnalyses[leftIndex],
+          fromArchive: true,
+          selectedIndex: leftIndex,
+          selectedFileAnalyses: selectedFileAnalyses,
+        });
+      });
+
+      const rightAnalysis = blessed.button({
+        parent: buttonsContainer,
+        top: 3,
         left: "center",
         align: "center",
         width: "90%",
@@ -273,45 +317,107 @@ export default async function displayAnalysisResult({
         });
       });
 
-      const leftAnalysis = blessed.button({
-        parent: buttonsContainer,
-        top: 3,
-        left: "center",
-        align: "center",
-        width: "90%",
-        height: 3,
-        mouse: true,
-        content: "Next Analysis",
-        border: "line",
-      });
+      if (selectedIndex == 0) {
+        const feedbacks = await Database.getFeedbacksByFileName(
+          result.fileName,
+        );
+        const filteredFeedbacks = feedbacks.filter((fb) =>
+          result.code.includes(fb.highlightedCode),
+        );
 
-      leftAnalysis.on("press", async () => {
-        if (selectedIndex == 0) {
-          await showNotification({
-            screen,
-            message: "This is the latest analysis of this file.",
-            duration: 1000,
+        const viewFeedbacks = blessed.button({
+          parent: buttonsContainer,
+          top: 6,
+          left: "center",
+          align: "center",
+          width: "90%",
+          height: 3,
+          content:
+            filteredFeedbacks.length === 0
+              ? "No Feedbacks"
+              : `View Feedbacks (${filteredFeedbacks.length})`,
+          mouse: true,
+          border: "line",
+        });
+
+        viewFeedbacks.on("press", async () => {
+          if (filteredFeedbacks.length === 0) {
+            await showNotification({
+              screen,
+              message: "The analysis has no feedback.",
+              duration: 2000,
+            });
+          } else {
+            await displayAnalysisFeedbacks({
+              screen,
+              analysis: {
+                ...result,
+                feedbacks: filteredFeedbacks,
+              },
+              fromArchive: true,
+            });
+          }
+        });
+      } else {
+        const viewCode = blessed.button({
+          parent: buttonsContainer,
+          top: 6,
+          left: "center",
+          align: "center",
+          width: "90%",
+          height: 3,
+          content: "View Code",
+          mouse: true,
+          border: "line",
+        });
+
+        viewCode.on("press", async () => {
+          const _codeContainer = blessed.box({
+            parent: screen,
+            top: "center",
+            mouse: true,
+            smartCSR: true,
+            left: "center",
+            width: "90%",
+            height: "90%",
           });
 
-          return;
-        }
+          putHeader(_codeContainer, `${result.fileName} Code`, () => {
+            _codeContainer.hide();
+            _codeContainer.destroy();
+            screen.render();
+          });
 
-        await showNotification({
-          screen,
-          message: "Loading the next analysis of this file...",
-          duration: 500,
+          const codeBox = blessed.box({
+            parent: _codeContainer,
+            top: 3,
+            border: "line",
+            scrollable: true,
+            alwaysScroll: true,
+            mouse: true,
+            padding: {
+              left: 1,
+            },
+            scrollbar: {
+              ch: " ",
+              track: {
+                bg: "gray",
+              },
+            },
+            keys: true,
+            left: 0,
+            smartCSR: true,
+            width: "100%",
+            height: "100%-3",
+            content: formatCode(
+              result.code,
+              result.language || result.fileType,
+            ),
+          });
+
+          screen.render();
         });
-
-        const leftIndex = selectedIndex - 1;
-
-        await displayAnalysisResult({
-          screen,
-          result: selectedFileAnalyses[leftIndex],
-          fromArchive: true,
-          selectedIndex: leftIndex,
-          selectedFileAnalyses: selectedFileAnalyses,
-        });
-      });
+      }
     }
 
     return side;
@@ -362,7 +468,7 @@ export default async function displayAnalysisResult({
         left: 0,
         width: "100%",
         height: "100%",
-        content: `No issue found. The current state of file: ${chalk.bold(result.fileToAnalyze || result.fileName)} on ${chalk.bold(result.mode)} mode is great!`,
+        content: `No issue found. The result of file: ${chalk.bold(result.fileToAnalyze || result.fileName)} on ${chalk.bold(result.mode)} mode is great!`,
         align: "center",
         valign: "middle",
       });
@@ -499,7 +605,7 @@ export default async function displayAnalysisResult({
     const compareCodeButton = blessed.button({
       parent: detailsView,
       top: 0,
-      right: 16,
+      right: 8,
       width: 20,
       height: 3,
       align: "center",

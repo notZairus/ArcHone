@@ -1,7 +1,13 @@
 import blessed from "blessed";
 import chalk from "chalk";
 
-export const putHeader = (container, content) => {
+export const putHeader = (
+  container,
+  content,
+  callback = () => {
+    process.exit(0);
+  },
+) => {
   const header = blessed.box({
     parent: container,
     top: 0,
@@ -22,7 +28,7 @@ export const putHeader = (container, content) => {
   });
 
   closeButton.on("click", () => {
-    process.exit(0);
+    callback();
   });
 
   return { header };
