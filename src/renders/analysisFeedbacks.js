@@ -1,14 +1,11 @@
-import {
-  refreshScreen,
-  log,
-  showNotification,
-  hideScreenChildren,
-  showScreenChildren,
-} from "../utils/helpers.js";
+import { log, showNotification } from "../utils/helpers.js";
 import blessed from "blessed";
 import chalk from "chalk";
 import db from "../lib/db.js";
 import { putHeader } from "../ui/components.js";
+import { COMMENT_SYMBOL_PER_LANGUAGE } from "../constants.js";
+import fs from "fs";
+import path from "path";
 
 export default async function displayAnalysisFeedbacks({
   screen,
@@ -96,6 +93,51 @@ export default async function displayAnalysisFeedbacks({
       },
     },
     content: `From: ${selectedFeedback.from.name}\n\nMessage:\n${selectedFeedback.message}`,
+  });
+
+  const mergeButton = blessed.button({
+    parent: detailsContainer,
+    top: 0,
+    right: 0,
+    align: "center",
+    valign: "middle",
+    width: "30%",
+    height: 3,
+    content: "Merge",
+    border: "line",
+  });
+
+  mergeButton.on("click", async () => {
+    const filePath = path.join(
+      process.cwd(),
+      analysis.fileName ?? analysis.fileToAnalyze,
+    );
+
+    if (!fs.existsSync(filePath)) {
+      await showNotification({
+        screen,
+        message: "File not found, unable to merge.",
+        duration: 2000,
+      });
+      return;
+    }
+
+    const commentSymbol = COMMENT_SYMBOL_PER_LANGUAGE.find(
+      (entry) => entry.language === analysis.fileType,
+    ).symbol;
+
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+    const updatedContent = fileContent.replace(
+      selectedFeedback.highlightedCode,
+      [
+        `${commentSymbol} Start of feedback from ${selectedFeedback.from.name} ================================`,
+        `${commentSymbol} MESSAGE: ${selectedFeedback.message}`,
+        selectedFeedback.highlightedCode,
+        `${commentSymbol} End of feedback from ${selectedFeedback.from.name} ================================`,
+      ].join("\n"),
+    );
+
+    fs.writeFileSync(filePath, updatedContent, "utf-8");
   });
 
   const codeContainer = blessed.box({

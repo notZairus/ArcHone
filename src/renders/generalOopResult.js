@@ -25,6 +25,8 @@ import userArchive from "../actions/archive.js";
 import Database from "../lib/db.js";
 import displayAnalysisFeedbacks from "./analysisFeedbacks.js";
 import { putHeader } from "../ui/components.js";
+import fs from "fs";
+import path from "path";
 
 const SIDE_WIDTH = 20;
 const MAIN_WIDTH = 100 - SIDE_WIDTH;
@@ -794,7 +796,7 @@ export default async function displayAnalysisResult({
       content: `${chalk.bold("Ideal Code")} \n\n${formatCode(idealCode, language)}`,
     });
 
-    const copyButton = blessed.button({
+    const mergeButton = blessed.button({
       parent: idealCodeBoxContainer,
       bottom: 2,
       right: 4,
@@ -803,11 +805,37 @@ export default async function displayAnalysisResult({
       align: "center",
       valign: "middle",
       border: "line",
-      content: "Copy Code",
+      content: "Merge",
     });
 
-    copyButton.on("click", () => {
-      clipboard.writeSync(stripCodeFences(idealCode));
+    mergeButton.on("click", async () => {
+      const filePath = path.join(
+        process.cwd(),
+        result.fileName ?? result.fileToAnalyze,
+      );
+
+      log(result);
+
+      if (!fs.existsSync(filePath)) {
+        await showNotification({
+          screen,
+          message: "File not found, unable to merge.",
+          duration: 2000,
+        });
+
+        return;
+      }
+
+      const fileContent = fs.readFileSync(filePath, "utf-8");
+      const updatedContent = fileContent.replace(currentCode, idealCode);
+
+      fs.writeFileSync(filePath, updatedContent, "utf-8");
+
+      await showNotification({
+        screen,
+        message: "Code merged successfully.",
+        duration: 2000,
+      });
     });
 
     screen.render();

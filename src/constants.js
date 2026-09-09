@@ -498,3 +498,9 @@ function getStudentAccess(user) {
     fix: "class Tax {\n  #calc(amount) {\n    const base = amount * 0.12;\n    return base + 5;\n  }\n\n  calcA(amount) {\n    return this.#calc(amount);\n  }\n\n  calcB(amount) {\n    return this.#calc(amount);\n  }\n}\n",
   },
 ];
+
+export const COMMENT_SYMBOL_PER_LANGUAGE = [
+  { language: "js", symbol: "//" },
+  { language: "cs", symbol: "//" },
+  { language: "py", symbol: "#" },
+];
