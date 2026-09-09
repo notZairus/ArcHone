@@ -120,8 +120,6 @@ export default class Database {
             confidence: func.space.confidence,
           },
         });
-
-        console.log("Finished:", func.name);
       } catch (error) {
         console.error(`Failed to save function: ${func.name}`);
         console.error(error);
@@ -185,8 +183,6 @@ export default class Database {
               Query.limit(MAX_ROWS_LIMIT),
             ],
           });
-
-          console.log("functions done");
 
           const fnWithTimeSpaceComplexity = await Promise.all(
             functions.rows.map(async (func) => {
