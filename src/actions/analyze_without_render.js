@@ -1,18 +1,13 @@
 import fs from "fs";
 import path from "path";
-import { boxError, boxSuccess, box } from "../ui/box.js";
 import {
   VALID_FILE_EXTENSIONS,
-  ARCHONE_DIR,
-  CONSOLE_MAX_WIDTH,
   AVAILABLE_ANALYSIS_MODES,
 } from "../constants.js";
-import clack from "../lib/clack.js";
 import {
   selectFileFromDirectory,
   selectAnalysisMode,
   sortIssuesBySeverity,
-  checkAuth,
   showNotification,
   refreshScreen,
   log,
@@ -28,8 +23,6 @@ import generalTreeAnalyzer from "../analyzer/generalTreeAnalyzer.js";
 import oopTreeAnalyzer from "../analyzer/oopTreeAnalyzer.js";
 import complexityTreeAnalyzer from "../analyzer/complexityTreeAnalyzer.js";
 import { setLatestAnalysis } from "../lib/local.js";
-import displayAnalysisResult from "../results/renderResult.js";
-import displayComplexityResult from "../results/complexityResult.js";
 
 export default async ({
   screen,

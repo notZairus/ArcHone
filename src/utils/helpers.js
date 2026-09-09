@@ -394,3 +394,23 @@ export function cleanFileName(fileName) {
   const splitted = fileName.replace("\\", "/").split("/");
   return splitted[splitted.length - 1];
 }
+
+export function removeDuplicatedIssues(issues) {
+  return issues.filter((issue_left, index_left) => {
+    let hasASubDuplicatedIssue = false;
+
+    issues.forEach((issue_right, index_right) => {
+      if (index_right <= index_left) {
+        return;
+      }
+
+      if (issue_left.title === issue_right.title) {
+        if (issue_left?.code?.includes(issue_right.code)) {
+          hasASubDuplicatedIssue = true;
+        }
+      }
+    });
+
+    return !hasASubDuplicatedIssue;
+  });
+}

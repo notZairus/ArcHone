@@ -10,6 +10,7 @@ import {
   sortIssuesBySeverity,
   showNotification,
   refreshScreen,
+  removeDuplicatedIssues,
 } from "../utils/helpers.js";
 
 import { withIssuePrinciple } from "../utils/issue-principles.js";
@@ -159,13 +160,15 @@ export default async ({
       };
 
   const issuesWithPrinciples = (result.issues || []).map(withIssuePrinciple);
-  const sortedIssues = sortIssuesBySeverity(issuesWithPrinciples);
+  const cleanIssues = removeDuplicatedIssues(
+    sortIssuesBySeverity(issuesWithPrinciples),
+  );
   const code = fs.readFileSync(
     path.join(process.cwd(), fileToAnalyze),
     "utf-8",
   );
 
-  result.issues = sortedIssues;
+  result.issues = cleanIssues;
   result.mode = mode;
   result.language = fileExtension;
   result.code = code;
