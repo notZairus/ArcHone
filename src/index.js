@@ -157,9 +157,9 @@ async function getUserAction() {
 
         const commandLine = blessed.box({
           parent: gettingStared,
-          top: i * 4,
+          top: i * 7,
           width: "100%-5",
-          height: 4,
+          height: 7,
           mouse: true,
           border: {
             type: "line",
@@ -189,9 +189,9 @@ async function getUserAction() {
 
         const commandLine = blessed.box({
           parent: codeAnalysis,
-          top: i * 4,
+          top: i * 7,
           width: "100%-5",
-          height: 4,
+          height: 7,
           mouse: true,
           border: {
             type: "line",
@@ -220,9 +220,9 @@ async function getUserAction() {
 
         const commandLine = blessed.box({
           parent: accountAndAccess,
-          top: i * 4,
+          top: i * 7,
           width: "100%-5",
-          height: 4,
+          height: 7,
           mouse: true,
           border: {
             type: "line",
@@ -251,9 +251,9 @@ async function getUserAction() {
 
         const commandLine = blessed.box({
           parent: issuesLearning,
-          top: i * 4,
+          top: i * 7,
           width: "100%-5",
-          height: 4,
+          height: 7,
           mouse: true,
           border: {
             type: "line",
