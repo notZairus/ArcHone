@@ -2,6 +2,7 @@
 
 import chalk from "chalk";
 import {
+  log,
   isInitialized,
   refreshScreen,
   showNotification,
@@ -41,22 +42,21 @@ async function getUserAction() {
       parent: screen,
       top: "center",
       left: "center",
-      width: "50%",
-      height: "80%",
+      width: "80%",
+      height: "90%",
     });
 
     putHeader(container, "ArchOne - CLI Code Analyzer");
 
-    const commandBox = blessed.box({
+    const gettingStared = blessed.box({
       parent: container,
       top: 3,
-      left: "center",
-      width: "100%",
-      height: `100%-3`,
+      width: "50%",
+      height: `50%-3`,
       border: {
         type: "line",
       },
-      label: chalk.bold(" Available Commands "),
+      label: chalk.bold(" Getting Started "),
       scrollable: true,
       alwaysScroll: true,
       keys: true,
@@ -73,37 +73,210 @@ async function getUserAction() {
       },
     });
 
-    for (let i = 0; i < commands.length; i++) {
-      const commandText = `${chalk.bold(commands[i].triggers.join(", "))} - ${commands[i].description}`;
-
-      const commandLine = blessed.box({
-        parent: commandBox,
-        top: i * 4,
-        width: "100%-5",
-        height: 4,
-        border: {
-          type: "line",
-        },
-        padding: {
-          left: 1,
-          right: 1,
+    const codeAnalysis = blessed.box({
+      parent: container,
+      top: 3,
+      left: "50%",
+      width: "50%",
+      height: `50%-3`,
+      border: {
+        type: "line",
+      },
+      label: chalk.bold(" Code Analysis "),
+      scrollable: true,
+      alwaysScroll: true,
+      keys: true,
+      vi: true,
+      mouse: true,
+      scrollbar: {
+        ch: " ",
+        track: {
+          bg: "gray",
         },
         style: {
-          hover: {
-            bg: "gray",
-          },
+          inverse: true,
         },
-        content: commandText,
+      },
+    });
+
+    const accountAndAccess = blessed.box({
+      parent: container,
+      top: "50%",
+      width: "50%",
+      height: `50%-3`,
+      border: {
+        type: "line",
+      },
+      label: chalk.bold(" Account & Access "),
+      scrollable: true,
+      alwaysScroll: true,
+      keys: true,
+      vi: true,
+      mouse: true,
+      scrollbar: {
+        ch: " ",
+        track: {
+          bg: "gray",
+        },
+        style: {
+          inverse: true,
+        },
+      },
+    });
+
+    const issuesLearning = blessed.box({
+      parent: container,
+      top: "50%",
+      left: "50%",
+      width: "50%",
+      height: `50%-3`,
+      border: {
+        type: "line",
+      },
+      label: chalk.bold(" --- "),
+      scrollable: true,
+      alwaysScroll: true,
+      keys: true,
+      vi: true,
+      mouse: true,
+      scrollbar: {
+        ch: " ",
+        track: {
+          bg: "gray",
+        },
+        style: {
+          inverse: true,
+        },
+      },
+    });
+
+    commands
+      .filter((cmd) => cmd.category === "Getting Started")
+      .forEach((cmd, i) => {
+        const commandText = `${chalk.bold(cmd.triggers.join(", "))} - ${cmd.description}`;
+
+        const commandLine = blessed.box({
+          parent: gettingStared,
+          top: i * 4,
+          width: "100%-5",
+          height: 4,
+          mouse: true,
+          border: {
+            type: "line",
+          },
+          padding: {
+            left: 1,
+            right: 1,
+          },
+          style: {
+            hover: {
+              bg: "gray",
+            },
+          },
+          content: commandText,
+        });
+        commandLine.on("click", async () => {
+          log("Command clicked:", cmd.triggers[0]);
+          const action = cmd.triggers[0];
+          resolve(action);
+        });
       });
 
-      commandLine.on("click", async () => {
-        const action = commands[i].triggers[0];
-        resolve(action);
+    commands
+      .filter((cmd) => cmd.category === "Code Analysis")
+      .forEach((cmd, i) => {
+        const commandText = `${chalk.bold(cmd.triggers.join(", "))} - ${cmd.description}`;
+
+        const commandLine = blessed.box({
+          parent: codeAnalysis,
+          top: i * 4,
+          width: "100%-5",
+          height: 4,
+          mouse: true,
+          border: {
+            type: "line",
+          },
+          padding: {
+            left: 1,
+            right: 1,
+          },
+          style: {
+            hover: {
+              bg: "gray",
+            },
+          },
+          content: commandText,
+        });
+        commandLine.on("click", async () => {
+          const action = cmd.triggers[0];
+          resolve(action);
+        });
       });
-    }
+
+    commands
+      .filter((cmd) => cmd.category === "Account & Access")
+      .forEach((cmd, i) => {
+        const commandText = `${chalk.bold(cmd.triggers.join(", "))} - ${cmd.description}`;
+
+        const commandLine = blessed.box({
+          parent: accountAndAccess,
+          top: i * 4,
+          width: "100%-5",
+          height: 4,
+          mouse: true,
+          border: {
+            type: "line",
+          },
+          padding: {
+            left: 1,
+            right: 1,
+          },
+          style: {
+            hover: {
+              bg: "gray",
+            },
+          },
+          content: commandText,
+        });
+        commandLine.on("click", async () => {
+          const action = cmd.triggers[0];
+          resolve(action);
+        });
+      });
+
+    commands
+      .filter((cmd) => cmd.category === "Results & Learning")
+      .forEach((cmd, i) => {
+        const commandText = `${chalk.bold(cmd.triggers.join(", "))} - ${cmd.description}`;
+
+        const commandLine = blessed.box({
+          parent: issuesLearning,
+          top: i * 4,
+          width: "100%-5",
+          height: 4,
+          mouse: true,
+          border: {
+            type: "line",
+          },
+          padding: {
+            left: 1,
+            right: 1,
+          },
+          style: {
+            hover: {
+              bg: "gray",
+            },
+          },
+          content: commandText,
+        });
+        commandLine.on("click", async () => {
+          const action = cmd.triggers[0];
+          resolve(action);
+        });
+      });
 
     screen.render();
-    commandBox.focus();
+    gettingStared.focus();
   });
 }
 
