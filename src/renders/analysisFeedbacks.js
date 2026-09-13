@@ -51,7 +51,7 @@ export default async function displayAnalysisFeedbacks({
   analysis.feedbacks.forEach((feedback, index) => {
     const feedbackBox = blessed.box({
       parent: feedbacksContainer,
-      width: "100%-4",
+      width: "100%-5",
       height: 3,
       top: feedbacksContainer.children.length * 3,
       border: "line",
@@ -126,15 +126,18 @@ export default async function displayAnalysisFeedbacks({
       (entry) => entry.language === analysis.fileType,
     ).symbol;
 
+    const codeWithFeedback =
+      `${commentSymbol} ================================\n` +
+      `${commentSymbol} Start of feedback from ${selectedFeedback.from.name}\n` +
+      `${commentSymbol} TODO: ${selectedFeedback.message}\n` +
+      `${selectedFeedback.highlightedCode}\n` +
+      `${commentSymbol} End of feedback from ${selectedFeedback.from.name}\n` +
+      `${commentSymbol} ================================\n`;
+
     const fileContent = fs.readFileSync(filePath, "utf-8");
     const updatedContent = fileContent.replace(
       selectedFeedback.highlightedCode,
-      [
-        `${commentSymbol} Start of feedback from ${selectedFeedback.from.name} ================================`,
-        `${commentSymbol} MESSAGE: ${selectedFeedback.message}`,
-        selectedFeedback.highlightedCode,
-        `${commentSymbol} End of feedback from ${selectedFeedback.from.name} ================================`,
-      ].join("\n"),
+      codeWithFeedback,
     );
 
     fs.writeFileSync(filePath, updatedContent, "utf-8");

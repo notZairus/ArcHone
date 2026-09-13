@@ -435,7 +435,7 @@ export default async function displayComplexityResult({
         parent: findingsView,
         top: index * 15,
         left: 0,
-        width: "98%",
+        width: "100%-5",
         height: 15,
         padding: {
           left: 1,

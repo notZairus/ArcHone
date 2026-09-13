@@ -480,7 +480,7 @@ export default async function displayAnalysisResult({
           parent: findingsView,
 
           top: index * 7,
-          width: "99%",
+          width: "100%-5",
           height: 7,
 
           mouse: true,

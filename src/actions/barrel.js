@@ -16,76 +16,79 @@ const commands = [
   {
     triggers: ["analyze"],
     description:
-      "Run ArcHone analysis on a specific source file and return insights about code quality, structure, and issues.",
+      "Analyze one JavaScript, Python, or C# file for issues and complexity. Provide a file path and optional --mode general or oop.",
     function: analyze,
   },
   {
     triggers: ["init"],
     description:
-      "Set up ArcHone in the current project by creating the required local configuration and startup files.",
+      "Set up ArcHone on this machine by creating its local configuration, saved results file, and optional AI settings.",
     function: initialize,
   },
   {
     triggers: ["login"],
     description:
-      "Authenticate with your ArcHone account so this CLI can access your saved profile and cloud features.",
+      "Sign in to connect this CLI to your ArcHone account and unlock cloud features such as saved analyses and classrooms.",
     function: login,
   },
   {
     triggers: ["logout"],
     description:
-      "Sign out on this machine by clearing your local ArcHone session file.",
+      "Sign out of ArcHone on this machine by removing the saved local session. Your account and cloud data stay unchanged.",
     function: logout,
   },
   {
     triggers: ["register"],
     description:
-      "Create a new ArcHone account and connect it to this CLI so you can start analyzing files right away.",
+      "Create an ArcHone account and sign in to save analyses, view statistics, and join classrooms.",
     function: register,
   },
   {
     triggers: ["archive"],
-    description: "View past code analysis results.",
+    description:
+      "Browse your saved analyses, grouped by file, and reopen earlier code-quality and complexity results.",
     function: archive,
   },
   {
     triggers: ["about"],
     description:
-      "Show an overview of ArcHone, including what the tool does and how it helps with code analysis.",
+      "Learn what ArcHone analyzes, which languages it supports, and how its feedback helps improve your code.",
     function: about,
   },
   {
     triggers: ["stats"],
     description:
-      "Display your personal analysis metrics, such as scan activity and usage patterns from previous runs.",
+      "Review analysis metrics, including issue totals and the languages, files, functions, and variables found.",
     function: stats,
   },
   {
     triggers: ["who"],
-    description: "Show the authenticated ArcHone user.\n",
+    description:
+      "Show the ArcHone account currently signed in on this machine.",
     function: whoami,
   },
   {
     triggers: ["issues"],
     description:
-      "Show student-friendly lessons for each detectable issue, including why it matters and how to fix it.",
+      "Browse the issue catalog for examples, explanations, and student-friendly suggestions for fixing each problem.",
     function: issues,
   },
   {
     triggers: ["help"],
     description:
-      "Open Archone assistant mode to see command explanations, practical hints, and quick-start guidance.",
+      "Show this command guide with plain-language explanations and quick hints for getting started.",
     function: help,
   },
   {
     triggers: ["scan"],
     description:
-      "Analyze all supported source files in a directory and show an aggregated issue summary.",
+      "Scan a folder for supported source files and summarize issues across them. Add a folder path and optionally --mode general or oop.",
     function: scan,
   },
   {
     triggers: ["classrooms"],
-    description: "View classrooms you are a member of.",
+    description:
+      "View your classrooms or join one with a classroom code. Requires an ArcHone login.",
     function: classrooms,
   },
 ];

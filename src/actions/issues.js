@@ -605,7 +605,6 @@ export default async function issues({ screen, issueTitle }) {
     const markdownLesson = formatIssueLessonMarkdown(selectedIssue);
     const renderedLesson = renderWithTerminalMarkdown(markdownLesson);
 
-
     issueDetails.setContent(
       `Selected Issue: ${selectedIssue.title}\n\n${renderedLesson}`,
     );
@@ -620,7 +619,7 @@ export default async function issues({ screen, issueTitle }) {
       parent: issueContainer,
       top: index * 3,
       left: 1,
-      width: "94%",
+      width: "100%-5",
       height: 3,
       border: "line",
       mouse: true,

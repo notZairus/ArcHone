@@ -170,7 +170,7 @@ export default async function classroomsAction({ screen }) {
         parent: classroomContainer,
         top: index * 5,
         left: 0,
-        width: "95%",
+        width: "100%-5",
         height: 5,
         border: "line",
         content: `{bold}${index + 1}. ${classroom.name}{/bold}\nStatus: ${isAccepted ? chalk.green("Accepted") : chalk.yellow("Pending approval")}\nDescription: ${

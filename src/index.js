@@ -79,7 +79,7 @@ async function getUserAction() {
       const commandLine = blessed.box({
         parent: commandBox,
         top: i * 4,
-        width: "96%",
+        width: "100%-5",
         height: 4,
         border: {
           type: "line",

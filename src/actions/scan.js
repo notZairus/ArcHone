@@ -327,7 +327,7 @@ export default async ({ screen, currentMode = null }) => {
       parent: filesContainer,
       top: 5 * index,
       height: 5,
-      width: "95%",
+      width: "100%-5",
       border: "line",
       padding: {
         left: 1,
@@ -385,7 +385,7 @@ export default async ({ screen, currentMode = null }) => {
       parent: issueRankingsContainer,
       top: 4 * index,
       height: 4,
-      width: "95%",
+      width: "100%-5",
       border: "line",
       padding: {
         left: 1,
