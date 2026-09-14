@@ -14,6 +14,7 @@ import {
   colorSeverity,
   hideScreenChildren,
   showScreenChildren,
+  removeDuplicatedIssues,
 } from "../utils/helpers.js";
 import { putHeader } from "../ui/components.js";
 import blessed from "blessed";
@@ -167,7 +168,7 @@ export default async ({ screen, currentMode = null }) => {
       const sourceCode = fs.readFileSync(filePath, "utf-8");
       const tree = await treeParser(sourceCode, extension);
       const result = await analyzer(tree, sourceCode, extension);
-      const issues = result.issues || [];
+      const issues = removeDuplicatedIssues(result.issues) || [];
 
       if (issues.length) {
         if (!fileSummary.has(relativeFilePath)) {
