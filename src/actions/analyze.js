@@ -49,7 +49,11 @@ export default async function analyze({
 
   let completeFilePath = providedInputPath
     ? path.join(process.cwd(), providedInputPath)
-    : await selectFileFromDirectory({ directory: process.cwd(), screen });
+    : await selectFileFromDirectory({
+        directory: process.cwd(),
+        screen,
+        hasActionByDefault,
+      });
 
   if (!completeFilePath) {
     backToMenu(hasActionByDefault);
@@ -114,7 +118,10 @@ export default async function analyze({
   const shouldPromptForMode = !providedInputPath && !hasModeFlag;
 
   if (shouldPromptForMode) {
-    const selectedMode = await selectAnalysisMode({ screen });
+    const selectedMode = await selectAnalysisMode({
+      screen,
+      hasActionByDefault,
+    });
 
     if (!selectedMode) {
       backToMenu(hasActionByDefault);

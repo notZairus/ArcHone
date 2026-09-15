@@ -57,7 +57,11 @@ export function refreshBox(box) {
   }
 }
 
-export async function selectFileFromDirectory({ directory, screen }) {
+export async function selectFileFromDirectory({
+  directory,
+  screen,
+  hasActionByDefault = true,
+}) {
   refreshScreen(screen);
   return new Promise((resolve) => {
     const container = blessed.box({
@@ -68,7 +72,9 @@ export async function selectFileFromDirectory({ directory, screen }) {
       height: "80%",
     });
 
-    putHeader(container, "ArcHone Analyze");
+    putHeader(container, "ArcHone Analyze", () => {
+      backToMenu(hasActionByDefault);
+    });
 
     const fileManager = blessed.filemanager({
       parent: container,
@@ -130,7 +136,11 @@ export async function selectFileFromDirectory({ directory, screen }) {
   });
 }
 
-export function selectAnalysisMode({ screen }) {
+export function selectAnalysisMode({
+  screen,
+  availableModes,
+  hasActionByDefault = true,
+}) {
   refreshScreen(screen);
 
   return new Promise((resolve) => {
@@ -142,9 +152,11 @@ export function selectAnalysisMode({ screen }) {
       height: "50%",
     });
 
-    putHeader(container, "ArcHone Analyze");
+    putHeader(container, "ArcHone Analyze", () => {
+      backToMenu(hasActionByDefault);
+    });
 
-    const modes = [
+    const allModes = [
       {
         value: "general",
         label: "General",
@@ -161,6 +173,9 @@ export function selectAnalysisMode({ screen }) {
         hint: "Code complexity (time complexity and space complexity)",
       },
     ];
+    const modes = availableModes
+      ? allModes.filter((mode) => availableModes.includes(mode.value))
+      : allModes;
 
     const list = blessed.list({
       parent: container,

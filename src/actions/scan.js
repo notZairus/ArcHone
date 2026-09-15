@@ -16,6 +16,7 @@ import {
   showScreenChildren,
   removeDuplicatedIssues,
   backToMenu,
+  selectAnalysisMode,
 } from "../utils/helpers.js";
 import { putHeader } from "../ui/components.js";
 import blessed from "blessed";
@@ -69,6 +70,23 @@ export default async ({ screen, currentMode = null, hasActionByDefault }) => {
 
   if (currentMode) {
     mode = currentMode;
+  }
+
+  const shouldPromptForMode = !currentMode && !hasModeFlag;
+
+  if (shouldPromptForMode) {
+    const selectedMode = await selectAnalysisMode({
+      screen,
+      availableModes: ["general", "oop"],
+      hasActionByDefault,
+    });
+
+    if (!selectedMode) {
+      backToMenu(hasActionByDefault);
+      return;
+    }
+
+    mode = selectedMode;
   }
 
   if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
