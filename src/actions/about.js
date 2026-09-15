@@ -1,30 +1,40 @@
-import { mainBanner } from "../ui/banner.js";
-import boxen from "boxen";
 import chalk from "chalk";
-import { CONSOLE_MAX_WIDTH } from "../constants.js";
-import { box } from "../ui/box.js";
-import { refreshScreen } from "../utils/helpers.js";
+import { refreshScreen, backToMenu } from "../utils/helpers.js";
 import blessed from "blessed";
 
-export default async function about({ screen }) {
+export default async function about({ screen, hasActionByDefault }) {
   refreshScreen(screen);
   const aboutText = [
     `${chalk.bold("What ArcHone does")}`,
-    "ArcHone analyzes your source files and explains bad coding practices in plain language.",
+    "ArcHone is a code review assistant that scans your project for issues that make software harder to read, maintain, and extend.",
+    "It analyzes source files and explains problems in plain language so you can understand what needs attention and why.",
     "",
-    `${chalk.bold("Bad practices ArcHone detects")}`,
-    "- Unused variables, imports, and dead code",
-    "- Weak naming and unclear function intent",
+    `${chalk.bold("What it checks for")}`,
+    "- Unused variables, and dead code",
+    "- Bad and language specific naming practices",
     "- Overly complex or deeply nested logic",
-    "- Risky patterns that hurt readability or maintainability",
+    "- Poor structure that hurts readability and maintainability",
+    "- Repeated patterns, code smells, and design issues",
+    "- Object-oriented problems such as large classes or excessive dependencies",
     "",
-    `${chalk.bold("Why it helps")}`,
-    "- Guides user toward cleaner and more readable code",
-    "- Encourages practical industry coding standards",
-    "- Turns analysis results into actionable next steps",
+    `${chalk.bold("How it helps")}`,
+    "- Highlights problems before they become harder to refactor",
+    "- Teaches cleaner coding habits using practical standards",
+    "- Helps you spot risky patterns early in development",
+    "- Turns review results into clear, actionable next steps",
     "",
-    `${chalk.bold("Best way to start")}`,
-    `Run ${chalk.cyan("archone init")}, then ${chalk.cyan("archone login")}, and finally ${chalk.cyan("archone analyze <file>")}.`,
+    `${chalk.bold("Supported workflows")}`,
+    "ArcHone can analyze JavaScript, Python, and C# files, then summarize issues in a way that is easier to act on than raw lint output.",
+    "",
+    `${chalk.bold("How to get started")}`,
+    `1. Run ${chalk.cyan("archone init")} to set up your local project configuration`,
+    `2. Run ${chalk.cyan("archone login")} to authenticate your session. (Note: this step is optional if you want to use ArcHone a mere development tool, but is required for other features.)`,
+    `3. Run ${chalk.cyan("archone scan")} to analyze your project or a specific directory`,
+    `4. Run ${chalk.cyan("archone analyze <file>")} or ${chalk.cyan("archone scan")} to review code`,
+    "5. Review the findings and apply the suggested improvements",
+    "",
+    `${chalk.bold("Best way to use ArcHone")}`,
+    "Use it during development to catch avoidable problems early, and during review to quickly understand hotspots in a codebase.",
   ].join("\n");
 
   const box = blessed.box({
@@ -34,8 +44,19 @@ export default async function about({ screen }) {
     border: {
       type: "line",
     },
+    mouse: true,
+    vi: true,
+    keys: true,
     width: "50%",
-    height: "shrink",
+    height: "80%",
+    scrollable: true,
+    alwaysScroll: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "grey",
+      },
+    },
     content: aboutText,
     padding: {
       left: 2,
@@ -56,7 +77,8 @@ export default async function about({ screen }) {
   });
 
   closeBtn.on("press", () => {
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   });
 
   screen.render();

@@ -5,7 +5,7 @@ import boxen from "boxen";
 import { CONSOLE_MAX_WIDTH, ARCHONE_DIR, CONFIG_PATH } from "../constants.js";
 import { getSession } from "./session.js";
 import blessed from "blessed";
-import figlet from "figlet";
+import { main } from "../index.js";
 import { execSync } from "child_process";
 import {
   DEFAULT_PENALTY_BY_TYPE,
@@ -68,7 +68,7 @@ export async function selectFileFromDirectory({ directory, screen }) {
       height: "80%",
     });
 
-    putHeader(container, "ArcHne Analyze");
+    putHeader(container, "ArcHone Analyze");
 
     const fileManager = blessed.filemanager({
       parent: container,
@@ -413,4 +413,12 @@ export function removeDuplicatedIssues(issues) {
 
     return !hasASubDuplicatedIssue;
   });
+}
+
+export function backToMenu(hasActionByDefault = true) {
+  hasActionByDefault
+    ? process.exit(0)
+    : main().catch((err) => {
+        console.error("An error occurred:", err);
+      });
 }

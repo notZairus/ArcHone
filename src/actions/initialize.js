@@ -1,17 +1,19 @@
 import blessed from "blessed";
 import fs from "fs";
-import path from "path";
 import chalk from "chalk";
-import clipboardy from "clipboardy";
 import {
   ARCHONE_DIR,
   CONFIG_PATH,
   LATEST_ANALYSIS_PATH,
 } from "../constants.js";
-import { validateApiKey, wait } from "../utils/helpers.js";
+import {
+  validateApiKey,
+  showNotification,
+  backToMenu,
+} from "../utils/helpers.js";
 import { log, readClipboard } from "../utils/helpers.js";
 
-export default async ({ screen }) => {
+export default async ({ screen, hasActionByDefault }) => {
   // Global exit ONLY on Ctrl+C
   screen.key(["C-c"], () => {
     screen.destroy();
@@ -28,7 +30,6 @@ export default async ({ screen }) => {
       width: "70%",
       height: height,
       border: { type: "line" },
-      style: { border: { fg: "cyan" } },
       label: ` ${chalk.bold(title)} `,
     });
   };
@@ -320,19 +321,13 @@ export default async ({ screen }) => {
   // --- Flow Execution ---
 
   if (fs.existsSync(ARCHONE_DIR)) {
-    const box = createBox("Already Initialized", 7);
-    blessed.text({
-      parent: box,
-      content: `${chalk.yellow("ArcHone is already initialized.")}\n\nYou can continue using the CLI normally.`,
-      top: 1,
-      left: 2,
+    await showNotification({
+      screen,
+      message:
+        "ArcHone is already initialized.\n\nYou can continue using the CLI normally.",
     });
 
-    screen.render();
-    setTimeout(() => {
-      screen.destroy();
-      process.exit(0);
-    }, 3000);
+    backToMenu(hasActionByDefault);
     return;
   }
 
@@ -340,7 +335,7 @@ export default async ({ screen }) => {
 
   if (!allowed) {
     console.clear();
-    process.exit(0);
+    backToMenu(hasActionByDefault);
   }
 
   const aiEnabled = await promptAiEnable();
@@ -385,23 +380,16 @@ export default async ({ screen }) => {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify({ ai: aiConfig }, null, 2));
     fs.writeFileSync(LATEST_ANALYSIS_PATH, JSON.stringify({}, null, 2));
 
-    const successBox = createBox("Setup Successful", 7);
-    blessed.text({
-      parent: successBox,
-      content: `${chalk.green("Initialization complete.")}\n\nArcHone is ready on this machine.`,
-      top: 1,
-      left: 2,
+    await showNotification({
+      screen,
+      message: "ArcHone has been successfully initialized on this machine.",
     });
-    // setTimeout(() => {
-    //   screen.destroy();
-    //   process.exit(0);
-    // }, 3000);
 
-    screen.render();
-    await wait(3000);
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   } catch (error) {
     screen.destroy();
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   }
 };

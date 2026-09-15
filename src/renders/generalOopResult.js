@@ -9,6 +9,7 @@ import {
   hideScreenChildren,
   showScreenChildren,
   wait,
+  backToMenu,
 } from "../utils/helpers.js";
 import { getAiConfig } from "../lib/local.js";
 import process from "process";
@@ -36,6 +37,7 @@ let globalResult = null;
 
 async function reAnalyzeFile({
   screen,
+  hasActionByDefault,
   currentFilePath,
   currentMode,
   fromScan = false,
@@ -53,6 +55,7 @@ async function reAnalyzeFile({
 
   await analyzeFile({
     screen,
+    hasActionByDefault,
     currentFilePath,
     currentMode,
     fromScan,
@@ -62,6 +65,7 @@ async function reAnalyzeFile({
 
 export default async function displayAnalysisResult({
   screen,
+  hasActionByDefault,
   result,
   fromScan = false,
   fromArchive = false,
@@ -74,6 +78,7 @@ export default async function displayAnalysisResult({
     screen.key(["r"], async function (ch, key) {
       await reAnalyzeFile({
         screen,
+        hasActionByDefault,
         currentFilePath: result.fileToAnalyze,
         currentMode: result.mode,
         fromScan,
@@ -124,11 +129,13 @@ export default async function displayAnalysisResult({
         if (fromScan) {
           await scanDirectory({
             screen,
+            hasActionByDefault,
             currentMode: result.mode,
           });
         } else if (fromArchive) {
           await userArchive({
             screen,
+            hasActionByDefault,
           });
         }
       });
@@ -144,7 +151,8 @@ export default async function displayAnalysisResult({
       });
 
       closeBtn.on("press", () => {
-        process.exit(0);
+        backToMenu(hasActionByDefault);
+        return;
       });
     }
 
@@ -229,6 +237,7 @@ export default async function displayAnalysisResult({
       analyzeButton.on("click", async () => {
         await reAnalyzeFile({
           screen,
+          hasActionByDefault,
           currentFilePath: result.fileToAnalyze,
           currentMode: result.mode,
           fromScan,

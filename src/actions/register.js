@@ -1,18 +1,14 @@
-import boxen from "boxen";
-import { ID } from "appwrite";
 import chalk from "chalk";
-
-import clack from "../lib/clack.js";
 import open from "open";
-import { account } from "../lib/appwrite.js";
-import { mainBanner } from "../ui/banner.js";
-import Database from "../lib/db.js";
-import { CONSOLE_MAX_WIDTH } from "../constants.js";
-import { box } from "../ui/box.js";
 import blessed from "blessed";
-import { showNotification, wait, refreshScreen } from "../utils/helpers.js";
+import {
+  showNotification,
+  wait,
+  refreshScreen,
+  backToMenu,
+} from "../utils/helpers.js";
 
-export default async function register({ screen }) {
+export default async function register({ screen, hasActionByDefault }) {
   refreshScreen(screen);
   const registerGuide = [
     `${chalk.bold("Welcome to ArcHone!")}`,
@@ -71,7 +67,8 @@ export default async function register({ screen }) {
   });
 
   closeBtn.on("press", () => {
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   });
 
   screen.render();

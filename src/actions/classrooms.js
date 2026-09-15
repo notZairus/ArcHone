@@ -5,6 +5,7 @@ import {
   readClipboard,
   hideScreenChildren,
   showScreenChildren,
+  backToMenu,
 } from "../utils/helpers.js";
 import { getSession } from "../utils/session.js";
 import blessed from "blessed";
@@ -12,7 +13,7 @@ import { putHeader } from "../ui/components.js";
 import Database from "../lib/db.js";
 import chalk from "chalk";
 
-export default async function classroomsAction({ screen }) {
+export default async function classroomsAction({ screen, hasActionByDefault }) {
   refreshScreen(screen);
 
   const { name, userId } = getSession();
@@ -21,10 +22,11 @@ export default async function classroomsAction({ screen }) {
     await showNotification({
       screen,
       message:
-        "You need to be logged in to view your classrooms. Please run 'archone login' first.",
+        "You need to be authenticated to view your classrooms. Please run 'archone login' first.",
     });
 
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   let classrooms = await Database.getClassroomsByUserId(userId);
@@ -38,7 +40,9 @@ export default async function classroomsAction({ screen }) {
     content: "",
   });
 
-  putHeader(box, "ArcHone Classrooms");
+  putHeader(box, "ArcHone Classrooms", () => {
+    backToMenu(hasActionByDefault);
+  });
 
   const joinForm = blessed.form({
     parent: box,

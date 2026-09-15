@@ -1,11 +1,16 @@
 import blessed from "blessed";
 import chalk from "chalk";
+import { backToMenu } from "../utils/helpers.js";
 
 export const putHeader = (
   container,
   content,
   callback = () => {
-    process.exit(0);
+    try {
+      backToMenu();
+    } catch {
+      process.exit(0);
+    }
   },
 ) => {
   const header = blessed.box({

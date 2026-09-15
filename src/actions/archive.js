@@ -5,13 +5,14 @@ import {
   refreshBox,
   showNotification,
   cleanFileName,
+  backToMenu,
 } from "../utils/helpers.js";
 import { putHeader } from "../ui/components.js";
 import Database from "../lib/db.js";
 import displayAnalysisResult from "../renders/generalOopResult.js";
 import displayComplexityResult from "../renders/complexityResult.js";
 
-export default async function archive({ screen }) {
+export default async function archive({ screen, hasActionByDefault }) {
   refreshScreen(screen);
 
   const { userId } = getSession();
@@ -19,10 +20,11 @@ export default async function archive({ screen }) {
   if (!userId) {
     await showNotification({
       screen,
-      message: "Unauthenticated",
+      message: "Please log in to view your past analysis results.",
     });
 
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   const loader = blessed.loading({
@@ -46,7 +48,9 @@ export default async function archive({ screen }) {
       screen,
       message: "No analyses found.",
     });
-    process.exit(0);
+
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   const container = blessed.box({

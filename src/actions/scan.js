@@ -15,6 +15,7 @@ import {
   hideScreenChildren,
   showScreenChildren,
   removeDuplicatedIssues,
+  backToMenu,
 } from "../utils/helpers.js";
 import { putHeader } from "../ui/components.js";
 import blessed from "blessed";
@@ -51,7 +52,7 @@ const severityRank = {
   unknown: 5,
 };
 
-export default async ({ screen, currentMode = null }) => {
+export default async ({ screen, currentMode = null, hasActionByDefault }) => {
   refreshScreen(screen);
   const args = process.argv.slice(3);
 
@@ -81,7 +82,8 @@ export default async ({ screen, currentMode = null }) => {
       duration: 3000,
     });
 
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   const analyzersByExtension = analyzersByMode[mode] || analyzersByMode.general;
@@ -254,7 +256,9 @@ export default async ({ screen, currentMode = null }) => {
     height: "90%",
   });
 
-  putHeader(container, "ArcHone Scan");
+  putHeader(container, "ArcHone Scan", () => {
+    backToMenu(hasActionByDefault);
+  });
 
   const mainContainer = blessed.box({
     parent: container,

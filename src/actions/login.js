@@ -4,6 +4,7 @@ import {
   showNotification,
   hideScreenChildren,
   showScreenChildren,
+  backToMenu,
 } from "../utils/helpers.js";
 import chalk from "chalk";
 import fs from "fs";
@@ -24,6 +25,7 @@ function isLoggedIn() {
 
 export default async function login({
   screen,
+  hasActionByDefault,
   email,
   password,
   focusOn = "email",
@@ -37,7 +39,8 @@ export default async function login({
     )}! Your ArcHone CLI is connected to your account on this machine.`;
 
     await showNotification({ screen, message });
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   const form = blessed.form({
@@ -71,7 +74,8 @@ export default async function login({
   });
 
   closeButton.on("press", () => {
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   });
 
   const emailLabel = blessed.text({
@@ -128,6 +132,7 @@ export default async function login({
   emailInput.on("click", () => {
     login({
       screen,
+      hasActionByDefault,
       email: emailInput.value,
       password: passwordInput.value,
       focusOn: "email",
@@ -137,6 +142,7 @@ export default async function login({
   passwordInput.on("click", () => {
     login({
       screen,
+      hasActionByDefault,
       email: emailInput.value,
       password: passwordInput.value,
       focusOn: "password",
@@ -204,14 +210,14 @@ async function handleSubmit({ screen, data }) {
       const message = `${chalk.red("Login failed.")}\n\n${chalk.bold("Access Denied: Instructor accounts cannot log in to the ArcHone CLI.")}\n\nPlease use a student account to access the CLI features.`;
 
       await showNotification({ screen, message });
-      return;
+      process.exit(1);
     }
 
     if (user.status !== "verified") {
       const message = `${chalk.red("Login failed.")}\n\n${chalk.bold("Verification Required: Your email address is not verified.")}\n\nPlease check your email's inbox for a verification email and verify your account before logging in.`;
 
       await showNotification({ screen, message });
-      return;
+      process.exit(1);
     }
 
     // Save session data to .archone/session.json
@@ -231,6 +237,7 @@ async function handleSubmit({ screen, data }) {
       screen,
       message: `${chalk.green("Login successful!")}\n\nWelcome, ${chalk.bold(user.name)}! Your ArcHone CLI is now connected to your account. You can start running analyses and accessing your data securely on this machine.`,
     });
+
     process.exit(0);
   } catch (error) {
     loader.stop();
@@ -241,6 +248,6 @@ async function handleSubmit({ screen, data }) {
       message: `${chalk.red("Login failed.")}\n\n${chalk.bold(error.message.toUpperCase())}\n\nPlease check your credentials and try again.`,
     });
 
-    login({ screen });
+    login({ screen, hasActionByDefault });
   }
 }

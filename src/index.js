@@ -46,7 +46,9 @@ async function getUserAction() {
       height: "90%",
     });
 
-    putHeader(container, "ArchOne - CLI Code Analyzer");
+    putHeader(container, "ArcHone - CLI Code Analyzer", () => {
+      process.exit(0);
+    });
 
     const gettingStared = blessed.box({
       parent: container,
@@ -157,9 +159,9 @@ async function getUserAction() {
 
         const commandLine = blessed.box({
           parent: gettingStared,
-          top: i * 7,
+          top: i * 6,
           width: "100%-5",
-          height: 7,
+          height: 6,
           mouse: true,
           border: {
             type: "line",
@@ -189,9 +191,9 @@ async function getUserAction() {
 
         const commandLine = blessed.box({
           parent: codeAnalysis,
-          top: i * 7,
+          top: i * 6,
           width: "100%-5",
-          height: 7,
+          height: 6,
           mouse: true,
           border: {
             type: "line",
@@ -220,9 +222,9 @@ async function getUserAction() {
 
         const commandLine = blessed.box({
           parent: accountAndAccess,
-          top: i * 7,
+          top: i * 6,
           width: "100%-5",
-          height: 7,
+          height: 6,
           mouse: true,
           border: {
             type: "line",
@@ -251,9 +253,9 @@ async function getUserAction() {
 
         const commandLine = blessed.box({
           parent: issuesLearning,
-          top: i * 7,
+          top: i * 6,
           width: "100%-5",
-          height: 7,
+          height: 6,
           mouse: true,
           border: {
             type: "line",
@@ -280,8 +282,9 @@ async function getUserAction() {
   });
 }
 
-async function main() {
+export async function main() {
   let action = process.argv[2];
+  let hasActionByDefault = true;
 
   if (!isInitialized() && action !== "init") {
     await initialize({ screen });
@@ -289,6 +292,7 @@ async function main() {
 
   if (!action) {
     action = await getUserAction();
+    hasActionByDefault = false;
   }
 
   const commandsStringArray = commands.map((cmd) => cmd.triggers).flat();
@@ -305,7 +309,7 @@ async function main() {
   for (const command of commands) {
     if (command.triggers.includes(action)) {
       refreshScreen(screen);
-      await command.function({ screen: screen });
+      await command.function({ screen: screen, hasActionByDefault });
     }
   }
 }

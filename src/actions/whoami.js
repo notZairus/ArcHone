@@ -1,15 +1,12 @@
-import boxen from "boxen";
 import chalk from "chalk";
-import fs from "fs";
-import path from "path";
-
-import { ARCHONE_DIR, CONSOLE_MAX_WIDTH } from "../constants.js";
-import { mainBanner } from "../ui/banner.js";
 import { getSession } from "../utils/session.js";
-import { box } from "../ui/box.js";
-import { refreshScreen, showNotification } from "../utils/helpers.js";
+import {
+  refreshScreen,
+  showNotification,
+  backToMenu,
+} from "../utils/helpers.js";
 
-export default async function whoami({ screen }) {
+export default async function whoami({ screen, hasActionByDefault }) {
   refreshScreen(screen);
 
   const { name, role } = getSession();
@@ -29,5 +26,6 @@ export default async function whoami({ screen }) {
     duration: 3000,
   });
 
-  process.exit(0);
+  backToMenu(hasActionByDefault);
+  return;
 }

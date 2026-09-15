@@ -2,11 +2,15 @@ import chalk from "chalk";
 import fs from "fs";
 import path from "path";
 import blessed from "blessed";
-import { showNotification, refreshScreen } from "../utils/helpers.js";
+import {
+  showNotification,
+  refreshScreen,
+  backToMenu,
+} from "../utils/helpers.js";
 
 import { ARCHONE_DIR } from "../constants.js";
 
-export default async function logout({ screen }) {
+export default async function logout({ screen, hasActionByDefault }) {
   refreshScreen(screen);
 
   const sessionPath = path.join(ARCHONE_DIR, "session.json");
@@ -28,5 +32,6 @@ export default async function logout({ screen }) {
   }
 
   await showNotification({ screen, message, title });
-  process.exit(0);
+  backToMenu(hasActionByDefault);
+  return;
 }

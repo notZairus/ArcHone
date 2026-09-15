@@ -11,6 +11,7 @@ import {
   showNotification,
   refreshScreen,
   removeDuplicatedIssues,
+  backToMenu,
 } from "../utils/helpers.js";
 
 import { withIssuePrinciple } from "../utils/issue-principles.js";
@@ -26,12 +27,13 @@ import { setLatestAnalysis } from "../lib/local.js";
 import displayAnalysisResult from "../renders/generalOopResult.js";
 import displayComplexityResult from "../renders/complexityResult.js";
 
-export default async ({
+export default async function analyze({
   screen,
+  hasActionByDefault = true,
   currentFilePath = null,
   currentMode = null,
   fromScan = false,
-}) => {
+}) {
   const providedInputPath = currentFilePath || process.argv[3];
 
   const hasModeFlag =
@@ -50,7 +52,8 @@ export default async ({
     : await selectFileFromDirectory({ directory: process.cwd(), screen });
 
   if (!completeFilePath) {
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   if (!fs.existsSync(completeFilePath)) {
@@ -59,9 +62,10 @@ export default async ({
       screen,
       message:
         "The file you provided does not exist. Please provide a valid file path.",
-      duration: 3000,
     });
-    process.exit(0);
+
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   const stat = await fs.lstatSync(completeFilePath);
@@ -82,7 +86,8 @@ export default async ({
       duration: 3000,
     });
 
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   const fileExtension = path.extname(completeFilePath).slice(1).toLowerCase();
@@ -97,7 +102,13 @@ export default async ({
         ".",
       duration: 3000,
     });
-    process.exit(0);
+
+    if (hasActionByDefault) {
+      process.exit(0);
+    }
+
+    await analyze({ screen, hasActionByDefault, fromScan });
+    return;
   }
 
   const shouldPromptForMode = !providedInputPath && !hasModeFlag;
@@ -106,7 +117,8 @@ export default async ({
     const selectedMode = await selectAnalysisMode({ screen });
 
     if (!selectedMode) {
-      process.exit(0);
+      backToMenu(hasActionByDefault);
+      return;
     }
 
     mode = selectedMode;
@@ -143,7 +155,13 @@ export default async ({
         : "This file is full of comments. Add a valid code block (for example, declarations, functions, or executable statements) and run analysis again.",
       duration: 3000,
     });
-    process.exit(0);
+
+    if (hasActionByDefault) {
+      process.exit(0);
+    }
+
+    await analyze({ screen, hasActionByDefault, fromScan });
+    return;
   }
 
   const analyzer = getAnalyzerMode(mode);
@@ -179,12 +197,14 @@ export default async ({
   if (result.mode === "complexity") {
     await displayComplexityResult({
       screen,
+      hasActionByDefault,
       result,
       fromScan,
     });
   } else {
     await displayAnalysisResult({
       screen,
+      hasActionByDefault,
       result,
       fromScan,
     });
@@ -201,7 +221,7 @@ export default async ({
   }
 
   await setLatestAnalysis(fileToAnalyze, result);
-};
+}
 
 // HELPERS //////////////////////////////////////////////////////////
 // HELPERS //////////////////////////////////////////////////////////

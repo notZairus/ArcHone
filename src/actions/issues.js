@@ -1,10 +1,8 @@
 import chalk from "chalk";
 import { spawnSync } from "child_process";
 import { createRequire } from "module";
-import { CONSOLE_MAX_WIDTH } from "../constants.js";
-import { mainBanner } from "../ui/banner.js";
-import { box } from "../ui/box.js";
-import { refreshScreen, log } from "../utils/helpers.js";
+import { putHeader } from "../ui/components.js";
+import { refreshScreen, backToMenu } from "../utils/helpers.js";
 import blessed from "blessed";
 
 const require = createRequire(import.meta.url);
@@ -431,57 +429,11 @@ function findIssue(issues, query) {
   return issues.find((issue) => issue.title.toLowerCase() === normalized);
 }
 
-// export default async function issues({ screen, issueTitle }) {
-//   refreshScreen(screen);
-//   try {
-//     const issuesCatalog = detectableIssues.issues || [];
-//     const query = issueTitle || process.argv.slice(3).join(" ").trim();
-
-//     if (!query) {
-//       box(
-//         formatIssueList(issuesCatalog),
-//         "Detectable Issues",
-//         null,
-//         null,
-//         true,
-//       );
-//       return;
-//     }
-
-//     const selectedIssue = findIssue(issuesCatalog, query);
-//     if (!selectedIssue) {
-//       box(
-//         `Could not find that issue lesson.\n\nTry ${chalk.cyan("archone issues")} to list available lessons.`,
-//         "Issue Not Found",
-//         "left",
-//         "round",
-//         false,
-//       );
-//       return;
-//     }
-
-//     const markdownLesson = formatIssueLessonMarkdown(selectedIssue);
-//     const renderedLesson = renderWithTerminalMarkdown(markdownLesson);
-
-//     box("", "ISSUE EXPLANATION STARTS HERE!", "center", "double", false, 0);
-
-//     box(selectedIssue.title.toUpperCase(), "Name of the Issue");
-
-//     console.log("\n");
-//     console.log(renderedLesson);
-//     console.log("\n");
-//   } catch (error) {
-//     box(
-//       chalk.red(`Failed to load issue lessons: ${error.message}`),
-//       "Issues Error",
-//       "left",
-//       "round",
-//       false,
-//     );
-//   }
-// }
-
-export default async function issues({ screen, issueTitle }) {
+export default async function issues({
+  screen,
+  hasActionByDefault,
+  issueTitle,
+}) {
   refreshScreen(screen);
 
   const issuesCatalog = detectableIssues.issues || [];
@@ -495,32 +447,8 @@ export default async function issues({ screen, issueTitle }) {
     height: "75%",
   });
 
-  const header = blessed.box({
-    parent: container,
-    top: 0,
-    left: "center",
-    width: "100%",
-    border: "line",
-    height: 3,
-    padding: {
-      left: 1,
-      right: 1,
-    },
-    content: chalk.bold("Detectable Issues"),
-  });
-
-  const closeBtn = blessed.button({
-    parent: header,
-    right: 0,
-    top: 0,
-    width: 1,
-    height: 1,
-    mouse: true,
-    content: "X",
-  });
-
-  closeBtn.on("press", () => {
-    process.exit(0);
+  putHeader(container, "ArchOne - CLI Code Analyzer", () => {
+    backToMenu(hasActionByDefault);
   });
 
   const issueDetails = blessed.box({

@@ -67,7 +67,7 @@ const commands = [
     category: "Results & Learning",
     description:
       "Review analysis metrics, including issue totals and the languages, files, functions, and variables found.",
-    function: stats,
+    function: stats, // not fixed
   },
   {
     triggers: ["issues"],

@@ -8,7 +8,7 @@ import { box } from "../ui/box.js";
 import { refreshScreen, showNotification } from "../utils/helpers.js";
 import blessed from "blessed";
 
-export default async function stats({ screen }) {
+export default async function stats({ screen, hasActionByDefault }) {
   refreshScreen(screen);
   console.clear();
 
