@@ -504,3 +504,5 @@ export const COMMENT_SYMBOL_PER_LANGUAGE = [
   { language: "cs", symbol: "//" },
   { language: "py", symbol: "#" },
 ];
+
+export const OPENAI_MODEL = "gpt-5.6-luna";

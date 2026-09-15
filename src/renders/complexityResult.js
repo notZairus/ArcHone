@@ -10,7 +10,7 @@ import chalk from "chalk";
 import process from "process";
 import clipboard from "clipboardy";
 import { getAiConfig } from "../lib/local.js";
-import { explainComplexityWithGemini } from "../lib/ai.js";
+import { explainComplexityWithAI } from "../lib/ai.js";
 import { formatCode } from "./modules.js";
 import scanDirectory from "../actions/scan.js";
 import userArchive from "../actions/archive.js";
@@ -549,7 +549,7 @@ export default async function displayComplexityResult({
 
               const aiOutput = selectedFn.ai.explained
                 ? selectedFn.ai.explanation
-                : await explainComplexityWithGemini({
+                : await explainComplexityWithAI({
                     filePath: result.fileToAnalyze,
                     language: result.language,
                     mode: result.mode,

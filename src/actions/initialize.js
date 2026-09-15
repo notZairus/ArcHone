@@ -122,7 +122,11 @@ export default async ({ screen, hasActionByDefault }) => {
         style: {
           selected: { bg: "blue", fg: "white" },
         },
-        items: ["OpenAI", "Google Gemini"],
+        items: [
+          "OpenAI",
+          "Google Gemini",
+          "Built-in AI (no key required, might be slower)",
+        ],
       });
 
       list.focus();
@@ -131,7 +135,7 @@ export default async ({ screen, hasActionByDefault }) => {
       list.once("select", (item, index) => {
         box.detach();
         screen.render();
-        resolve(index === 0 ? "openai" : "gemini");
+        resolve(index === 0 ? "openai" : index === 1 ? "gemini" : "default");
       });
     });
   };
@@ -347,7 +351,7 @@ export default async ({ screen, hasActionByDefault }) => {
     let isValid = false;
     let errorMsg = "";
 
-    while (!isValid) {
+    while (!isValid && aiConfig.provider !== "default") {
       aiConfig.apiKey = await promptApiKey(aiConfig.provider, errorMsg);
 
       if (!aiConfig.apiKey) {

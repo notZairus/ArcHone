@@ -18,7 +18,7 @@ import {
   formatGenericExplanation,
   formatCode,
 } from "./modules.js";
-import { explainIssueWithGemini } from "../lib/ai.js";
+import { explainIssueWithAI } from "../lib/ai.js";
 import clipboard from "clipboardy";
 import analyzeFile from "../actions/analyze.js";
 import scanDirectory from "../actions/scan.js";
@@ -549,7 +549,7 @@ export default async function displayAnalysisResult({
 
               const aiOutput = selectedIssue.ai.explained
                 ? selectedIssue.ai.explanation
-                : await explainIssueWithGemini(issue);
+                : await explainIssueWithAI(issue);
 
               if (!selectedIssue.ai.explained) {
                 selectedIssue.ai.explained = true;
@@ -638,6 +638,7 @@ export default async function displayAnalysisResult({
       showCodeContainer({
         currentCode: globalSelectedIssue.code,
         idealCode: issue.ai.explanation.suggestedFixedCode,
+        whatChanged: issue.ai.explanation.whatChanged,
         language: globalResult.language,
       });
     });
@@ -707,7 +708,12 @@ export default async function displayAnalysisResult({
     screen.render();
   }
 
-  function showCodeContainer({ currentCode, idealCode, language = "js" }) {
+  function showCodeContainer({
+    currentCode,
+    idealCode,
+    whatChanged,
+    language = "js",
+  }) {
     resultContainer.hide();
     codeContainer.show();
 
@@ -743,7 +749,16 @@ export default async function displayAnalysisResult({
       left: 0,
       smartCSR: true,
       width: "100%",
-      height: "100%-5",
+      height: "100%-3",
+    });
+
+    const idealCodeBoxContainer = blessed.box({
+      parent: codeContainerMain,
+      top: 0,
+      left: "50%",
+      smartCSR: true,
+      width: "50%",
+      height: "80%",
     });
 
     const currentCodeBox = blessed.box({
@@ -752,7 +767,7 @@ export default async function displayAnalysisResult({
       left: 0,
       smartCSR: true,
       width: "50%",
-      height: "100%",
+      height: "80%",
       border: "line",
       scrollable: true,
       keys: true,
@@ -771,13 +786,28 @@ export default async function displayAnalysisResult({
       content: `${chalk.bold("Current Code")} \n\n${formatCode(currentCode, language)}`,
     });
 
-    const idealCodeBoxContainer = blessed.box({
+    const whatChangedAndWhyBox = blessed.box({
       parent: codeContainerMain,
-      top: 0,
-      left: "50%",
+      top: "80%",
+      left: 0,
       smartCSR: true,
-      width: "50%",
-      height: "100%",
+      width: "100%",
+      height: "20%",
+      border: "line",
+      scrollable: true,
+      keys: true,
+      mouse: true,
+      scrollbar: {
+        ch: " ",
+        track: {
+          bg: "gray",
+        },
+      },
+      padding: {
+        left: 1,
+        right: 1,
+      },
+      content: `${chalk.bold("What changed and why:")} \n\n${whatChanged}`,
     });
 
     const idealCodeBox = blessed.box({
