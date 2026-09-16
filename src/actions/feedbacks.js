@@ -1,4 +1,9 @@
-import { refreshScreen, log, backToMenu } from "../utils/helpers.js";
+import {
+  refreshScreen,
+  log,
+  backToMenu,
+  showNotification,
+} from "../utils/helpers.js";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
 import blessed from "blessed";
