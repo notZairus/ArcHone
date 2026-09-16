@@ -48,10 +48,18 @@ export async function explainComplexityWithAI({
     process.exit(1);
   }
 
-  const explainComplexity =
-    provider === "gemini"
-      ? explainComplexityWithGemini
-      : explainComplexityWithOpenAI;
+  function getExplainComplexityFunction(provider) {
+    switch (provider) {
+      case "gemini":
+        return explainComplexityWithGemini;
+      case "openai":
+        return explainComplexityWithOpenAI;
+      default:
+        return explainComplexityWithDefaultAI;
+    }
+  }
+
+  const explainComplexity = getExplainComplexityFunction(provider);
 
   return await explainComplexity({ filePath, language, mode, fn });
 }
