@@ -340,6 +340,7 @@ export default async ({ screen, hasActionByDefault }) => {
   if (!allowed) {
     console.clear();
     backToMenu(hasActionByDefault);
+    return;
   }
 
   const aiEnabled = await promptAiEnable();

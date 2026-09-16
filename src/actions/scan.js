@@ -276,6 +276,7 @@ export default async ({ screen, currentMode = null, hasActionByDefault }) => {
 
   putHeader(container, "ArcHone Scan", () => {
     backToMenu(hasActionByDefault);
+    return;
   });
 
   const mainContainer = blessed.box({

@@ -8,6 +8,7 @@ export const putHeader = (
   callback = () => {
     try {
       backToMenu();
+      return;
     } catch {
       process.exit(0);
     }

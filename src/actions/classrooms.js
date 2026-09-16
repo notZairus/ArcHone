@@ -42,6 +42,7 @@ export default async function classroomsAction({ screen, hasActionByDefault }) {
 
   putHeader(box, "ArcHone Classrooms", () => {
     backToMenu(hasActionByDefault);
+    return;
   });
 
   const joinForm = blessed.form({

@@ -74,6 +74,7 @@ export async function selectFileFromDirectory({
 
     putHeader(container, "ArcHone Analyze", () => {
       backToMenu(hasActionByDefault);
+      return;
     });
 
     const fileManager = blessed.filemanager({
@@ -154,6 +155,7 @@ export function selectAnalysisMode({
 
     putHeader(container, "ArcHone Analyze", () => {
       backToMenu(hasActionByDefault);
+      return;
     });
 
     const allModes = [

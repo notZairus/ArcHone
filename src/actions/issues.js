@@ -449,6 +449,7 @@ export default async function issues({
 
   putHeader(container, "ArchOne - CLI Code Analyzer", () => {
     backToMenu(hasActionByDefault);
+    return;
   });
 
   const issueDetails = blessed.box({

@@ -23,6 +23,7 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
     });
 
     backToMenu(hasActionByDefault);
+    return;
   }
 
   const analyses = await Database.getUserAnalyses(userId);
@@ -34,6 +35,7 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
     });
 
     backToMenu(hasActionByDefault);
+    return;
   }
 
   const analysesWithFeedbacks = await Promise.all(
@@ -64,6 +66,7 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
     });
 
     backToMenu(hasActionByDefault);
+    return;
   }
 
   const container = blessed.box({
@@ -76,6 +79,7 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
 
   putHeader(container, "Feedbacks", () => {
     backToMenu(hasActionByDefault);
+    return;
   });
 
   const mainContainer = blessed.box({
