@@ -406,7 +406,7 @@ export function colorSeverity(type) {
 }
 
 export function cleanFileName(fileName) {
-  const splitted = fileName.replace("\\", "/").split("/");
+  const splitted = fileName.replaceAll("\\", "/").split("/");
   return splitted[splitted.length - 1];
 }
 

@@ -2,10 +2,10 @@ import { getSession } from "../utils/session.js";
 import blessed from "blessed";
 import {
   refreshScreen,
-  refreshBox,
   showNotification,
   cleanFileName,
   backToMenu,
+  log,
 } from "../utils/helpers.js";
 import { putHeader } from "../ui/components.js";
 import Database from "../lib/db.js";
@@ -57,8 +57,96 @@ export default async function archive({ screen, hasActionByDefault }) {
     parent: screen,
     top: "center",
     left: "center",
-    width: "50%",
-    height: "80%",
+    width: "90%",
+    height: "90%",
+  });
+
+  // MAIN CONTAINERRRRRss
+
+  const fileNameContainer = blessed.box({
+    parent: container,
+    top: 3,
+    width: "100%",
+    height: "100%-3",
+  });
+
+  const analysesContainer = blessed.box({
+    parent: container,
+    top: 3,
+    width: "100%",
+    height: "100%-3",
+    border: "line",
+    scrollable: true,
+    alwaysScroll: true,
+    keys: true,
+    vi: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "gray",
+      },
+    },
+  });
+
+  // MAIN CONTAINERRRRRss
+
+  const generalContainer = blessed.box({
+    parent: fileNameContainer,
+    width: "33.3%",
+    height: "100%",
+    border: "line",
+    label: " GENERAL ",
+    mouse: true,
+    scrollable: true,
+    alwaysScroll: true,
+    keys: true,
+    vi: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "gray",
+      },
+    },
+  });
+
+  const oopContainer = blessed.box({
+    parent: fileNameContainer,
+    left: "33.3%",
+    width: "33.3%",
+    height: "100%",
+    border: "line",
+    label: " OOP ",
+    mouse: true,
+    scrollable: true,
+    alwaysScroll: true,
+    keys: true,
+    vi: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "gray",
+      },
+    },
+  });
+
+  const complexityContainer = blessed.box({
+    parent: fileNameContainer,
+    left: "66.6%",
+    width: "33.3%",
+    height: "100%",
+    border: "line",
+    label: " COMPLEXITY ",
+    mouse: true,
+    scrollable: true,
+    alwaysScroll: true,
+    keys: true,
+    vi: true,
+    scrollbar: {
+      ch: " ",
+      track: {
+        bg: "gray",
+      },
+    },
   });
 
   putHeader(container, "ArcHone Archive");
@@ -75,91 +163,160 @@ export default async function archive({ screen, hasActionByDefault }) {
     }
   });
 
-  const fileNameContainer = blessed.box({
-    parent: container,
-    top: 3,
-    width: "100%",
-    height: "100%-3",
-    scrollable: true,
-    alwaysScroll: true,
-    keys: true,
-    vi: true,
-    mouse: true,
-    scrollbar: {
-      ch: " ",
-      track: {
-        bg: "gray",
-      },
-      style: {
-        inverse: true,
-      },
-    },
-    border: "line",
-  });
+  const sortedAnalysesArray = Array.from(Object.entries(sortedAnalyses)).map(
+    ([fileName, analyses]) => ({
+      fileName,
+      analyses: analyses.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    }),
+  );
 
-  const analysesContainer = blessed.box({
-    parent: container,
-    top: 3,
-    width: "100%",
-    height: "100%-3",
-    scrollable: true,
-    alwaysScroll: true,
-    keys: true,
-    vi: true,
-    mouse: true,
-    scrollbar: {
-      ch: " ",
-      track: {
-        bg: "gray",
-      },
-      style: {
-        inverse: true,
-      },
-    },
-    border: "line",
-  });
+  sortedAnalysesArray.forEach((fileData, index) => {
+    const { fileName, analyses } = fileData;
 
-  function showFileNameContainer() {
-    fileNameContainer.show();
-    analysesContainer.hide();
-    screen.render();
-  }
+    const hasGeneral = analyses.some((analysis) => analysis.mode === "general");
+    const hasOop = analyses.some((analysis) => analysis.mode === "oop");
+    const hasComplexity = analyses.some(
+      (analysis) => analysis.mode === "complexity",
+    );
 
-  function showAnalysesOfFile(cleanFileName) {
-    const selectedFileAnalyses = sortedAnalyses[cleanFileName];
+    if (hasGeneral) {
+      const childrenCount = generalContainer.children.length;
 
-    refreshBox(analysesContainer);
+      const generalFileAnalyses = analyses.filter(
+        (analysis) => analysis.mode === "general",
+      );
 
-    const backButton = blessed.box({
-      parent: analysesContainer,
-      top: 0,
-      padding: {
-        left: 1,
-        right: 1,
-      },
-      width: "100%-5",
-      height: 3,
-      border: "line",
-      content: "Back",
-    });
-
-    backButton.on("click", () => {
-      showFileNameContainer();
-    });
-
-    selectedFileAnalyses.forEach((analysis, index) => {
-      const analysisBox = blessed.box({
-        parent: analysesContainer,
-        top: (index + 1) * 3,
+      const generalNameBox = blessed.box({
+        parent: generalContainer,
+        top: (childrenCount - 1) * 4,
         padding: {
           left: 1,
           right: 1,
         },
         width: "100%-5",
-        height: 3,
+        height: 4,
+        border: "line",
+        content: [
+          `${childrenCount}. ${fileName}`,
+          `-- ${generalFileAnalyses.length} analysis.`,
+        ].join("\n"),
+      });
+
+      generalNameBox.on("click", () => {
+        showAnalysesContainer(generalFileAnalyses);
+      });
+    }
+
+    if (hasOop) {
+      const childrenCount = oopContainer.children.length;
+
+      const oopFileAnalyses = analyses.filter(
+        (analysis) => analysis.mode === "oop",
+      );
+
+      const oopNameBox = blessed.box({
+        parent: oopContainer,
+        top: (childrenCount - 1) * 4,
+        padding: {
+          left: 1,
+          right: 1,
+        },
+        width: "100%-5",
+        height: 4,
+        border: "line",
+        content: [
+          `${childrenCount}. ${fileName}`,
+          `-- ${oopFileAnalyses.length} analysis.`,
+        ].join("\n"),
+      });
+
+      oopNameBox.on("click", () => {
+        showAnalysesContainer(oopFileAnalyses);
+      });
+    }
+
+    if (hasComplexity) {
+      const childrenCount = complexityContainer.children.length;
+
+      const complexityFileAnalyses = analyses.filter(
+        (analysis) => analysis.mode === "complexity",
+      );
+
+      const complexityNameBox = blessed.box({
+        parent: complexityContainer,
+        top: (childrenCount - 1) * 4,
+        padding: {
+          left: 1,
+          right: 1,
+        },
+        width: "100%-5",
+        height: 4,
+        border: "line",
+        content: [
+          `${childrenCount}. ${fileName}`,
+          `-- ${complexityFileAnalyses.length} analysis.`,
+        ].join("\n"),
+      });
+
+      complexityNameBox.on("click", () => {
+        showAnalysesContainer(complexityFileAnalyses);
+      });
+    }
+  });
+
+  function showFileNameContainer() {
+    analysesContainer.hide();
+    fileNameContainer.show();
+    screen.render();
+  }
+
+  function showAnalysesContainer(selectedFileAnalyses) {
+    fileNameContainer.hide();
+
+    analysesContainer.children.forEach((child) => {
+      child.destroy();
+    });
+
+    const back = blessed.box({
+      parent: analysesContainer,
+      top: 0,
+      left: 0,
+      padding: {
+        left: 1,
+        right: 1,
+      },
+      width: "50%-5",
+      height: 4,
+      border: "line",
+      align: "center",
+      valign: "middle",
+      content: " < Back",
+    });
+
+    back.on("click", () => {
+      showFileNameContainer();
+    });
+
+    selectedFileAnalyses.forEach((analysis, index) => {
+      const indexPlusOne = index + 1;
+
+      const analysisBox = blessed.box({
+        parent: analysesContainer,
+        top: Math.floor(indexPlusOne / 2) * 4,
+        left: indexPlusOne % 2 === 0 ? 0 : "48%",
+        padding: {
+          left: 1,
+          right: 1,
+        },
+        width: "50%-5",
+        height: 4,
         border: "line",
         content: [
           `${index + 1}. ${new Date(analysis.createdAt).toLocaleString()}`,
+          `-- Mode: ${analysis.mode.toUpperCase()}`,
         ].join("\n"),
       });
 
@@ -184,33 +341,9 @@ export default async function archive({ screen, hasActionByDefault }) {
       });
     });
 
-    fileNameContainer.hide();
     analysesContainer.show();
     screen.render();
   }
-
-  Object.entries(sortedAnalyses).forEach(([fileName, analyses], index) => {
-    const fileNameBox = blessed.box({
-      parent: fileNameContainer,
-      top: index * 4,
-      padding: {
-        left: 1,
-        right: 1,
-      },
-      width: "100%-5",
-      height: 4,
-      border: "line",
-      mouse: true,
-      content: [
-        `${index + 1}. ${fileName}`,
-        `-- ${analyses.length} analysis.`,
-      ].join("\n"),
-    });
-
-    fileNameBox.on("click", () => {
-      showAnalysesOfFile(fileName);
-    });
-  });
 
   showFileNameContainer();
 }

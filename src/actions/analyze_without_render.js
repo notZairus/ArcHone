@@ -172,20 +172,6 @@ export default async ({
 
   const { userId } = await getSession();
 
-  if (result.mode === "complexity") {
-    // await displayComplexityResult({
-    //   screen,
-    //   result,
-    //   fromScan,
-    // });
-  } else {
-    // await displayAnalysisResult({
-    //   screen,
-    //   result,
-    //   fromScan,
-    // });
-  }
-
   if (userId) {
     await saveToDatabase({
       fileToAnalyze,
