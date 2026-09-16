@@ -553,8 +553,6 @@ ${JSON.stringify({
 // DEFAULT
 
 async function explainIssueWithDefaultAI(issue) {
-  const start = performance.now();
-
   const response = await fetch(
     "https://archone-default-ai.appwrite.network/explain-issue",
     {
@@ -568,7 +566,32 @@ async function explainIssueWithDefaultAI(issue) {
 
   const data = await response.json();
 
-  log(`Default AI: ${((performance.now() - start) / 1000).toFixed(2)}s`);
+  return data;
+}
+
+async function explainComplexityWithDefaultAI({
+  filePath,
+  language,
+  mode,
+  fn,
+}) {
+  const response = await fetch(
+    "https://archone-default-ai.appwrite.network/explain-complexity",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        filePath,
+        language,
+        mode,
+        fn,
+      }),
+    },
+  );
+
+  const data = await response.json();
 
   return data;
 }
