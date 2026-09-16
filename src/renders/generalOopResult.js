@@ -69,6 +69,7 @@ export default async function displayAnalysisResult({
   result,
   fromScan = false,
   fromArchive = false,
+  fromFeedbacks = false,
   selectedIndex,
   selectedFileAnalyses,
 }) {
@@ -109,7 +110,7 @@ export default async function displayAnalysisResult({
       padding: {
         left: 1,
       },
-      content: chalk.bold(" ArcHone Analyze "),
+      content: chalk.bold(" ArcHone Analysis Result "),
     });
 
     if (fromScan || fromArchive) {

@@ -12,6 +12,7 @@ export default async function displayAnalysisFeedbacks({
   analysis,
   selectedFeedbackIndex = 0,
   fromArchive = false,
+  fromFeedbacks = false,
 }) {
   const selectedFeedback = analysis.feedbacks[selectedFeedbackIndex];
   selectedFeedback.from = await db.getUserById(selectedFeedback.instructorId);
@@ -68,6 +69,7 @@ export default async function displayAnalysisFeedbacks({
         analysis,
         selectedFeedbackIndex: index,
         fromArchive,
+        fromFeedbacks,
       });
     });
   });

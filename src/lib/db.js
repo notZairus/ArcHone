@@ -3,7 +3,8 @@ import { Query } from "appwrite";
 import { tablesDB } from "./appwrite.js";
 import { APPWRITE_DATABASE_ID } from "../constants.js";
 import { getSession } from "../utils/session.js";
-import { log } from "../utils/helpers.js";
+import path from "path";
+import fs from "fs";
 
 const MAX_ROWS_LIMIT = 500;
 
@@ -130,7 +131,7 @@ export default class Database {
   //////////////////////////////
   // FETCH AUTHENTICATED USER ANALYSES
   //////////////////////////////
-  static async getUserAnalyses(userId, order = "asc") {
+  static async getUserAnalyses(userId, order = "desc") {
     const analyses = await tablesDB.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "analyses",
@@ -399,7 +400,50 @@ export default class Database {
       queries: [Query.equal("fileName", fileName), Query.limit(MAX_ROWS_LIMIT)],
     });
 
-    return row.rows;
+    const feedbacks = row.rows;
+
+    const filePath = path.join(process.cwd(), fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+
+    const filteredFeedbacks = feedbacks.filter((feedback) => {
+      const content = fs.readFileSync(filePath, "utf-8");
+      return content.includes(feedback.highlightedCode);
+    });
+
+    return filteredFeedbacks;
+  }
+
+  static async getFeedbacksByUserId(userId) {
+    const row = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "6a994862001659d9de4d",
+      queries: [Query.equal("studentId", userId), Query.limit(MAX_ROWS_LIMIT)],
+    });
+
+    const feedbacks = row.rows;
+
+    const feedbacksWithAnalysis = await Promise.all(
+      feedbacks.map(async (feedback) => {
+        const analysis = await tablesDB.getRow({
+          databaseId: APPWRITE_DATABASE_ID,
+          tableId: "analyses",
+          rowId: feedback.analysisId,
+        });
+
+        const instructor = await tablesDB.getRow({
+          databaseId: APPWRITE_DATABASE_ID,
+          tableId: "users",
+          rowId: feedback.instructorId,
+        });
+
+        return { ...feedback, analysis, instructor };
+      }),
+    );
+
+    return feedbacksWithAnalysis;
   }
 }
 

@@ -11,6 +11,7 @@ import whoami from "./whoami.js";
 import issues from "./issues.js";
 import classrooms from "./classrooms.js";
 import archive from "./archive.js";
+import feedbacks from "./feedbacks.js";
 
 const commands = [
   {
@@ -89,6 +90,13 @@ const commands = [
     description:
       "Learn what ArcHone analyzes, which languages it supports, and how its feedback helps improve your code.",
     function: about,
+  },
+  {
+    triggers: ["feedbacks"],
+    category: "Results & Learning",
+    description:
+      "View feedbacks from instructors or peers on your code analyses. Requires an ArcHone login.",
+    function: feedbacks,
   },
   {
     triggers: ["logout"],

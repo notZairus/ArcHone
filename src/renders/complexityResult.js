@@ -59,6 +59,7 @@ export default async function displayComplexityResult({
   result,
   fromScan = false,
   fromArchive = false,
+  fromFeedbacks = false,
   selectedIndex,
   selectedFileAnalyses,
 }) {
