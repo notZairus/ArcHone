@@ -239,18 +239,18 @@ export default function analyzeGeneralJS(tree, sourceCode) {
       });
     }
 
-    if (fn.complexity > 8) {
-      issues.push({
-        title: "High Complexity",
-        type: "warning",
-        line: fn.line,
-        message: `Function \`${fn.name}\` has complex logic with many branches (${fn.complexity}).`,
-        suggestion:
-          "Simplify conditions and move parts of the logic into smaller helper functions.",
-        why: "Complex code is harder to test and easier to break by accident.",
-        code: fn.code,
-      });
-    }
+    // if (fn.complexity > 8) {
+    //   issues.push({
+    //     title: "High Complexity",
+    //     type: "warning",
+    //     line: fn.line,
+    //     message: `Function \`${fn.name}\` has complex logic with many branches (${fn.complexity}).`,
+    //     suggestion:
+    //       "Simplify conditions and move parts of the logic into smaller helper functions.",
+    //     why: "Complex code is harder to test and easier to break by accident.",
+    //     code: fn.code,
+    //   });
+    // }
 
     if (fn.maxNesting > 3) {
       issues.push({

@@ -86,10 +86,10 @@ export const LATEST_ANALYSIS_PATH = path.join(
 /// formatter.js constants
 
 export const BASE_ISSUE_PENALTIES = [
-  {
-    title: "High Complexity",
-    penalty: 2.0,
-  },
+  // {
+  //   title: "High Complexity",
+  //   penalty: 2.0,
+  // },
   {
     title: "Deep Nesting",
     penalty: 1.5,
@@ -303,90 +303,90 @@ export const detectableIssuesGenericExplanation = [
     code: "function createUser(firstName, lastName, email, phone, city, country, role) {\n  return { firstName, lastName, email, phone, city, country, role };\n}",
     fix: "function createUser(profile) {\n  const { firstName, lastName, email, phone, city, country, role } = profile;\n  return { firstName, lastName, email, phone, city, country, role };\n}",
   },
-  {
-    title: "High Complexity",
-    severity: "warning",
-    detectableIn: ["javascript", "python", "csharp"],
-    principle: "Separation of Concerns",
-    why: "Highly complex branching logic is harder to reason about and easier to break.",
-    suggestion:
-      "Split logic into focused helper functions and reduce nested decision points.",
-    code: `function getAccessLevel(user) {
-  if (user) {
-    if (user.isActive) {
-      if (user.role === "admin") {
-        if (user.permissions.includes("ALL")) {
-          return "FULL_ACCESS";
-        } else {
-          return "LIMITED_ADMIN";
-        }
-      } else if (user.role === "teacher") {
-        if (user.years > 5) {
-          return "SENIOR_TEACHER";
-        } else {
-          return "JUNIOR_TEACHER";
-        }
-      } else if (user.role === "student") {
-        if (user.grade >= 90) {
-          return "HONOR_STUDENT";
-        } else {
-          return "REGULAR_STUDENT";
-        }
-      }
-    } else {
-      return "INACTIVE";
-    }
-  }
-  return "GUEST";
-}`,
-    fix: `function getAccessLevel(user) {
-  if (!user) {
-    return "GUEST";
-  }
+  //   {
+  //     title: "High Complexity",
+  //     severity: "warning",
+  //     detectableIn: ["javascript", "python", "csharp"],
+  //     principle: "Separation of Concerns",
+  //     why: "Highly complex branching logic is harder to reason about and easier to break.",
+  //     suggestion:
+  //       "Split logic into focused helper functions and reduce nested decision points.",
+  //     code: `function getAccessLevel(user) {
+  //   if (user) {
+  //     if (user.isActive) {
+  //       if (user.role === "admin") {
+  //         if (user.permissions.includes("ALL")) {
+  //           return "FULL_ACCESS";
+  //         } else {
+  //           return "LIMITED_ADMIN";
+  //         }
+  //       } else if (user.role === "teacher") {
+  //         if (user.years > 5) {
+  //           return "SENIOR_TEACHER";
+  //         } else {
+  //           return "JUNIOR_TEACHER";
+  //         }
+  //       } else if (user.role === "student") {
+  //         if (user.grade >= 90) {
+  //           return "HONOR_STUDENT";
+  //         } else {
+  //           return "REGULAR_STUDENT";
+  //         }
+  //       }
+  //     } else {
+  //       return "INACTIVE";
+  //     }
+  //   }
+  //   return "GUEST";
+  // }`,
+  //     fix: `function getAccessLevel(user) {
+  //   if (!user) {
+  //     return "GUEST";
+  //   }
 
-  if (!user.isActive) {
-    return "INACTIVE";
-  }
+  //   if (!user.isActive) {
+  //     return "INACTIVE";
+  //   }
 
-  if (user.role === "admin") {
-    return getAdminAccess(user);
-  }
+  //   if (user.role === "admin") {
+  //     return getAdminAccess(user);
+  //   }
 
-  if (user.role === "teacher") {
-    return getTeacherAccess(user);
-  }
+  //   if (user.role === "teacher") {
+  //     return getTeacherAccess(user);
+  //   }
 
-  if (user.role === "student") {
-    return getStudentAccess(user);
-  }
+  //   if (user.role === "student") {
+  //     return getStudentAccess(user);
+  //   }
 
-  return "GUEST";
-}
+  //   return "GUEST";
+  // }
 
-function getAdminAccess(user) {
-  if (user.permissions.includes("ALL")) {
-    return "FULL_ACCESS";
-  }
+  // function getAdminAccess(user) {
+  //   if (user.permissions.includes("ALL")) {
+  //     return "FULL_ACCESS";
+  //   }
 
-  return "LIMITED_ADMIN";
-}
+  //   return "LIMITED_ADMIN";
+  // }
 
-function getTeacherAccess(user) {
-  if (user.years > 5) {
-    return "SENIOR_TEACHER";
-  }
+  // function getTeacherAccess(user) {
+  //   if (user.years > 5) {
+  //     return "SENIOR_TEACHER";
+  //   }
 
-  return "JUNIOR_TEACHER";
-}
+  //   return "JUNIOR_TEACHER";
+  // }
 
-function getStudentAccess(user) {
-  if (user.grade >= 90) {
-    return "HONOR_STUDENT";
-  }
+  // function getStudentAccess(user) {
+  //   if (user.grade >= 90) {
+  //     return "HONOR_STUDENT";
+  //   }
 
-  return "REGULAR_STUDENT";
-}`,
-  },
+  //   return "REGULAR_STUDENT";
+  // }`,
+  //   },
   {
     title: "Deep Nesting",
     severity: "warning",
