@@ -510,7 +510,7 @@ export default async function displayAnalysisResult({
 
           content:
             `${chalk.bold(index + 1 + ". " + issue.title)}\n\n` +
-            `${chalk.red("Line:")} ${issue.line}\n` +
+            `${chalk.red("Line:")} ${issue.line} ${issue.line + issue.code.split("\n").length - 1 == issue.line ? "" : "- " + (issue.line + issue.code.split("\n").length - 1)}\n` +
             `${chalk.yellow("Type:")} ${issue.type}\n` +
             `${chalk.blue("Message:")} ${issue.message}\n` +
             `${chalk.green("Suggestion:")} ${issue.suggestion}`,
@@ -560,7 +560,7 @@ export default async function displayAnalysisResult({
               detailsContent = [
                 `${chalk.bold(aiOutput.title)}\n`,
                 `${chalk.bold("Type:")} ${aiOutput.type.toUpperCase()}`,
-                `${chalk.bold("Line:")} ${aiOutput.line}`,
+                `${chalk.bold("Line:")} ${globalSelectedIssue.line} ${globalSelectedIssue.line + globalSelectedIssue.code.split("\n").length - 1 == globalSelectedIssue.line ? "" : "- " + (globalSelectedIssue.line + globalSelectedIssue.code.split("\n").length - 1)}`,
                 `${chalk.bold("Violated Principle:")} ${aiOutput.principle}`,
                 `${chalk.bold("Message:")} ${aiOutput.message}`,
                 ``,
