@@ -135,7 +135,7 @@ async function getUserAction() {
       border: {
         type: "line",
       },
-      label: chalk.bold(" --- "),
+      label: chalk.bold(" History & Feedbacks "),
       scrollable: true,
       alwaysScroll: true,
       keys: true,
@@ -155,7 +155,7 @@ async function getUserAction() {
     commands
       .filter((cmd) => cmd.category === "Getting Started")
       .forEach((cmd, i) => {
-        const commandText = `${chalk.bold(cmd.triggers.join(", "))} - ${cmd.description}`;
+        const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.description}`;
 
         const commandLine = blessed.box({
           parent: gettingStared,
@@ -187,7 +187,7 @@ async function getUserAction() {
     commands
       .filter((cmd) => cmd.category === "Code Analysis")
       .forEach((cmd, i) => {
-        const commandText = `${chalk.bold(cmd.triggers.join(", "))} - ${cmd.description}`;
+        const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.description}`;
 
         const commandLine = blessed.box({
           parent: codeAnalysis,
@@ -218,7 +218,7 @@ async function getUserAction() {
     commands
       .filter((cmd) => cmd.category === "Account & Access")
       .forEach((cmd, i) => {
-        const commandText = `${chalk.bold(cmd.triggers.join(", "))} - ${cmd.description}`;
+        const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.description}`;
 
         const commandLine = blessed.box({
           parent: accountAndAccess,
@@ -249,7 +249,7 @@ async function getUserAction() {
     commands
       .filter((cmd) => cmd.category === "Results & Learning")
       .forEach((cmd, i) => {
-        const commandText = `${chalk.bold(cmd.triggers.join(", "))} - ${cmd.description}`;
+        const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.description}`;
 
         const commandLine = blessed.box({
           parent: issuesLearning,
