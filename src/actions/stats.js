@@ -5,7 +5,11 @@ import { CONSOLE_MAX_WIDTH } from "../constants.js";
 import chalk from "chalk";
 import { getSession } from "../utils/session.js";
 import { box } from "../ui/box.js";
-import { refreshScreen, showNotification } from "../utils/helpers.js";
+import {
+  refreshScreen,
+  showNotification,
+  backToMenu,
+} from "../utils/helpers.js";
 import blessed from "blessed";
 
 export default async function stats({ screen, hasActionByDefault }) {
@@ -13,6 +17,7 @@ export default async function stats({ screen, hasActionByDefault }) {
   console.clear();
 
   const { userId } = await getSession();
+
   if (!userId) {
     await showNotification({
       screen,
@@ -20,19 +25,33 @@ export default async function stats({ screen, hasActionByDefault }) {
         "You need to be logged in to view your stats. Please run 'archone login' first.",
     });
 
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   }
 
-  const analyses = await Database.getUserAnalyses(userId);
+  let analyses = null;
 
-  if (!analyses || analyses.length === 0) {
-    boxError("No analyses found yet. Run 'archone analyze <file>' first.");
+  try {
+    analyses = await Database.getUserAnalyses(userId);
+  } catch (error) {
     await showNotification({
       screen,
-      message: "No analyses found yet. Run 'archone analyze <file>' first.",
+      message:
+        "Failed to fetch developer stats. Please check your network connection and try again.",
     });
 
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
+  }
+
+  if (!analyses || analyses.length === 0) {
+    await showNotification({
+      screen,
+      message: "No analyses found yet. Run 'archone analyze' first.",
+    });
+
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   const analytics = buildAnalytics(analyses);
@@ -79,7 +98,8 @@ export default async function stats({ screen, hasActionByDefault }) {
   });
 
   closeBtn.on("press", () => {
-    process.exit(0);
+    backToMenu(hasActionByDefault);
+    return;
   });
 
   screen.render();
@@ -267,7 +287,6 @@ function formatAnalytics(analytics) {
       `This section gives a quick snapshot of your overall progress and code activity.`,
     ),
     `Code Quality Score : ${analytics.qualityScore} / 100`,
-    `Trend              : ${formatTrend(analytics.trend)}`,
     `Files Analyzed     : ${analytics.totalAnalyses}`,
     `Total Lines        : ${formatNumber(analytics.estimatedTotalLines)}`,
     "",
@@ -295,17 +314,6 @@ function formatAnalytics(analytics) {
   ];
 
   lines.push(
-    "",
-    boxen(chalk.bold("Progress Insights"), {
-      padding: 0,
-      margin: 0,
-      borderStyle: "singleDouble",
-      width: CONSOLE_MAX_WIDTH - 20,
-    }),
-    chalk.dim(
-      "This section highlights recent patterns so you can see if you are improving week by week.",
-    ),
-    ...analytics.insights,
     "",
     boxen(chalk.bold("Recommendations"), {
       padding: 0,

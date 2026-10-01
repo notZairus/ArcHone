@@ -38,7 +38,22 @@ export default async function archive({ screen, hasActionByDefault }) {
 
   loader.load("Fetching analyses...");
 
-  const analyses = await Database.getUserAnalyses(userId, "desc");
+  let analyses = null;
+
+  try {
+    analyses = await Database.getUserAnalyses(userId, "desc");
+  } catch (error) {
+    loader.stop();
+
+    await showNotification({
+      screen,
+      message:
+        "Failed to fetch past analysis results. Please check your network connection and try again.",
+    });
+
+    backToMenu(hasActionByDefault);
+    return;
+  }
 
   loader.stop();
   loader.destroy();

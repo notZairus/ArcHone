@@ -26,7 +26,20 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
     return;
   }
 
-  const analyses = await Database.getUserAnalyses(userId);
+  let analyses = null;
+
+  try {
+    analyses = await Database.getUserAnalyses(userId);
+  } catch (error) {
+    await showNotification({
+      screen,
+      message:
+        "Failed to fetch feedbacks. Please check your network connection and try again.",
+    });
+
+    backToMenu(hasActionByDefault);
+    return;
+  }
 
   if (analyses.length === 0) {
     await showNotification({

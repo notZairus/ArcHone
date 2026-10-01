@@ -29,7 +29,20 @@ export default async function classroomsAction({ screen, hasActionByDefault }) {
     return;
   }
 
-  let classrooms = await Database.getClassroomsByUserId(userId);
+  let classrooms = null;
+
+  try {
+    classrooms = await Database.getClassroomsByUserId(userId);
+  } catch (error) {
+    await showNotification({
+      screen,
+      message:
+        "Failed to fetch classrooms. Please check your network connection and try again.",
+    });
+
+    backToMenu(hasActionByDefault);
+    return;
+  }
 
   const box = blessed.box({
     parent: screen,
