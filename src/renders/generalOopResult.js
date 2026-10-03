@@ -849,10 +849,15 @@ export default async function displayAnalysisResult({
     });
 
     mergeButton.on("click", async () => {
-      const filePath = path.join(
-        process.cwd(),
-        result.fileName ?? result.fileToAnalyze,
-      );
+      let filePath = null;
+
+      if (fromArchive) {
+        filePath = fs.existsSync(result.fileName)
+          ? result.fileName
+          : path.join(process.cwd(), result.fileName);
+      } else {
+        filePath = result.fileToAnalyze;
+      }
 
       log(result);
 

@@ -32,13 +32,15 @@ export default class Database {
     const { userId } = await getSession();
     if (!userId) return;
 
+    const fullFilePath = path.join(process.cwd(), fileName);
+
     const { $id: analysisId } = await tablesDB.createRow({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "analyses",
       rowId: "unique()",
       data: {
         userId: userId,
-        fileName: fileName,
+        fileName: fullFilePath,
         fileType: fileType,
         code: code,
         mode: analysisResult.mode || "general",

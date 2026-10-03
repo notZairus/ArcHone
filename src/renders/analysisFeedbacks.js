@@ -110,10 +110,9 @@ export default async function displayAnalysisFeedbacks({
   });
 
   mergeButton.on("click", async () => {
-    const filePath = path.join(
-      process.cwd(),
-      analysis.fileName ?? analysis.fileToAnalyze,
-    );
+    const filePath = fs.existsSync(analysis.fileName)
+      ? analysis.fileName
+      : path.join(process.cwd(), analysis.fileName ?? analysis.fileToAnalyze);
 
     if (!fs.existsSync(filePath)) {
       await showNotification({
