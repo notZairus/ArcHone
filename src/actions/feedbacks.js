@@ -82,6 +82,12 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
     return;
   }
 
+  try {
+    await Database.turnOffNotification(userId);
+  } catch (error) {
+    log("Failed to turn off notifications:", error);
+  }
+
   const container = blessed.box({
     parent: screen,
     top: "center",
@@ -102,6 +108,7 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
     width: "100%",
     height: "100%-3",
     border: "line",
+    mouse: true,
     scrollable: true,
     alwaysScroll: true,
     scrollbar: {

@@ -11,6 +11,8 @@ import initialize from "./actions/initialize.js";
 import blessed from "blessed";
 import tty from "tty";
 import { putHeader } from "./ui/components.js";
+import { getSession } from "./utils/session.js";
+import Database from "./lib/db.js";
 
 import commands from "./actions/barrel.js";
 
@@ -28,7 +30,7 @@ const screen = blessed.screen({
   width: "100%",
   height: "100%",
   smartCSR: true,
-  mouse: true, // IMPORTANT: Enables mouse clicks on buttons
+  mouse: true,
   cursor: {
     synthetic: true,
     hidden: false,
@@ -37,6 +39,15 @@ const screen = blessed.screen({
 
 async function getUserAction() {
   refreshScreen(screen);
+  let user = null;
+
+  try {
+    const { userId } = await getSession();
+    user = await Database.getUserById(userId);
+  } catch (err) {
+    log("Error getting session:", err);
+  }
+
   return new Promise((resolve) => {
     const container = blessed.box({
       parent: screen,
@@ -50,7 +61,7 @@ async function getUserAction() {
       process.exit(0);
     });
 
-    const gettingStared = blessed.box({
+    const gettingStarted = blessed.box({
       parent: container,
       top: 3,
       width: "50%",
@@ -158,7 +169,7 @@ async function getUserAction() {
         const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.description}`;
 
         const commandLine = blessed.box({
-          parent: gettingStared,
+          parent: gettingStarted,
           top: i * 6,
           width: "100%-5",
           height: 6,
@@ -249,7 +260,7 @@ async function getUserAction() {
     commands
       .filter((cmd) => cmd.category === "Results & Learning")
       .forEach((cmd, i) => {
-        const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.description}`;
+        const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.triggers[0] === "feedbacks" && user?.notify ? chalk.yellow(cmd.description) : cmd.description}`;
 
         const commandLine = blessed.box({
           parent: issuesLearning,
@@ -259,6 +270,10 @@ async function getUserAction() {
           mouse: true,
           border: {
             type: "line",
+            fg:
+              cmd.triggers[0] === "feedbacks" && user?.notify
+                ? "yellow"
+                : "white",
           },
           padding: {
             left: 1,
@@ -271,6 +286,7 @@ async function getUserAction() {
           },
           content: commandText,
         });
+        
         commandLine.on("click", async () => {
           const action = cmd.triggers[0];
           resolve(action);
@@ -278,7 +294,7 @@ async function getUserAction() {
       });
 
     screen.render();
-    gettingStared.focus();
+    gettingStarted.focus();
   });
 }
 
@@ -291,8 +307,10 @@ export async function main() {
   }
 
   if (!action) {
-    action = await getUserAction();
-    hasActionByDefault = false;
+    try {
+      action = await getUserAction();
+      hasActionByDefault = false;
+    } catch {}
   }
 
   const commandsStringArray = commands.map((cmd) => cmd.triggers).flat();

@@ -316,6 +316,27 @@ export async function validateApiKey(provider, apiKey) {
   }
 }
 
+export async function hasInternetConnection({
+  url = "https://www.google.com/generate_204",
+  timeout = 5000,
+} = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      signal: controller.signal,
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function checkAuth() {
   const { userId } = await getSession();
   return userId;

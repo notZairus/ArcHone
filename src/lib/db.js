@@ -445,6 +445,17 @@ export default class Database {
 
     return feedbacksWithAnalysis;
   }
+
+  static async turnOffNotification(userId) {
+    await tablesDB.updateRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "users",
+      rowId: userId,
+      data: {
+        notify: false,
+      },
+    });
+  }
 }
 
 // ========================== Helper functions ========================== //
