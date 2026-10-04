@@ -19,6 +19,7 @@ import {
   formatCode,
 } from "./modules.js";
 import { explainIssueWithAI } from "../lib/ai.js";
+import { getSession } from "../utils/session.js";
 import clipboard from "clipboardy";
 import analyzeFile from "../actions/analyze.js";
 import scanDirectory from "../actions/scan.js";
@@ -859,8 +860,6 @@ export default async function displayAnalysisResult({
         filePath = result.fileToAnalyze;
       }
 
-      log(result);
-
       if (!fs.existsSync(filePath)) {
         await showNotification({
           screen,
@@ -875,6 +874,27 @@ export default async function displayAnalysisResult({
       const updatedContent = fileContent.replace(currentCode, idealCode);
 
       fs.writeFileSync(filePath, updatedContent, "utf-8");
+
+      const { userId } = await getSession();
+
+      if (userId) {
+        try {
+          const lastAnalysisId =
+            await Database.getLastAnalysisIdByUserId(userId);
+
+          log("Last analysis ID:", lastAnalysisId);
+
+          await Database.saveMerge(lastAnalysisId, {
+            fileName: result.fileToAnalyze || result.fileName,
+            originalCode: fileContent,
+            mergedCode: updatedContent,
+            targetCode: currentCode,
+            aiCode: idealCode,
+          });
+        } catch (error) {
+          log("Error fetching last analysis ID:", error);
+        }
+      }
 
       await showNotification({
         screen,

@@ -39,14 +39,6 @@ const screen = blessed.screen({
 
 async function getUserAction() {
   refreshScreen(screen);
-  let user = null;
-
-  try {
-    const { userId } = await getSession();
-    user = await Database.getUserById(userId);
-  } catch (err) {
-    log("Error getting session:", err);
-  }
 
   return new Promise((resolve) => {
     const container = blessed.box({
@@ -259,34 +251,68 @@ async function getUserAction() {
 
     commands
       .filter((cmd) => cmd.category === "Results & Learning")
-      .forEach((cmd, i) => {
-        const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.triggers[0] === "feedbacks" && user?.notify ? chalk.yellow(cmd.description) : cmd.description}`;
+      .forEach(async (cmd, i) => {
+        let commandLine;
 
-        const commandLine = blessed.box({
-          parent: issuesLearning,
-          top: i * 6,
-          width: "100%-5",
-          height: 6,
-          mouse: true,
-          border: {
-            type: "line",
-            fg:
-              cmd.triggers[0] === "feedbacks" && user?.notify
-                ? "yellow"
-                : "white",
-          },
-          padding: {
-            left: 1,
-            right: 1,
-          },
-          style: {
-            hover: {
-              bg: "gray",
+        if (cmd.triggers[0] === "feedbacks") {
+          const { userId } = await getSession();
+          let unviewedFeedbacks = [];
+
+          try {
+            unviewedFeedbacks =
+              await Database.getUnviewedFeedbacksByUserId(userId);
+          } catch (error) {
+            log("Error fetching unviewed feedbacks:", error);
+          }
+
+          const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${unviewedFeedbacks.length > 0 ? chalk.yellow(`You have ${unviewedFeedbacks.length} unviewed feedback(s)`) : cmd.description}`;
+
+          commandLine = blessed.box({
+            parent: issuesLearning,
+            top: i * 6,
+            width: "100%-5",
+            height: 6,
+            mouse: true,
+            border: {
+              type: "line",
+              fg: unviewedFeedbacks.length > 0 ? "yellow" : "white",
             },
-          },
-          content: commandText,
-        });
-        
+            padding: {
+              left: 1,
+              right: 1,
+            },
+            style: {
+              hover: {
+                bg: "gray",
+              },
+            },
+            content: commandText,
+          });
+        } else {
+          const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.description}`;
+
+          commandLine = blessed.box({
+            parent: issuesLearning,
+            top: i * 6,
+            width: "100%-5",
+            height: 6,
+            mouse: true,
+            border: {
+              type: "line",
+            },
+            padding: {
+              left: 1,
+              right: 1,
+            },
+            style: {
+              hover: {
+                bg: "gray",
+              },
+            },
+            content: commandText,
+          });
+        }
+
         commandLine.on("click", async () => {
           const action = cmd.triggers[0];
           resolve(action);

@@ -3,6 +3,7 @@ import {
   log,
   backToMenu,
   showNotification,
+  cleanFileName,
 } from "../utils/helpers.js";
 import Database from "../lib/db.js";
 import { getSession } from "../utils/session.js";
@@ -78,14 +79,7 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
       message: "No feedbacks found.",
     });
 
-    backToMenu(hasActionByDefault);
-    return;
-  }
-
-  try {
-    await Database.turnOffNotification(userId);
-  } catch (error) {
-    log("Failed to turn off notifications:", error);
+    process.exit(1);
   }
 
   const container = blessed.box({
@@ -131,7 +125,7 @@ export default async function feedbacks({ screen, hasActionByDefault }) {
       },
       border: "line",
       content: [
-        `File Name: ${chalk.bold(analysis.fileName)}`,
+        `File Name: ${chalk.bold(cleanFileName(analysis.fileName))}`,
         `Feedbacks Count: ${analysis.feedbacks.length}`,
         `Last Feedback By: ${analysis.feedbacks[analysis.feedbacks.length - 1].instructorId}`,
         `Last Feedback Message: ${analysis.feedbacks[analysis.feedbacks.length - 1].message}`,

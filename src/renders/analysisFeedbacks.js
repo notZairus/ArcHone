@@ -15,7 +15,13 @@ export default async function displayAnalysisFeedbacks({
   fromFeedbacks = false,
 }) {
   const selectedFeedback = analysis.feedbacks[selectedFeedbackIndex];
-  selectedFeedback.from = await db.getUserById(selectedFeedback.instructorId);
+
+  try {
+    selectedFeedback.from = await db.getUserById(selectedFeedback.instructorId);
+    await db.markFeedbackAsViewed(selectedFeedback.$id);
+  } catch (error) {
+    log("Error marking feedback as viewed:", error);
+  }
 
   const container = blessed.box({
     parent: screen,
@@ -63,6 +69,12 @@ export default async function displayAnalysisFeedbacks({
     feedbackBox.on("click", async () => {
       container.hide();
       container.destroy();
+
+      try {
+        await db.markFeedbackAsViewed(feedback.$id);
+      } catch (error) {
+        log("Error marking feedback as viewed:", error);
+      }
 
       await displayAnalysisFeedbacks({
         screen,

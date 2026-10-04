@@ -32,6 +32,8 @@ export default async ({
 }) => {
   const providedInputPath = currentFilePath || process.argv[3];
 
+  screen.destroy();
+
   const hasModeFlag =
     process.argv[4] && process.argv[4].toLowerCase() === "--mode";
 
@@ -47,20 +49,20 @@ export default async ({
     ? path.join(process.cwd(), providedInputPath)
     : await selectFileFromDirectory({ directory: process.cwd(), screen });
 
-  if (!completeFilePath) {
-    process.exit(0);
-  }
+  // if (!completeFilePath) {
+  //   process.exit(0);
+  // }
 
-  if (!fs.existsSync(completeFilePath)) {
-    refreshScreen(screen);
-    await showNotification({
-      screen,
-      message:
-        "The file you provided does not exist. Please provide a valid file path.",
-      duration: 3000,
-    });
-    process.exit(0);
-  }
+  // if (!fs.existsSync(completeFilePath)) {
+  //   refreshScreen(screen);
+  //   await showNotification({
+  //     screen,
+  //     message:
+  //       "The file you provided does not exist. Please provide a valid file path.",
+  //     duration: 3000,
+  //   });
+  //   process.exit(0);
+  // }
 
   const stat = await fs.lstatSync(completeFilePath);
 
@@ -71,55 +73,55 @@ export default async ({
     });
   }
 
-  if (stat.isSymbolicLink()) {
-    refreshScreen(screen);
-    await showNotification({
-      screen,
-      message:
-        "Oops! The path you provided is a symbolic link. Please provide a valid file path to analyze.",
-      duration: 3000,
-    });
+  // if (stat.isSymbolicLink()) {
+  //   refreshScreen(screen);
+  //   await showNotification({
+  //     screen,
+  //     message:
+  //       "Oops! The path you provided is a symbolic link. Please provide a valid file path to analyze.",
+  //     duration: 3000,
+  //   });
 
-    process.exit(0);
-  }
+  //   process.exit(0);
+  // }
 
   const fileExtension = path.extname(completeFilePath).slice(1).toLowerCase();
 
   if (!VALID_FILE_EXTENSIONS.includes(fileExtension)) {
-    refreshScreen(screen);
-    await showNotification({
-      screen,
-      message:
-        "Oops! The file you provided is not supported for analysis. Please provide a valid file with one of the following extensions: " +
-        VALID_FILE_EXTENSIONS.join(", ") +
-        ".",
-      duration: 3000,
-    });
+    // refreshScreen(screen);
+    // await showNotification({
+    //   screen,
+    //   message:
+    //     "Oops! The file you provided is not supported for analysis. Please provide a valid file with one of the following extensions: " +
+    //     VALID_FILE_EXTENSIONS.join(", ") +
+    //     ".",
+    //   duration: 3000,
+    // });
     process.exit(0);
   }
 
-  const shouldPromptForMode = !providedInputPath && !hasModeFlag;
+  // const shouldPromptForMode = !providedInputPath && !hasModeFlag;
 
-  if (shouldPromptForMode) {
-    const selectedMode = await selectAnalysisMode({ screen });
+  // if (shouldPromptForMode) {
+  //   const selectedMode = await selectAnalysisMode({ screen });
 
-    if (!selectedMode) {
-      process.exit(0);
-    }
+  //   if (!selectedMode) {
+  //     process.exit(0);
+  //   }
 
-    mode = selectedMode;
-  }
+  //   mode = selectedMode;
+  // }
 
-  if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
-    await showNotification({
-      screen,
-      message: `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
-        ", ",
-      )}. Please provide a valid mode using the --mode flag.`,
-      duration: 3000,
-    });
-    process.exit(0);
-  }
+  // if (!AVAILABLE_ANALYSIS_MODES.includes(mode)) {
+  //   await showNotification({
+  //     screen,
+  //     message: `Invalid mode specified. Available modes are: ${AVAILABLE_ANALYSIS_MODES.join(
+  //       ", ",
+  //     )}. Please provide a valid mode using the --mode flag.`,
+  //     duration: 3000,
+  //   });
+  //   process.exit(0);
+  // }
 
   const fileToAnalyze = path.relative(process.cwd(), completeFilePath);
   const sourceCode = fs.readFileSync(completeFilePath, "utf-8") || "";
@@ -132,17 +134,17 @@ export default async ({
   const isCommentOnlyFile = !isEmptyFile && !hasExecutableCode;
   const isValid = !isEmptyFile && !isCommentOnlyFile;
 
-  if (!isValid) {
-    refreshScreen(screen);
-    await showNotification({
-      screen,
-      message: isEmptyFile
-        ? "This file is empty and cannot be analyzed. Add code to the file and run analysis again."
-        : "This file is full of comments. Add a valid code block (for example, declarations, functions, or executable statements) and run analysis again.",
-      duration: 3000,
-    });
-    process.exit(0);
-  }
+  // if (!isValid) {
+  //   refreshScreen(screen);
+  //   await showNotification({
+  //     screen,
+  //     message: isEmptyFile
+  //       ? "This file is empty and cannot be analyzed. Add code to the file and run analysis again."
+  //       : "This file is full of comments. Add a valid code block (for example, declarations, functions, or executable statements) and run analysis again.",
+  //     duration: 3000,
+  //   });
+  //   process.exit(0);
+  // }
 
   const analyzer = getAnalyzerMode(mode);
   const tree = await treeParser(sourceCode, fileExtension);

@@ -1,5 +1,6 @@
 import { Query } from "appwrite";
 
+import { log } from "../utils/helpers.js";
 import { tablesDB } from "./appwrite.js";
 import { APPWRITE_DATABASE_ID } from "../constants.js";
 import { getSession } from "../utils/session.js";
@@ -72,13 +73,15 @@ export default class Database {
     const { userId } = await getSession();
     if (!userId) return;
 
+    const fullFilePath = path.join(process.cwd(), fileName);
+
     const { $id: analysisId } = await tablesDB.createRow({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "analyses",
       rowId: "unique()",
       data: {
         userId: userId,
-        fileName: fileName,
+        fileName: fullFilePath,
         fileType: fileType,
         code: code,
         mode: complexityResult.mode || "complexity",
@@ -404,14 +407,12 @@ export default class Database {
 
     const feedbacks = row.rows;
 
-    const filePath = path.join(process.cwd(), fileName);
-
-    if (!fs.existsSync(filePath)) {
+    if (!fs.existsSync(fileName)) {
       return [];
     }
 
     const filteredFeedbacks = feedbacks.filter((feedback) => {
-      const content = fs.readFileSync(filePath, "utf-8");
+      const content = fs.readFileSync(fileName, "utf-8");
       return content.includes(feedback.highlightedCode);
     });
 
@@ -448,13 +449,59 @@ export default class Database {
     return feedbacksWithAnalysis;
   }
 
-  static async turnOffNotification(userId) {
+  static async getUnviewedFeedbacksByUserId(userId) {
+    const result = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "6a994862001659d9de4d",
+      queries: [
+        Query.equal("studentId", userId),
+        Query.notEqual("viewed", true),
+        Query.limit(MAX_ROWS_LIMIT),
+      ],
+    });
+
+    return result.rows || [];
+  }
+
+  static async markFeedbackAsViewed(feedbackId) {
     await tablesDB.updateRow({
       databaseId: APPWRITE_DATABASE_ID,
-      tableId: "users",
-      rowId: userId,
+      tableId: "6a994862001659d9de4d",
+      rowId: feedbackId,
       data: {
-        notify: false,
+        viewed: true,
+      },
+    });
+  }
+
+  static async getLastAnalysisIdByUserId(userId) {
+    const result = await tablesDB.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "analyses",
+      queries: [
+        Query.equal("userId", userId),
+        Query.orderDesc("$createdAt"),
+        Query.limit(1),
+      ],
+    });
+
+    log(result.rows);
+
+    return result.rows[0]?.$id || null;
+  }
+
+  static async saveMerge(analysisId, mergeData) {
+    await tablesDB.createRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: "merges",
+      rowId: "unique()",
+      data: {
+        analysisId: analysisId,
+        fileName: mergeData.fileName,
+        originalCode: mergeData.originalCode,
+        mergedCode: mergeData.mergedCode,
+        targetCode: mergeData.targetCode,
+        aiCode: mergeData.aiCode,
       },
     });
   }
