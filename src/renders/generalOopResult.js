@@ -857,8 +857,10 @@ export default async function displayAnalysisResult({
           ? result.fileName
           : path.join(process.cwd(), result.fileName);
       } else {
-        filePath = result.fileToAnalyze;
+        filePath = path.join(process.cwd(), result.fileToAnalyze);
       }
+
+      log(filePath);
 
       if (!fs.existsSync(filePath)) {
         await showNotification({
@@ -884,8 +886,10 @@ export default async function displayAnalysisResult({
 
           log("Last analysis ID:", lastAnalysisId);
 
-          await Database.saveMerge(lastAnalysisId, {
-            fileName: result.fileToAnalyze || result.fileName,
+          await Database.saveMerge({
+            analysisId: lastAnalysisId,
+            userId: userId,
+            fileName: filePath,
             originalCode: fileContent,
             mergedCode: updatedContent,
             targetCode: currentCode,

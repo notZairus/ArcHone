@@ -485,18 +485,17 @@ export default class Database {
       ],
     });
 
-    log(result.rows);
-
     return result.rows[0]?.$id || null;
   }
 
-  static async saveMerge(analysisId, mergeData) {
+  static async saveMerge(mergeData) {
     await tablesDB.createRow({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: "merges",
       rowId: "unique()",
       data: {
-        analysisId: analysisId,
+        analysisId: mergeData.analysisId,
+        userId: mergeData.userId,
         fileName: mergeData.fileName,
         originalCode: mergeData.originalCode,
         mergedCode: mergeData.mergedCode,
