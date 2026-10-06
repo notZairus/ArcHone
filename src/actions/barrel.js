@@ -72,7 +72,7 @@ const commands = [
   },
   {
     triggers: ["issues"],
-    category: "Results & Learning",
+    category: "Getting Started",
     description:
       "Browse the issue catalog for examples, explanations, and student-friendly suggestions for fixing each problem.",
     function: issues,

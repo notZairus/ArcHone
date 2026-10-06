@@ -7,9 +7,24 @@ import {
   refreshScreen,
   backToMenu,
 } from "../utils/helpers.js";
+import { getSession } from "../utils/session.js";
 
 export default async function register({ screen, hasActionByDefault }) {
   refreshScreen(screen);
+
+  const { userId } = await getSession();
+
+  if (userId) {
+    await showNotification({
+      screen,
+      message:
+        "You are already logged in. Please log out before registering a new account.",
+    });
+
+    backToMenu(hasActionByDefault);
+    return;
+  }
+
   const registerGuide = [
     `${chalk.bold("Welcome to ArcHone!")}`,
     `Let's create your ArcHone account so you can start analyzing code and tracking your progress!`,

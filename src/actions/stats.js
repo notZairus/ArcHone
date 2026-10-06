@@ -304,7 +304,12 @@ function formatAnalytics(analytics) {
     `Improvements       : ${analytics.improvements}`,
     `Info               : ${analytics.infos}`,
     "",
-    chalk.bold("Top Issues:"),
+    boxen(chalk.bold("Top Issues"), {
+      padding: 0,
+      margin: 0,
+      borderStyle: "singleDouble",
+      width: CONSOLE_MAX_WIDTH - 20,
+    }),
     chalk.dim(
       topIssue
         ? `These are your most frequent issue types. Right now, \"${topIssue.title}\" appears the most.`
