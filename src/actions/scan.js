@@ -144,10 +144,22 @@ export default async ({ screen, currentMode = null, hasActionByDefault }) => {
     );
   } catch (error) {
     if (await handleFolderTooLargeError(error, screen)) {
-      process.exit(1);
+      backToMenu(hasActionByDefault);
+      return;
     }
 
-    throw error;
+    await showNotification({
+      screen,
+      message: [
+        "Permission denied or folder is too large to scan.",
+        "",
+        "- Try scanning a smaller or public subfolder.",
+      ].join("\n"),
+      duration: 3000,
+    });
+
+    backToMenu(hasActionByDefault);
+    return;
   }
 
   if (!sourceFiles.length) {
@@ -264,10 +276,9 @@ export default async ({ screen, currentMode = null, hasActionByDefault }) => {
     }
   } catch (error) {
     if (await handleFolderTooLargeError(error, screen)) {
-      process.exit(1);
+      await backToMenu(hasActionByDefault);
+      return;
     }
-
-    throw error;
   }
 
   const sortedIssues = [...issueSummary.values()].sort((a, b) => {
