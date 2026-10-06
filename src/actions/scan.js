@@ -17,6 +17,7 @@ import {
   removeDuplicatedIssues,
   backToMenu,
   selectAnalysisMode,
+  collectSyntaxIssues,
 } from "../utils/helpers.js";
 import { putHeader } from "../ui/components.js";
 import blessed from "blessed";
@@ -187,6 +188,29 @@ export default async ({ screen, currentMode = null, hasActionByDefault }) => {
       }
       const sourceCode = fs.readFileSync(filePath, "utf-8");
       const tree = await treeParser(sourceCode, extension);
+      const syntaxIssues = collectSyntaxIssues(tree);
+
+      if (syntaxIssues.length > 0) {
+        const firstIssue = syntaxIssues[0];
+
+        refreshScreen(screen);
+        await showNotification({
+          screen,
+          message: [
+            `Found ${syntaxIssues.length} syntax error(s).`,
+            `File: ${relativeFilePath}`,
+            `First error: line ${firstIssue.line}, column ${firstIssue.column}.`,
+            firstIssue.message,
+            "",
+            "Fix the syntax errors and run the analysis again.",
+          ].join("\n"),
+          duration: 5000,
+        });
+
+        await backToMenu(hasActionByDefault);
+        return;
+      }
+
       const result = await analyzer(tree, sourceCode, extension);
       const issues = removeDuplicatedIssues(result.issues) || [];
 

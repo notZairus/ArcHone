@@ -12,6 +12,7 @@ import {
   refreshScreen,
   removeDuplicatedIssues,
   backToMenu,
+  collectSyntaxIssues,
 } from "../utils/helpers.js";
 
 import { withIssuePrinciple } from "../utils/issue-principles.js";
@@ -173,6 +174,29 @@ export default async function analyze({
 
   const analyzer = getAnalyzerMode(mode);
   const tree = await treeParser(sourceCode, fileExtension);
+
+  const syntaxIssues = collectSyntaxIssues(tree);
+
+  if (syntaxIssues.length > 0) {
+    const firstIssue = syntaxIssues[0];
+
+    refreshScreen(screen);
+    await showNotification({
+      screen,
+      message: [
+        `Found ${syntaxIssues.length} syntax error(s).`,
+        `First error: line ${firstIssue.line}, column ${firstIssue.column}.`,
+        firstIssue.message,
+        "",
+        "Fix the syntax errors and run the analysis again.",
+      ].join("\n"),
+      duration: 5000,
+    });
+
+    await backToMenu(hasActionByDefault);
+    return;
+  }
+
   const result = isValid
     ? analyzer(tree, sourceCode, fileExtension)
     : {

@@ -47,9 +47,10 @@ export default async function register({ screen, hasActionByDefault }) {
 
   box.focus();
 
+  const url = "https://archone-web.vercel.app";
+
   box.key("enter", async () => {
-    const registrationUrl =
-      "https://archone-web.vercel.app" + "/register-student";
+    const registrationUrl = `${url}/register-student`;
     await showNotification({
       screen,
       message: "Opening the registration URL on your browser.",

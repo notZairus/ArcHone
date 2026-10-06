@@ -460,3 +460,34 @@ export function backToMenu(hasActionByDefault = true) {
         console.error("An error occurred:", err);
       });
 }
+
+export function collectSyntaxIssues(tree) {
+  const issues = [];
+
+  function visit(node) {
+    if (node.type === "ERROR" || node.isMissing) {
+      issues.push({
+        title: "Syntax Error",
+        type: "error",
+        line: node.startPosition.row + 1,
+        column: node.startPosition.column + 1,
+        message: node.isMissing
+          ? `Expected ${node.type} here.`
+          : "The parser could not interpret this part of the code.",
+        suggestion:
+          "Check this location and the preceding lines for missing or misplaced tokens.",
+        code: node.text,
+      });
+    }
+
+    for (const child of node.children) {
+      visit(child);
+    }
+  }
+
+  if (tree.rootNode.hasError) {
+    visit(tree.rootNode);
+  }
+
+  return issues;
+}
