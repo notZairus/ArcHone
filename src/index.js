@@ -290,7 +290,6 @@ async function getUserAction() {
           });
         } else {
           const commandText = `${chalk.yellow(chalk.bold(cmd.triggers.join(", ").toUpperCase()))}\n- ${cmd.description}`;
-
           commandLine = blessed.box({
             parent: issuesLearning,
             top: i * 6,

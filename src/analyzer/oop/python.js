@@ -1,3 +1,5 @@
+import { duplicateFingerprint } from "../detection-support.js";
+
 export default function analyzeOopPy(tree, sourceCode) {
   const issues = [];
   const functions = [];
@@ -166,6 +168,7 @@ const analyzeClass = (classNode, sourceCode) => {
       isStatic: isStaticLike,
       isPublic,
       code: getNodeText(methodNode, sourceCode),
+      bodyFingerprint: duplicateFingerprint(methodNode),
       bodyCode: getNodeText(
         methodNode.childForFieldName("body") || methodNode,
         sourceCode,
@@ -328,7 +331,8 @@ const analyzeClass = (classNode, sourceCode) => {
   // Large Class / God Class
   if (
     classLines > OOP_LIMITS.largeClassLines ||
-    methods.length > OOP_LIMITS.largeClassMethodCount ||
+    methods.filter((m) => m.name !== "__init__").length >
+      OOP_LIMITS.largeClassMethodCount ||
     fields.length + instanceFieldCount > OOP_LIMITS.largeClassFieldCount ||
     dependencyCount > OOP_LIMITS.maxDependencies + 4
   ) {
@@ -575,9 +579,7 @@ const findDuplicateMethodGroups = (methods) => {
   const groupsByFingerprint = new Map();
 
   for (const method of methods) {
-    const fingerprint = normalizeCodeForDuplicateCheck(
-      method.bodyCode || method.code,
-    );
+    const fingerprint = method.bodyFingerprint;
     if (!fingerprint) {
       continue;
     }
@@ -654,24 +656,6 @@ const splitIdentifierTokens = (name) => {
     .split(" ")
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
-};
-
-const normalizeCodeForDuplicateCheck = (code) => {
-  if (!code || typeof code !== "string") {
-    return "";
-  }
-
-  const withoutLineComments = code.replace(/^\s*#.*$/gm, " ");
-  const normalizedLines = withoutLineComments
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  if (normalizedLines.length < 3) {
-    return "";
-  }
-
-  return normalizedLines.join(" ").replace(/\s+/g, " ");
 };
 
 const getNodeText = (node, sourceCode) => {

@@ -1,12 +1,19 @@
+import {
+  duplicateFingerprint,
+  hasTaskComment,
+  commentedCode,
+  constantName,
+  parameterNames,
+  usageAnalysis,
+} from "../detection-support.js";
+
 export default function analyseGeneralPy(tree, sourceCode) {
+  const usage = usageAnalysis(tree.rootNode, "py");
   const functions = [];
   const variables = [];
   const comments = [];
   const issues = [];
 
-  const declarationNodeKeys = new Set();
-  const identifierUsageCount = new Map();
-  const identifierUsageCountByName = new Map();
   const variableNameDeclarationCount = new Map();
   const variableNameDeclarationMeta = new Map();
   const functionDeclarationNames = [];
@@ -27,17 +34,11 @@ export default function analyseGeneralPy(tree, sourceCode) {
       const name = nameNode ? getNodeText(nameNode, sourceCode) : "(anonymous)";
 
       if (nameNode) {
-        declarationNodeKeys.add(getNodeKey(nameNode));
         functionDeclarationNames.push({
           name,
           line: getLine(nameNode),
           code: getNodeText(node, sourceCode),
         });
-      }
-
-      const parametersNode = node.childForFieldName("parameters");
-      for (const idNode of extractIdentifiersFromPattern(parametersNode)) {
-        declarationNodeKeys.add(getNodeKey(idNode));
       }
 
       functions.push(buildFunctionData(node, name, sourceCode));
@@ -55,7 +56,6 @@ export default function analyseGeneralPy(tree, sourceCode) {
         const variableName = getNodeText(idNode, sourceCode);
         const scopeKey = getDeclarationScopeKey(idNode);
         const declarationKey = `${scopeKey}::${variableName}`;
-        declarationNodeKeys.add(getNodeKey(idNode));
 
         if (
           hasSeenVariableInScope(
@@ -64,10 +64,12 @@ export default function analyseGeneralPy(tree, sourceCode) {
             variableName,
           )
         ) {
-          variableNameDeclarationCount.set(
-            declarationKey,
-            (variableNameDeclarationCount.get(declarationKey) || 0) + 1,
-          );
+          // Updating an existing quantity is not a fresh declaration/name reuse.
+          if (node.type !== "augmented_assignment")
+            variableNameDeclarationCount.set(
+              declarationKey,
+              (variableNameDeclarationCount.get(declarationKey) || 0) + 1,
+            );
           continue;
         }
 
@@ -82,6 +84,7 @@ export default function analyseGeneralPy(tree, sourceCode) {
           kind,
           dataType,
           line: getLine(idNode),
+          declarationIndex: idNode.startIndex,
           scopeKey,
           code: getNodeText(node, sourceCode),
         });
@@ -109,7 +112,6 @@ export default function analyseGeneralPy(tree, sourceCode) {
         const variableName = getNodeText(idNode, sourceCode);
         const scopeKey = getDeclarationScopeKey(idNode);
         const declarationKey = `${scopeKey}::${variableName}`;
-        declarationNodeKeys.add(getNodeKey(idNode));
 
         // If we've already seen this variable in the same scope, increment
         // the declaration count so "Name Reuse" can be detected, but avoid
@@ -139,6 +141,7 @@ export default function analyseGeneralPy(tree, sourceCode) {
           kind: "loop",
           dataType: "unknown",
           line: getLine(idNode),
+          declarationIndex: idNode.startIndex,
           scopeKey,
           code: getNodeText(node, sourceCode),
         });
@@ -158,30 +161,14 @@ export default function analyseGeneralPy(tree, sourceCode) {
 
       return;
     }
-
-    if (node.type === "identifier") {
-      const key = getNodeKey(node);
-      if (declarationNodeKeys.has(key)) {
-        return;
-      }
-
-      const identifierName = getNodeText(node, sourceCode);
-      const scopeKey = getDeclarationScopeKey(node);
-      const usageKey = `${scopeKey}::${identifierName}`;
-      identifierUsageCount.set(
-        usageKey,
-        (identifierUsageCount.get(usageKey) || 0) + 1,
-      );
-      identifierUsageCountByName.set(
-        identifierName,
-        (identifierUsageCountByName.get(identifierName) || 0) + 1,
-      );
-    }
   });
 
   for (const variable of variables) {
-    const usageKey = `${variable.scopeKey}::${variable.name}`;
-    const usageCount = identifierUsageCount.get(usageKey) || 0;
+    const usageCount = usage.reads(
+      variable.name,
+      variable.line,
+      variable.declarationIndex,
+    );
 
     if (usageCount === 0) {
       issues.push({
@@ -209,7 +196,10 @@ export default function analyseGeneralPy(tree, sourceCode) {
       });
     }
 
-    if (!isSnakeCaseName(variable.name)) {
+    if (
+      !isSnakeCaseName(variable.name) &&
+      !(constantName(variable.name) && variable.scopeKey.startsWith("module:"))
+    ) {
       issues.push({
         title: "Naming Convention",
         type: "improvement",
@@ -223,8 +213,22 @@ export default function analyseGeneralPy(tree, sourceCode) {
     }
   }
 
+  for (const parameter of parameterNames(tree.rootNode)) {
+    if (!isSnakeCaseName(parameter.name)) {
+      issues.push({
+        title: "Naming Convention",
+        type: "improvement",
+        line: parameter.line,
+        message: `Parameter \`${parameter.name}\` is not written in snake_case.`,
+        suggestion: "Use snake_case for parameter names.",
+        why: "Consistent parameter names make function signatures easier to read.",
+        code: parameter.code,
+      });
+    }
+  }
+
   for (const fn of functionDeclarationNames) {
-    const usageCount = identifierUsageCountByName.get(fn.name) || 0;
+    const usageCount = usage.functionUsed(fn.name, fn.line) ? 1 : 0;
 
     if (usageCount === 0) {
       issues.push({
@@ -348,7 +352,7 @@ export default function analyseGeneralPy(tree, sourceCode) {
   }
 
   for (const comment of comments) {
-    if (/TODO|FIXME|HACK/i.test(comment.text)) {
+    if (hasTaskComment(comment.text)) {
       issues.push({
         title: "TODO Comment",
         type: "info",
@@ -362,7 +366,7 @@ export default function analyseGeneralPy(tree, sourceCode) {
       });
     }
 
-    if (looksLikeCommentedCode(comment.text)) {
+    if (commentedCode(comment.text, "py")) {
       issues.push({
         title: "Commented-out Code",
         type: "improvement",
@@ -396,6 +400,7 @@ const buildFunctionData = (node, name, sourceCode) => {
     parameterCount: countParameterIdentifiers(parametersNode),
     complexity: estimateCyclomaticComplexity(node),
     maxNesting: estimateMaxNesting(node),
+    bodyFingerprint: duplicateFingerprint(node),
     bodyCode: bodyNode
       ? getNodeText(bodyNode, sourceCode)
       : getNodeText(node, sourceCode),
@@ -465,7 +470,7 @@ const findDuplicateFunctionGroups = (functions) => {
       continue;
     }
 
-    const fingerprint = normalizeCodeForDuplicateCheck(fn.bodyCode || fn.code);
+    const fingerprint = fn.bodyFingerprint;
     if (!fingerprint) {
       continue;
     }
@@ -480,24 +485,6 @@ const findDuplicateFunctionGroups = (functions) => {
   return Array.from(groupsByFingerprint.values()).filter(
     (group) => group.length > 1,
   );
-};
-
-const normalizeCodeForDuplicateCheck = (code) => {
-  if (!code || typeof code !== "string") {
-    return "";
-  }
-
-  const withoutLineComments = code.replace(/#.*$/gm, " ");
-  const normalizedLines = withoutLineComments
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  if (normalizedLines.length < 3) {
-    return "";
-  }
-
-  return normalizedLines.join(" ").replace(/\s+/g, " ");
 };
 
 const inferVariableDataType = (valueNode, sourceCode) => {
@@ -621,24 +608,8 @@ const isSnakeCaseName = (name) => {
   return /^[a-z_][a-z0-9_]*$/.test(name);
 };
 
-const looksLikeCommentedCode = (commentText) => {
-  const normalized = commentText.replace(/^\s*#+\s?/, "").trim();
-
-  if (normalized.length === 0) {
-    return false;
-  }
-
-  return /(\b(?:def|class)\s+[A-Za-z_]\w*\s*(?:\(|:)|\b(?:if|elif|for|while|with|try|except)\b[^\n]*:\s*$|\breturn\b\s+[^\n]+$|^[A-Za-z_]\w*\s*=\s*.+$|\{\s*\})/.test(
-    normalized,
-  );
-};
-
 const getNodeText = (node, sourceCode) => {
   return sourceCode.slice(node.startIndex, node.endIndex);
-};
-
-const getNodeKey = (node) => {
-  return `${node.startIndex}:${node.endIndex}:${node.type}`;
 };
 
 const getLine = (node) => {

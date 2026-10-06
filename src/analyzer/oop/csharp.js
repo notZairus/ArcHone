@@ -1,3 +1,5 @@
+import { duplicateFingerprint } from "../detection-support.js";
+
 export default function analyzeOopCS(tree, sourceCode) {
   const issues = [];
   const functions = [];
@@ -375,6 +377,7 @@ const buildCSharpMethodData = (
     isPublic,
     isConstructor,
     code: getNodeText(methodNode, sourceCode),
+    bodyFingerprint: duplicateFingerprint(methodNode),
     bodyCode: bodyNode ? getNodeText(bodyNode, sourceCode) : "",
   };
 };
@@ -538,9 +541,7 @@ const findDuplicateMethodGroups = (methods) => {
   const groupsByFingerprint = new Map();
 
   for (const method of methods) {
-    const fingerprint = normalizeCodeForDuplicateCheck(
-      method.bodyCode || method.code,
-    );
+    const fingerprint = method.bodyFingerprint;
     if (!fingerprint) {
       continue;
     }
@@ -553,25 +554,6 @@ const findDuplicateMethodGroups = (methods) => {
   }
 
   return Array.from(groupsByFingerprint.values()).filter((g) => g.length > 1);
-};
-
-const normalizeCodeForDuplicateCheck = (code) => {
-  if (!code || typeof code !== "string") {
-    return "";
-  }
-
-  const withoutBlockComments = code.replace(/\/\*[\s\S]*?\*\//g, " ");
-  const withoutLineComments = withoutBlockComments.replace(/\/\/.*$/gm, " ");
-  const normalizedLines = withoutLineComments
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && line !== "{" && line !== "}");
-
-  if (normalizedLines.length < 3) {
-    return "";
-  }
-
-  return normalizedLines.join(" ").replace(/\s+/g, " ");
 };
 
 const getNodeText = (node, sourceCode) => {

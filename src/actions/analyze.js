@@ -185,7 +185,6 @@ export default async function analyze({
       screen,
       message: [
         `Found ${syntaxIssues.length} syntax error(s).`,
-        `First error: line ${firstIssue.line}, column ${firstIssue.column}.`,
         firstIssue.message,
         "",
         "Fix the syntax errors and run the analysis again.",

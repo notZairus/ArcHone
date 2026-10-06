@@ -199,7 +199,6 @@ export default async ({ screen, currentMode = null, hasActionByDefault }) => {
           message: [
             `Found ${syntaxIssues.length} syntax error(s).`,
             `File: ${relativeFilePath}`,
-            `First error: line ${firstIssue.line}, column ${firstIssue.column}.`,
             firstIssue.message,
             "",
             "Fix the syntax errors and run the analysis again.",

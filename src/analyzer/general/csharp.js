@@ -1,11 +1,18 @@
+import {
+  duplicateFingerprint,
+  hasTaskComment,
+  commentedCode,
+  constantName,
+  usageAnalysis,
+} from "../detection-support.js";
+
 export default function analyzeGeneralCS(tree, sourceCode) {
+  const usage = usageAnalysis(tree.rootNode, "cs");
   const functions = [];
   const variables = [];
   const comments = [];
   const issues = [];
 
-  const declarationNodeKeys = new Set();
-  const identifierUsageCount = new Map();
   const variableNameDeclarationCount = new Map();
   const variableNameDeclarationMeta = new Map();
   const functionDeclarationNames = [];
@@ -28,18 +35,12 @@ export default function analyzeGeneralCS(tree, sourceCode) {
       const name = nameNode ? getNodeText(nameNode, sourceCode) : "(anonymous)";
 
       if (nameNode) {
-        declarationNodeKeys.add(getNodeKey(nameNode));
         functionDeclarationNames.push({
           name,
           line: getLine(nameNode),
           isEntryPoint: isEntryPointMethod(node, sourceCode),
           code: getNodeText(node, sourceCode),
         });
-      }
-
-      const parametersNode = node.childForFieldName("parameters");
-      for (const idNode of extractIdentifiersFromPattern(parametersNode)) {
-        declarationNodeKeys.add(getNodeKey(idNode));
       }
 
       functions.push(buildFunctionData(node, name, sourceCode));
@@ -53,7 +54,6 @@ export default function analyzeGeneralCS(tree, sourceCode) {
         : "(anonymous)";
 
       if (inferredNameNode) {
-        declarationNodeKeys.add(getNodeKey(inferredNameNode));
       }
 
       functions.push(buildFunctionData(node, inferredName, sourceCode));
@@ -71,13 +71,16 @@ export default function analyzeGeneralCS(tree, sourceCode) {
         const scopeKey = getDeclarationScopeKey(idNode, kind);
         const declarationKey = `${scopeKey}::${variableName}`;
 
-        declarationNodeKeys.add(getNodeKey(idNode));
         variables.push({
           name: variableName,
           kind,
           dataType,
           line: getLine(idNode),
+          declarationIndex: idNode.startIndex,
           skipUnusedCheck: false,
+          isConstant: /\bconst\b/.test(
+            getNodeText(node.parent?.parent || node, sourceCode),
+          ),
           code: getNodeText(node.parent || node, sourceCode),
         });
 
@@ -106,12 +109,13 @@ export default function analyzeGeneralCS(tree, sourceCode) {
       const variableName = getNodeText(nameNode, sourceCode);
       const scopeKey = getDeclarationScopeKey(nameNode, "parameter");
       const declarationKey = `${scopeKey}::${variableName}`;
-      declarationNodeKeys.add(getNodeKey(nameNode));
+
       variables.push({
         name: variableName,
         kind: "parameter",
         dataType: "unknown",
         line: getLine(nameNode),
+        declarationIndex: nameNode.startIndex,
         skipUnusedCheck: shouldIgnoreUnusedParameter(node, sourceCode),
         code: getNodeText(node, sourceCode),
       });
@@ -129,23 +133,14 @@ export default function analyzeGeneralCS(tree, sourceCode) {
       }
       return;
     }
-
-    if (node.type === "identifier") {
-      const key = getNodeKey(node);
-      if (declarationNodeKeys.has(key)) {
-        return;
-      }
-
-      const identifierName = getNodeText(node, sourceCode);
-      identifierUsageCount.set(
-        identifierName,
-        (identifierUsageCount.get(identifierName) || 0) + 1,
-      );
-    }
   });
 
   for (const variable of variables) {
-    const usageCount = identifierUsageCount.get(variable.name) || 0;
+    const usageCount = usage.reads(
+      variable.name,
+      variable.line,
+      variable.declarationIndex,
+    );
 
     if (usageCount === 0 && !variable.skipUnusedCheck) {
       issues.push({
@@ -173,7 +168,13 @@ export default function analyzeGeneralCS(tree, sourceCode) {
       });
     }
 
-    if (!isCSharpVariableName(variable.name)) {
+    if (
+      !isCSharpVariableName(variable.name) &&
+      !(
+        variable.isConstant &&
+        (constantName(variable.name) || isPascalCaseName(variable.name))
+      )
+    ) {
       issues.push({
         title: "Naming Convention",
         type: "improvement",
@@ -188,7 +189,7 @@ export default function analyzeGeneralCS(tree, sourceCode) {
   }
 
   for (const fn of functionDeclarationNames) {
-    const usageCount = identifierUsageCount.get(fn.name) || 0;
+    const usageCount = usage.functionUsed(fn.name, fn.line) ? 1 : 0;
 
     if (usageCount === 0 && !fn.isEntryPoint) {
       issues.push({
@@ -311,7 +312,7 @@ export default function analyzeGeneralCS(tree, sourceCode) {
   }
 
   for (const comment of comments) {
-    if (/TODO|FIXME|HACK/i.test(comment.text)) {
+    if (hasTaskComment(comment.text)) {
       issues.push({
         title: "TODO Comment",
         type: "info",
@@ -325,7 +326,7 @@ export default function analyzeGeneralCS(tree, sourceCode) {
       });
     }
 
-    if (looksLikeCommentedCode(comment.text)) {
+    if (commentedCode(comment.text, "cs")) {
       issues.push({
         title: "Commented-out Code",
         type: "improvement",
@@ -359,6 +360,7 @@ const buildFunctionData = (node, name, sourceCode) => {
     parameterCount: countParameterIdentifiers(parametersNode),
     complexity: estimateCyclomaticComplexity(node),
     maxNesting: estimateMaxNesting(node),
+    bodyFingerprint: duplicateFingerprint(node),
     bodyCode: bodyNode
       ? getNodeText(bodyNode, sourceCode)
       : getNodeText(node, sourceCode),
@@ -605,7 +607,7 @@ const findDuplicateFunctionGroups = (functions) => {
       continue;
     }
 
-    const fingerprint = normalizeCodeForDuplicateCheck(fn.bodyCode || fn.code);
+    const fingerprint = fn.bodyFingerprint;
     if (!fingerprint) {
       continue;
     }
@@ -620,25 +622,6 @@ const findDuplicateFunctionGroups = (functions) => {
   return Array.from(groupsByFingerprint.values()).filter(
     (group) => group.length > 1,
   );
-};
-
-const normalizeCodeForDuplicateCheck = (code) => {
-  if (!code || typeof code !== "string") {
-    return "";
-  }
-
-  const withoutBlockComments = code.replace(/\/\*[\s\S]*?\*\//g, " ");
-  const withoutLineComments = withoutBlockComments.replace(/\/\/.*$/gm, " ");
-  const normalizedLines = withoutLineComments
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && line !== "{" && line !== "}");
-
-  if (normalizedLines.length < 3) {
-    return "";
-  }
-
-  return normalizedLines.join(" ").replace(/\s+/g, " ");
 };
 
 const isPoorVariableName = (name) => {
@@ -688,27 +671,8 @@ const isPascalCaseName = (name) => {
   return /^[A-Z][A-Za-z0-9]*$/.test(name);
 };
 
-const looksLikeCommentedCode = (commentText) => {
-  const normalized = commentText
-    .replace(/^\s*\/+[/*]?\s?/, "")
-    .replace(/\*\/\s*$/, "")
-    .trim();
-
-  if (normalized.length === 0) {
-    return false;
-  }
-
-  return /(\bclass\s+[A-Za-z_]\w*\s*\{|\b(?:void|int|string|bool|double|float|decimal|var)\s+[A-Za-z_]\w*\s*(?:\(|=|;)|\b(?:if|for|while)\s*\(|\breturn\b[^\n;]*;|=>|\{\s*\})/.test(
-    normalized,
-  );
-};
-
 const getNodeText = (node, sourceCode) => {
   return sourceCode.slice(node.startIndex, node.endIndex);
-};
-
-const getNodeKey = (node) => {
-  return `${node.startIndex}:${node.endIndex}:${node.type}`;
 };
 
 const getLine = (node) => {

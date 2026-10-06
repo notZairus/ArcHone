@@ -39,9 +39,11 @@ export async function getAiGeneratedExplanationOfIssue(issue) {}
 export function formatCode(code, language = "javascript") {
   // Clean off extra fences if Gemini returns them
   const cleanedCode = code
-    .replace(/^```[^\n]*\n?/, "")
-    .replace(/\n?```$/, "")
-    .trim();
+    ? code
+        .replace(/^```[^\n]*\n?/, "")
+        .replace(/\n?```$/, "")
+        .trim()
+    : "";
 
   const languageMap = {
     js: "javascript",

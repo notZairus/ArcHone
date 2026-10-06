@@ -1,3 +1,5 @@
+import { duplicateFingerprint } from "../detection-support.js";
+
 export default function analyzeOopJS(tree, sourceCode) {
   const issues = [];
   const functions = [];
@@ -302,6 +304,7 @@ const buildJsMethodData = (methodNode, sourceCode, className) => {
     isStatic,
     isPublic,
     code: getNodeText(methodNode, sourceCode),
+    bodyFingerprint: duplicateFingerprint(methodNode),
     bodyCode: bodyNode ? getNodeText(bodyNode, sourceCode) : "",
   };
 };
@@ -439,9 +442,7 @@ const findDuplicateMethodGroups = (methods) => {
   const groupsByFingerprint = new Map();
 
   for (const method of methods) {
-    const fingerprint = normalizeCodeForDuplicateCheck(
-      method.bodyCode || method.code,
-    );
+    const fingerprint = method.bodyFingerprint;
     if (!fingerprint) {
       continue;
     }
@@ -520,27 +521,6 @@ const extractDependencyName = (text) => {
   const cleaned = text.split("(")[0].trim();
   const first = cleaned.split(".")[0].trim();
   return first;
-};
-
-const normalizeCodeForDuplicateCheck = (code) => {
-  if (!code || typeof code !== "string") {
-    return "";
-  }
-
-  const withoutComments = code
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/\/\/.*$/gm, " ");
-
-  const normalizedLines = withoutComments
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && line !== "{" && line !== "}");
-
-  if (normalizedLines.length < 3) {
-    return "";
-  }
-
-  return normalizedLines.join(" ").replace(/\s+/g, " ");
 };
 
 const pickResponsibilityKeyword = (name) => {

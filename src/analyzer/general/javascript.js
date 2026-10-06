@@ -1,11 +1,18 @@
+import {
+  duplicateFingerprint,
+  hasTaskComment,
+  commentedCode,
+  parameterNames,
+  usageAnalysis,
+} from "../detection-support.js";
+
 export default function analyzeGeneralJS(tree, sourceCode) {
+  const usage = usageAnalysis(tree.rootNode, "js");
   const functions = [];
   const variables = [];
   const comments = [];
   const issues = [];
 
-  const declarationNodeKeys = new Set();
-  const identifierUsageCount = new Map();
   const variableNameDeclarationByScope = new Map();
   const functionDeclarationNames = [];
 
@@ -25,7 +32,6 @@ export default function analyzeGeneralJS(tree, sourceCode) {
       const isExported = isExportedDeclaration(node);
 
       if (nameNode) {
-        declarationNodeKeys.add(getNodeKey(nameNode));
         functionDeclarationNames.push({
           name,
           line: getLine(nameNode),
@@ -45,7 +51,6 @@ export default function analyzeGeneralJS(tree, sourceCode) {
         : "(anonymous)";
 
       if (inferredNameNode) {
-        declarationNodeKeys.add(getNodeKey(inferredNameNode));
       }
 
       functions.push(buildFunctionData(node, inferredName, sourceCode));
@@ -64,12 +69,12 @@ export default function analyzeGeneralJS(tree, sourceCode) {
         const scopeKey = getDeclarationScopeKey(node, kind);
         const scopeNameKey = `${scopeKey}::${variableName}`;
 
-        declarationNodeKeys.add(getNodeKey(idNode));
         variables.push({
           name: variableName,
           kind,
           dataType,
           line: getLine(idNode),
+          declarationIndex: idNode.startIndex,
           scopeKey,
           isExported,
           code: getVariableDeclarationCode(node, sourceCode),
@@ -91,26 +96,14 @@ export default function analyzeGeneralJS(tree, sourceCode) {
 
       return;
     }
-
-    if (
-      node.type === "identifier" ||
-      node.type === "shorthand_property_identifier"
-    ) {
-      const key = getNodeKey(node);
-      if (declarationNodeKeys.has(key)) {
-        return;
-      }
-
-      const identifierName = getNodeText(node, sourceCode);
-      identifierUsageCount.set(
-        identifierName,
-        (identifierUsageCount.get(identifierName) || 0) + 1,
-      );
-    }
   });
 
   for (const variable of variables) {
-    const usageCount = identifierUsageCount.get(variable.name) || 0;
+    const usageCount = usage.reads(
+      variable.name,
+      variable.line,
+      variable.declarationIndex,
+    );
 
     if (usageCount === 0 && !variable.isExported) {
       issues.push({
@@ -165,8 +158,22 @@ export default function analyzeGeneralJS(tree, sourceCode) {
     }
   }
 
+  for (const parameter of parameterNames(tree.rootNode)) {
+    if (!/^[a-z][A-Za-z0-9]*$/.test(parameter.name)) {
+      issues.push({
+        title: "Naming Convention",
+        type: "improvement",
+        line: parameter.line,
+        message: `Parameter \`${parameter.name}\` is not written in camelCase.`,
+        suggestion: "Use camelCase for parameter names.",
+        why: "Consistent parameter names make function signatures easier to read.",
+        code: parameter.code,
+      });
+    }
+  }
+
   for (const fn of functionDeclarationNames) {
-    const usageCount = identifierUsageCount.get(fn.name) || 0;
+    const usageCount = usage.functionUsed(fn.name, fn.line) ? 1 : 0;
 
     if (usageCount === 0 && !fn.isExported) {
       issues.push({
@@ -287,7 +294,7 @@ export default function analyzeGeneralJS(tree, sourceCode) {
   }
 
   for (const comment of comments) {
-    if (/TODO|FIXME|HACK/i.test(comment.text)) {
+    if (hasTaskComment(comment.text)) {
       issues.push({
         title: "TODO Comment",
         type: "info",
@@ -301,7 +308,7 @@ export default function analyzeGeneralJS(tree, sourceCode) {
       });
     }
 
-    if (looksLikeCommentedCode(comment.text)) {
+    if (commentedCode(comment.text, "js")) {
       issues.push({
         title: "Commented-out Code",
         type: "improvement",
@@ -338,6 +345,7 @@ const buildFunctionData = (node, name, sourceCode) => {
     parameterCount,
     complexity,
     maxNesting,
+    bodyFingerprint: duplicateFingerprint(node),
     bodyCode: bodyNode
       ? getNodeText(bodyNode, sourceCode)
       : getNodeText(node, sourceCode),
@@ -597,7 +605,7 @@ const findDuplicateFunctionGroups = (functions) => {
       continue;
     }
 
-    const fingerprint = normalizeCodeForDuplicateCheck(fn.bodyCode || fn.code);
+    const fingerprint = fn.bodyFingerprint;
     if (!fingerprint) {
       continue;
     }
@@ -612,25 +620,6 @@ const findDuplicateFunctionGroups = (functions) => {
   return Array.from(groupsByFingerprint.values()).filter(
     (group) => group.length > 1,
   );
-};
-
-const normalizeCodeForDuplicateCheck = (code) => {
-  if (!code || typeof code !== "string") {
-    return "";
-  }
-
-  const withoutBlockComments = code.replace(/\/\*[\s\S]*?\*\//g, " ");
-  const withoutLineComments = withoutBlockComments.replace(/\/\/.*$/gm, " ");
-  const normalizedLines = withoutLineComments
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && line !== "{" && line !== "}");
-
-  if (normalizedLines.length < 3) {
-    return "";
-  }
-
-  return normalizedLines.join(" ").replace(/\s+/g, " ");
 };
 
 const isPoorVariableName = (name) => {
@@ -679,28 +668,15 @@ const isCamelCaseName = (name) => {
   return /^[a-z][A-Za-z0-9]*$/.test(name);
 };
 
-const looksLikeCommentedCode = (commentText) => {
-  const normalized = commentText.replace(/^\s*\/+\s?/, "").trim();
-  if (normalized.length === 0) {
-    return false;
-  }
-
-  return /(\b(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*(?:=|;)|\bfunction\s+[A-Za-z_$][\w$]*\s*\(|\bclass\s+[A-Za-z_$][\w$]*\s*\{|\b(?:if|for|while)\s*\(|\breturn\b[^\n;]*;|=>|\{\s*\})/.test(
-    normalized,
-  );
-};
-
 const getNodeText = (node, sourceCode) => {
   return sourceCode.slice(node.startIndex, node.endIndex);
-};
-
-const getNodeKey = (node) => {
-  return `${node.startIndex}:${node.endIndex}:${node.type}`;
 };
 
 const getLine = (node) => {
   return node.startPosition.row + 1;
 };
+
+const getNodeKey = (node) => `${node.startIndex}:${node.endIndex}:${node.type}`;
 
 const traverseTree = (node, callback, parent = null) => {
   callback(node, parent);
